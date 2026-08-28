@@ -158,9 +158,15 @@ function NotesPrint() {
         >
           {/* Header */}
           <Field left={400} top={90} width={330}>KCMH</Field>
-          <Field left={903} top={72} width={335} align="center" size={16}>
-            <span style={{ letterSpacing: "26px" }}>{fileNo}</span>
-          </Field>
+          {HOSP_CELLS.map((cx, i) => {
+            const digits = fileNo.slice(-6).padStart(6, " ");
+            return (
+              <Field key={i} left={cx} top={76} width={41} align="center" size={15}>
+                {digits[i]?.trim() ?? ""}
+              </Field>
+            );
+          })}
+
 
           <Field left={258} top={172} width={78} align="center">M</Field>
           <Field left={355} top={172} width={78} align="center">4</Field>
