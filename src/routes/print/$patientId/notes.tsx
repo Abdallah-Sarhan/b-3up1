@@ -25,6 +25,8 @@ const IH = 1920;
 const x = (px: number) => `${(px / IW) * 100}%`;
 const y = (px: number) => `${(px / IH) * 100}%`;
 
+const HOSP_CELLS = [903, 944, 1023, 1064, 1148, 1191];
+
 const ROW_TOP = 400;
 const ROW_H = 47.2;
 const ROWS = 29;
@@ -181,7 +183,7 @@ function NotesPrint() {
           </Field>
 
           <Field left={262} top={266} width={170} align="center">{patient.doa}</Field>
-          <Field left={488} top={262} width={236} align="center">{patient.doctor}</Field>
+          <Field left={488} top={266} width={236} align="center" size={11}>{patient.doctor}</Field>
 
           <Field left={880} top={278} width={120}>{patient.sex}</Field>
           <Field left={1085} top={278} width={150}>{patient.age}</Field>
