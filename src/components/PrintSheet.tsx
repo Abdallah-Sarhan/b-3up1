@@ -15,10 +15,12 @@ export function usePrintPatient() {
 export function PrintShell({
   title,
   patient,
+  landscape,
   children,
 }: {
   title: string;
   patient: Patient | null | undefined;
+  landscape?: boolean;
   children: React.ReactNode;
 }) {
   const { t } = useLang();
@@ -37,7 +39,14 @@ export function PrintShell({
 
   return (
     <div className="min-h-screen bg-muted py-6 print:bg-white print:py-0">
-      <div className="mx-auto mb-4 flex max-w-[210mm] items-center justify-between px-4 print:hidden">
+      {landscape ? (
+        <style>{`@media print { @page { size: A4 landscape; margin: 8mm; } }`}</style>
+      ) : null}
+      <div
+        className={`mx-auto mb-4 flex items-center justify-between px-4 print:hidden ${
+          landscape ? "max-w-[297mm]" : "max-w-[210mm]"
+        }`}
+      >
         <Link to="/patients/$patientId" params={{ patientId }}>
           <Button variant="outline" size="sm">
             <ArrowRight className="rtl:rotate-180 ltr:rotate-180" />
@@ -52,7 +61,9 @@ export function PrintShell({
       </div>
       <div
         dir="ltr"
-        className="mx-auto w-full max-w-[210mm] bg-white p-[12mm] text-black shadow-md print:max-w-none print:p-0 print:shadow-none"
+        className={`mx-auto w-full bg-white p-[12mm] text-black shadow-md print:max-w-none print:p-0 print:shadow-none ${
+          landscape ? "max-w-[297mm] print:w-full" : "max-w-[210mm]"
+        }`}
         style={{ fontFamily: "'Times New Roman', Times, serif" }}
       >
         {children}
@@ -60,6 +71,7 @@ export function PrintShell({
     </div>
   );
 }
+
 
 export function KcmhHeader({ right }: { right?: string }) {
   return (
