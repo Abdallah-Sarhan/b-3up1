@@ -2,13 +2,15 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, type SbarEntry } from "@/lib/db";
-import { PrintShell, PrintTitle, usePrintPatient } from "@/components/PrintSheet";
+import { PrintShell, usePrintPatient } from "@/components/PrintSheet";
+import logoKcmh from "@/assets/logo-kcmh.png.asset.json";
+import logoMoh from "@/assets/logo-moh.png.asset.json";
 
 export const Route = createFileRoute("/print/$patientId/sbar")({
   head: () => ({
     meta: [
-      { title: "SBAR Handover — Ward 39" },
-      { name: "description", content: "Printable SBAR handover form for Ward 39." },
+      { title: "Hand Over Sheet (SBAR) — Ward 39" },
+      { name: "description", content: "Printable A4 landscape SBAR hand over sheet for Ward 39." },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -31,11 +33,11 @@ function SbarPrint() {
   const byShift = (shift: string): SbarEntry | undefined => entries.find((e) => e.shift === shift);
 
   return (
-    <PrintShell title="SBAR Handover" patient={patient}>
+    <PrintShell title="Hand Over Sheet (SBAR)" patient={patient} landscape>
       {patient && (
         <>
           <div className="mx-auto mb-4 flex max-w-xs items-center gap-2 print:hidden">
-            <label className="text-sm font-sans font-medium">Date:</label>
+            <label className="font-sans text-sm font-medium">Date:</label>
             <input
               type="date"
               value={date}
@@ -50,78 +52,89 @@ function SbarPrint() {
             </datalist>
           </div>
 
-          <PrintTitle>Hand Over</PrintTitle>
+          <div className="border-2 border-black">
+            {/* Logo + title band */}
+            <div className="flex items-center justify-between px-2 py-1">
+              <img src={logoKcmh.url} alt="Kuwait Center for Mental Health" className="h-14 w-auto" />
+              <h1 className="text-lg font-bold underline">Hand Over Sheet(SBAR)</h1>
+              <img src={logoMoh.url} alt="Ministry of Health" className="h-14 w-auto" />
+            </div>
 
-          {/* Patient header — mirrors the SBAR sheet header block */}
-          <table className="mb-2 w-full border-collapse text-sm">
-            <tbody>
-              <tr>
-                <HCell label="DATE" value={date} />
-                <HCell label="Name" value={patient.name} />
-                <HCell label="FILE#" value={patient.fileNo} />
-                <HCell label="DOB/AGE" value={[patient.dob, patient.age].filter(Boolean).join(" / ")} />
-                <HCell label="Diagnosis" value={patient.diagnosis} />
-                <HCell label="Ward" value="39" />
-              </tr>
-              <tr>
-                <HCell label="CID" value={patient.cid} />
-                <HCell label="D.O.A" value={patient.doa} />
-                <HCell label="Nationality" value={patient.nationality} />
-                <HCell label="Sex" value={patient.sex} />
-                <HCell label="Tr. Doctor" value={patient.doctor} />
-                <HCell label="" value="" />
-              </tr>
-            </tbody>
-          </table>
+            {/* Header info grid */}
+            <table className="w-full border-collapse text-[11px]" style={{ tableLayout: "fixed" }}>
+              <tbody>
+                <tr>
+                  <td rowSpan={2} className="w-[7%] border border-black px-1 py-1 text-center align-middle font-bold">
+                    DATE
+                    <div className="font-normal">{date}</div>
+                  </td>
+                  <HCell label="Name:" value={patient.name} width="22%" />
+                  <HCell label="FILE#" value={patient.fileNo} width="17%" />
+                  <HCell label="DOB/AGE:" value={[patient.dob, patient.age].filter(Boolean).join(" / ")} width="19%" />
+                  <td className="w-[27%] border border-black px-1 py-1 text-center font-bold">Diagnosis</td>
+                  <td rowSpan={2} className="w-[8%] border border-black px-1 py-1 text-center align-middle font-bold">
+                    Ward:39
+                  </td>
+                </tr>
+                <tr>
+                  <HCell label="CID" value={patient.cid} />
+                  <HCell label="D.O.A:" value={patient.doa} />
+                  <HCell label="Nationality" value={patient.nationality} />
+                  <td className="border border-black px-1 py-1 text-center font-bold">
+                    {patient.diagnosis?.toUpperCase() || "—"}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
 
-          <table className="w-full border-collapse text-sm" style={{ tableLayout: "fixed" }}>
-            <thead>
-              <tr>
-                <th className="w-[10%] border border-black bg-neutral-100 px-1 py-1.5">Shift</th>
-                <th className="w-[19%] border border-black bg-neutral-100 px-1 py-1.5">Situation</th>
-                <th className="w-[19%] border border-black bg-neutral-100 px-1 py-1.5">Background</th>
-                <th className="w-[19%] border border-black bg-neutral-100 px-1 py-1.5">Assessment</th>
-                <th className="w-[19%] border border-black bg-neutral-100 px-1 py-1.5">Recommendation</th>
-                <th className="w-[14%] border border-black bg-neutral-100 px-1 py-1.5">Signature</th>
-              </tr>
-            </thead>
-            <tbody>
-              {SHIFT_ROWS.map(({ key, label }) => {
-                const e = byShift(key);
-                return (
-                  <tr key={key}>
-                    <td className="border border-black px-1 py-1 text-center text-xs font-bold whitespace-pre-line align-middle">
-                      {label}
-                    </td>
-                    <BCell>{e?.situation}</BCell>
-                    <BCell>{e?.background}</BCell>
-                    <BCell>{e?.assessment}</BCell>
-                    <BCell>{e?.recommendation}</BCell>
-                    <BCell>{e?.signature}</BCell>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+            {/* SBAR grid */}
+            <table className="w-full border-collapse text-[11px]" style={{ tableLayout: "fixed" }}>
+              <thead>
+                <tr>
+                  <th className="w-[7%] border border-black px-1 py-0.5">Shift</th>
+                  <th className="w-[21%] border border-black px-1 py-0.5">Situation</th>
+                  <th className="w-[18%] border border-black px-1 py-0.5">Background</th>
+                  <th className="w-[21%] border border-black px-1 py-0.5">Assessment</th>
+                  <th className="w-[24%] border border-black px-1 py-0.5">Recommendation</th>
+                  <th className="w-[9%] border border-black px-1 py-0.5">Signature</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SHIFT_ROWS.map(({ key, label }) => {
+                  const e = byShift(key);
+                  return (
+                    <tr key={key}>
+                      <td className="h-[52mm] border border-black px-1 py-1 text-center align-middle text-[11px] font-bold whitespace-pre-line">
+                        {label}
+                      </td>
+                      <BCell>{e?.situation}</BCell>
+                      <BCell>{e?.background}</BCell>
+                      <BCell>{e?.assessment}</BCell>
+                      <BCell>{e?.recommendation}</BCell>
+                      <BCell>{e?.signature}</BCell>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </PrintShell>
   );
 }
 
-function HCell({ label, value }: { label: string; value: string }) {
+function HCell({ label, value, width }: { label: string; value: string; width?: string }) {
   return (
-    <td className="border border-black px-1.5 py-1">
-      {label ? <span className="font-bold">{label}: </span> : null}
-      {value || (label ? "—" : "")}
+    <td className="border border-black px-1 py-1 align-top" style={width ? { width } : undefined}>
+      <span className="font-bold">{label} </span>
+      <span>{value || "—"}</span>
     </td>
   );
 }
 
 function BCell({ children }: { children: string | undefined }) {
   return (
-    <td className="h-28 border border-black px-1.5 py-1 align-top text-xs whitespace-pre-wrap">
-      {children ?? ""}
-    </td>
+    <td className="border border-black px-1.5 py-1 align-top text-[11px] whitespace-pre-wrap">{children ?? ""}</td>
   );
 }
