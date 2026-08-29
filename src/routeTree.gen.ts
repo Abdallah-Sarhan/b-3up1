@@ -24,6 +24,7 @@ import { Route as PrintPatientIdCareplanRouteImport } from './routes/print/$pati
 import { Route as PrintPatientIdNotesRouteImport } from './routes/print/$patientId/notes'
 import { Route as PrintPatientIdSbarRouteImport } from './routes/print/$patientId/sbar'
 import { Route as PrintPatientIdSummaryRouteImport } from './routes/print/$patientId/summary'
+import { Route as PrintPatientIdTreatmentRouteImport } from './routes/print/$patientId/treatment'
 import { Route as PrintPatientIdVitalsRouteImport } from './routes/print/$patientId/vitals'
 
 const IndexRoute = IndexRouteImport.update({
@@ -101,6 +102,11 @@ const PrintPatientIdSummaryRoute = PrintPatientIdSummaryRouteImport.update({
   path: '/print/$patientId/summary',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrintPatientIdTreatmentRoute = PrintPatientIdTreatmentRouteImport.update({
+  id: '/print/$patientId/treatment',
+  path: '/print/$patientId/treatment',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrintPatientIdVitalsRoute = PrintPatientIdVitalsRouteImport.update({
   id: '/print/$patientId/vitals',
   path: '/print/$patientId/vitals',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/print/$patientId/notes': typeof PrintPatientIdNotesRoute
   '/print/$patientId/sbar': typeof PrintPatientIdSbarRoute
   '/print/$patientId/summary': typeof PrintPatientIdSummaryRoute
+  '/print/$patientId/treatment': typeof PrintPatientIdTreatmentRoute
   '/print/$patientId/vitals': typeof PrintPatientIdVitalsRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/print/$patientId/notes': typeof PrintPatientIdNotesRoute
   '/print/$patientId/sbar': typeof PrintPatientIdSbarRoute
   '/print/$patientId/summary': typeof PrintPatientIdSummaryRoute
+  '/print/$patientId/treatment': typeof PrintPatientIdTreatmentRoute
   '/print/$patientId/vitals': typeof PrintPatientIdVitalsRoute
   '/patients/$patientId': typeof PatientsPatientIdIndexRoute
 }
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/print/$patientId/notes': typeof PrintPatientIdNotesRoute
   '/print/$patientId/sbar': typeof PrintPatientIdSbarRoute
   '/print/$patientId/summary': typeof PrintPatientIdSummaryRoute
+  '/print/$patientId/treatment': typeof PrintPatientIdTreatmentRoute
   '/print/$patientId/vitals': typeof PrintPatientIdVitalsRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/print/$patientId/notes'
     | '/print/$patientId/sbar'
     | '/print/$patientId/summary'
+    | '/print/$patientId/treatment'
     | '/print/$patientId/vitals'
     | '/patients/$patientId/'
   fileRoutesByTo: FileRoutesByTo
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/print/$patientId/notes'
     | '/print/$patientId/sbar'
     | '/print/$patientId/summary'
+    | '/print/$patientId/treatment'
     | '/print/$patientId/vitals'
     | '/patients/$patientId'
   id:
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/print/$patientId/notes'
     | '/print/$patientId/sbar'
     | '/print/$patientId/summary'
+    | '/print/$patientId/treatment'
     | '/print/$patientId/vitals'
     | '/patients/$patientId/'
   fileRoutesById: FileRoutesById
@@ -234,6 +246,7 @@ export interface RootRouteChildren {
   PrintPatientIdNotesRoute: typeof PrintPatientIdNotesRoute
   PrintPatientIdSbarRoute: typeof PrintPatientIdSbarRoute
   PrintPatientIdSummaryRoute: typeof PrintPatientIdSummaryRoute
+  PrintPatientIdTreatmentRoute: typeof PrintPatientIdTreatmentRoute
   PrintPatientIdVitalsRoute: typeof PrintPatientIdVitalsRoute
   PatientsPatientIdIndexRoute: typeof PatientsPatientIdIndexRoute
 }
@@ -345,6 +358,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrintPatientIdSummaryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/print/$patientId/treatment': {
+      id: '/print/$patientId/treatment'
+      path: '/print/$patientId/treatment'
+      fullPath: '/print/$patientId/treatment'
+      preLoaderRoute: typeof PrintPatientIdTreatmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/print/$patientId/vitals': {
       id: '/print/$patientId/vitals'
       path: '/print/$patientId/vitals'
@@ -370,6 +390,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrintPatientIdNotesRoute: PrintPatientIdNotesRoute,
   PrintPatientIdSbarRoute: PrintPatientIdSbarRoute,
   PrintPatientIdSummaryRoute: PrintPatientIdSummaryRoute,
+  PrintPatientIdTreatmentRoute: PrintPatientIdTreatmentRoute,
   PrintPatientIdVitalsRoute: PrintPatientIdVitalsRoute,
   PatientsPatientIdIndexRoute: PatientsPatientIdIndexRoute,
 }
