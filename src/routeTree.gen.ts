@@ -21,6 +21,7 @@ import { Route as PatientsNewRouteImport } from './routes/patients/new'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId/index'
 import { Route as PatientsPatientIdEditRouteImport } from './routes/patients/$patientId/edit'
 import { Route as PrintPatientIdCareplanRouteImport } from './routes/print/$patientId/careplan'
+import { Route as PrintPatientIdConsultationRouteImport } from './routes/print/$patientId/consultation'
 import { Route as PrintPatientIdNotesRouteImport } from './routes/print/$patientId/notes'
 import { Route as PrintPatientIdProgressRouteImport } from './routes/print/$patientId/progress'
 import { Route as PrintPatientIdSbarRouteImport } from './routes/print/$patientId/sbar'
@@ -88,6 +89,12 @@ const PrintPatientIdCareplanRoute = PrintPatientIdCareplanRouteImport.update({
   path: '/print/$patientId/careplan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrintPatientIdConsultationRoute =
+  PrintPatientIdConsultationRouteImport.update({
+    id: '/print/$patientId/consultation',
+    path: '/print/$patientId/consultation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PrintPatientIdNotesRoute = PrintPatientIdNotesRouteImport.update({
   id: '/print/$patientId/notes',
   path: '/print/$patientId/notes',
@@ -131,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/patients/': typeof PatientsIndexRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/print/$patientId/careplan': typeof PrintPatientIdCareplanRoute
+  '/print/$patientId/consultation': typeof PrintPatientIdConsultationRoute
   '/print/$patientId/notes': typeof PrintPatientIdNotesRoute
   '/print/$patientId/progress': typeof PrintPatientIdProgressRoute
   '/print/$patientId/sbar': typeof PrintPatientIdSbarRoute
@@ -151,6 +159,7 @@ export interface FileRoutesByTo {
   '/patients': typeof PatientsIndexRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/print/$patientId/careplan': typeof PrintPatientIdCareplanRoute
+  '/print/$patientId/consultation': typeof PrintPatientIdConsultationRoute
   '/print/$patientId/notes': typeof PrintPatientIdNotesRoute
   '/print/$patientId/progress': typeof PrintPatientIdProgressRoute
   '/print/$patientId/sbar': typeof PrintPatientIdSbarRoute
@@ -172,6 +181,7 @@ export interface FileRoutesById {
   '/patients/': typeof PatientsIndexRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/print/$patientId/careplan': typeof PrintPatientIdCareplanRoute
+  '/print/$patientId/consultation': typeof PrintPatientIdConsultationRoute
   '/print/$patientId/notes': typeof PrintPatientIdNotesRoute
   '/print/$patientId/progress': typeof PrintPatientIdProgressRoute
   '/print/$patientId/sbar': typeof PrintPatientIdSbarRoute
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/patients/'
     | '/patients/$patientId/edit'
     | '/print/$patientId/careplan'
+    | '/print/$patientId/consultation'
     | '/print/$patientId/notes'
     | '/print/$patientId/progress'
     | '/print/$patientId/sbar'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/patients'
     | '/patients/$patientId/edit'
     | '/print/$patientId/careplan'
+    | '/print/$patientId/consultation'
     | '/print/$patientId/notes'
     | '/print/$patientId/progress'
     | '/print/$patientId/sbar'
@@ -234,6 +246,7 @@ export interface FileRouteTypes {
     | '/patients/'
     | '/patients/$patientId/edit'
     | '/print/$patientId/careplan'
+    | '/print/$patientId/consultation'
     | '/print/$patientId/notes'
     | '/print/$patientId/progress'
     | '/print/$patientId/sbar'
@@ -255,6 +268,7 @@ export interface RootRouteChildren {
   PatientsIndexRoute: typeof PatientsIndexRoute
   PatientsPatientIdEditRoute: typeof PatientsPatientIdEditRoute
   PrintPatientIdCareplanRoute: typeof PrintPatientIdCareplanRoute
+  PrintPatientIdConsultationRoute: typeof PrintPatientIdConsultationRoute
   PrintPatientIdNotesRoute: typeof PrintPatientIdNotesRoute
   PrintPatientIdProgressRoute: typeof PrintPatientIdProgressRoute
   PrintPatientIdSbarRoute: typeof PrintPatientIdSbarRoute
@@ -350,6 +364,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrintPatientIdCareplanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/print/$patientId/consultation': {
+      id: '/print/$patientId/consultation'
+      path: '/print/$patientId/consultation'
+      fullPath: '/print/$patientId/consultation'
+      preLoaderRoute: typeof PrintPatientIdConsultationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/print/$patientId/notes': {
       id: '/print/$patientId/notes'
       path: '/print/$patientId/notes'
@@ -407,6 +428,7 @@ const rootRouteChildren: RootRouteChildren = {
   PatientsIndexRoute: PatientsIndexRoute,
   PatientsPatientIdEditRoute: PatientsPatientIdEditRoute,
   PrintPatientIdCareplanRoute: PrintPatientIdCareplanRoute,
+  PrintPatientIdConsultationRoute: PrintPatientIdConsultationRoute,
   PrintPatientIdNotesRoute: PrintPatientIdNotesRoute,
   PrintPatientIdProgressRoute: PrintPatientIdProgressRoute,
   PrintPatientIdSbarRoute: PrintPatientIdSbarRoute,
