@@ -194,7 +194,7 @@ function AssignmentPage() {
 
             <div className="flex border-y border-black text-[11px] font-bold">
               <div className="flex-1 border-e border-black px-1 py-0.5">MINISTRY OF HEALTH</div>
-              <div className="flex-1 border-e border-black px-1 py-0.5 text-center">LEADER: {leader || "\u2014"}</div>
+              <div className="flex-1 border-e border-black px-1 py-0.5 text-center">LEADER: {leader || "—"}</div>
               <div className="flex-1 border-e border-black px-1 py-0.5 text-center">WARD: 39</div>
               <div className="flex-1 px-1 py-0.5 text-center">SHIFT {shiftLabel}</div>
             </div>
