@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { LogOut, Search, Undo2 } from "lucide-react";
-import { db, dbReady } from "@/lib/db";
+import { db, dbReady, dischargePatient, readmitPatient } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, CardHeader, Input } from "@/components/ui-kit";
 
@@ -46,17 +46,13 @@ function DischargePage() {
   async function discharge(id: number) {
     const note = window.prompt(t("dischargeNote")) ?? "";
     if (!window.confirm(t("confirmDischarge"))) return;
-    await db.patients.update(id, {
-      dischargedAt: new Date().toISOString().slice(0, 10),
-      dischargeNote: note,
-      updatedAt: Date.now(),
-    });
+    await dischargePatient(id, note);
     toast.success(t("dischargeDone"));
   }
 
   async function readmit(id: number) {
-    await db.patients.update(id, { dischargedAt: "", updatedAt: Date.now() });
-    toast.success(t("savedOk"));
+    await readmitPatient(id);
+    toast.success(t("readmittedOk"));
   }
 
   return (
@@ -107,6 +103,7 @@ function DischargePage() {
                 <p className="text-xs text-muted-foreground">
                   {p.dischargedAt} {p.dischargeNote ? `· ${p.dischargeNote}` : ""}
                 </p>
+                <AdmissionHistory patientId={p.id!} />
               </div>
               <Button variant="outline" size="sm" onClick={() => readmit(p.id!)}>
                 <Undo2 />
@@ -120,5 +117,28 @@ function DischargePage() {
         </ul>
       </Card>
     </div>
+  );
+}
+
+function AdmissionHistory({ patientId }: { patientId: number }) {
+  const { t } = useLang();
+  const list = useLiveQuery(
+    () => db.admissions.where("patientId").equals(patientId).sortBy("admittedAt"),
+    [patientId],
+  );
+  if (!list || list.length === 0) return null;
+  return (
+    <details className="mt-1 text-xs text-muted-foreground">
+      <summary className="cursor-pointer">{t("admissionHistory")} ({list.length})</summary>
+      <ul className="mt-1 space-y-0.5 ps-4">
+        {list.map((a) => (
+          <li key={a.id}>
+            {t("admittedOn")}: {a.admittedAt} —{" "}
+            {a.dischargedAt ? `${t("discharged")}: ${a.dischargedAt}` : t("stillAdmitted")}
+            {a.dischargeNote ? ` · ${a.dischargeNote}` : ""}
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }

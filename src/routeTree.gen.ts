@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssignmentRouteImport } from './routes/assignment'
 import { Route as DischargeRouteImport } from './routes/discharge'
+import { Route as HandoverRouteImport } from './routes/handover'
 import { Route as NcpRouteImport } from './routes/ncp'
 import { Route as PaperFormsRouteImport } from './routes/paper-forms'
 import { Route as RoundsRouteImport } from './routes/rounds'
@@ -29,6 +30,7 @@ import { Route as PrintPatientIdSbarRouteImport } from './routes/print/$patientI
 import { Route as PrintPatientIdSummaryRouteImport } from './routes/print/$patientId/summary'
 import { Route as PrintPatientIdTreatmentRouteImport } from './routes/print/$patientId/treatment'
 import { Route as PrintPatientIdVitalsRouteImport } from './routes/print/$patientId/vitals'
+import { Route as PrintAllFormRouteImport } from './routes/print/all.$form'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -43,6 +45,11 @@ const AssignmentRoute = AssignmentRouteImport.update({
 const DischargeRoute = DischargeRouteImport.update({
   id: '/discharge',
   path: '/discharge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HandoverRoute = HandoverRouteImport.update({
+  id: '/handover',
+  path: '/handover',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NcpRoute = NcpRouteImport.update({
@@ -131,11 +138,17 @@ const PrintPatientIdVitalsRoute = PrintPatientIdVitalsRouteImport.update({
   path: '/print/$patientId/vitals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrintAllFormRoute = PrintAllFormRouteImport.update({
+  id: '/print/all/$form',
+  path: '/print/all/$form',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assignment': typeof AssignmentRoute
   '/discharge': typeof DischargeRoute
+  '/handover': typeof HandoverRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
   '/rounds': typeof RoundsRoute
@@ -152,12 +165,14 @@ export interface FileRoutesByFullPath {
   '/print/$patientId/summary': typeof PrintPatientIdSummaryRoute
   '/print/$patientId/treatment': typeof PrintPatientIdTreatmentRoute
   '/print/$patientId/vitals': typeof PrintPatientIdVitalsRoute
+  '/print/all/$form': typeof PrintAllFormRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assignment': typeof AssignmentRoute
   '/discharge': typeof DischargeRoute
+  '/handover': typeof HandoverRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
   '/rounds': typeof RoundsRoute
@@ -174,6 +189,7 @@ export interface FileRoutesByTo {
   '/print/$patientId/summary': typeof PrintPatientIdSummaryRoute
   '/print/$patientId/treatment': typeof PrintPatientIdTreatmentRoute
   '/print/$patientId/vitals': typeof PrintPatientIdVitalsRoute
+  '/print/all/$form': typeof PrintAllFormRoute
   '/patients/$patientId': typeof PatientsPatientIdIndexRoute
 }
 export interface FileRoutesById {
@@ -181,6 +197,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/assignment': typeof AssignmentRoute
   '/discharge': typeof DischargeRoute
+  '/handover': typeof HandoverRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
   '/rounds': typeof RoundsRoute
@@ -197,6 +214,7 @@ export interface FileRoutesById {
   '/print/$patientId/summary': typeof PrintPatientIdSummaryRoute
   '/print/$patientId/treatment': typeof PrintPatientIdTreatmentRoute
   '/print/$patientId/vitals': typeof PrintPatientIdVitalsRoute
+  '/print/all/$form': typeof PrintAllFormRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -205,6 +223,7 @@ export interface FileRouteTypes {
     | '/'
     | '/assignment'
     | '/discharge'
+    | '/handover'
     | '/ncp'
     | '/paper-forms'
     | '/rounds'
@@ -221,12 +240,14 @@ export interface FileRouteTypes {
     | '/print/$patientId/summary'
     | '/print/$patientId/treatment'
     | '/print/$patientId/vitals'
+    | '/print/all/$form'
     | '/patients/$patientId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/assignment'
     | '/discharge'
+    | '/handover'
     | '/ncp'
     | '/paper-forms'
     | '/rounds'
@@ -243,12 +264,14 @@ export interface FileRouteTypes {
     | '/print/$patientId/summary'
     | '/print/$patientId/treatment'
     | '/print/$patientId/vitals'
+    | '/print/all/$form'
     | '/patients/$patientId'
   id:
     | '__root__'
     | '/'
     | '/assignment'
     | '/discharge'
+    | '/handover'
     | '/ncp'
     | '/paper-forms'
     | '/rounds'
@@ -265,6 +288,7 @@ export interface FileRouteTypes {
     | '/print/$patientId/summary'
     | '/print/$patientId/treatment'
     | '/print/$patientId/vitals'
+    | '/print/all/$form'
     | '/patients/$patientId/'
   fileRoutesById: FileRoutesById
 }
@@ -272,6 +296,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AssignmentRoute: typeof AssignmentRoute
   DischargeRoute: typeof DischargeRoute
+  HandoverRoute: typeof HandoverRoute
   NcpRoute: typeof NcpRoute
   PaperFormsRoute: typeof PaperFormsRoute
   RoundsRoute: typeof RoundsRoute
@@ -288,6 +313,7 @@ export interface RootRouteChildren {
   PrintPatientIdSummaryRoute: typeof PrintPatientIdSummaryRoute
   PrintPatientIdTreatmentRoute: typeof PrintPatientIdTreatmentRoute
   PrintPatientIdVitalsRoute: typeof PrintPatientIdVitalsRoute
+  PrintAllFormRoute: typeof PrintAllFormRoute
   PatientsPatientIdIndexRoute: typeof PatientsPatientIdIndexRoute
 }
 
@@ -312,6 +338,13 @@ declare module '@tanstack/react-router' {
       path: '/discharge'
       fullPath: '/discharge'
       preLoaderRoute: typeof DischargeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/handover': {
+      id: '/handover'
+      path: '/handover'
+      fullPath: '/handover'
+      preLoaderRoute: typeof HandoverRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ncp': {
@@ -433,6 +466,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrintPatientIdVitalsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/print/all/$form': {
+      id: '/print/all/$form'
+      path: '/print/all/$form'
+      fullPath: '/print/all/$form'
+      preLoaderRoute: typeof PrintAllFormRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -440,6 +480,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AssignmentRoute: AssignmentRoute,
   DischargeRoute: DischargeRoute,
+  HandoverRoute: HandoverRoute,
   NcpRoute: NcpRoute,
   PaperFormsRoute: PaperFormsRoute,
   RoundsRoute: RoundsRoute,
@@ -456,6 +497,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrintPatientIdSummaryRoute: PrintPatientIdSummaryRoute,
   PrintPatientIdTreatmentRoute: PrintPatientIdTreatmentRoute,
   PrintPatientIdVitalsRoute: PrintPatientIdVitalsRoute,
+  PrintAllFormRoute: PrintAllFormRoute,
   PatientsPatientIdIndexRoute: PatientsPatientIdIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -4,6 +4,7 @@ import { ClipboardList, FileText, HeartPulse, NotebookPen, Printer } from "lucid
 import { useLang } from "@/lib/i18n";
 import { Card, CardHeader, Field } from "@/components/ui-kit";
 import { PatientPicker, useActivePatients } from "@/components/PatientPicker";
+import { PRINT_FORMS } from "@/components/print-content";
 
 export const Route = createFileRoute("/paper-forms")({
   head: () => ({
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/paper-forms")({
 });
 
 function PaperFormsPage() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const patients = useActivePatients();
   const [patientId, setPatientId] = useState<number | "">("");
 
@@ -69,6 +70,22 @@ function PaperFormsPage() {
           ),
         )}
       </div>
+
+      <Card>
+        <CardHeader title={t("batchPrint")} subtitle={String(patients?.length ?? 0)} />
+        <div className="flex flex-wrap gap-2 px-5 py-4">
+          {PRINT_FORMS.map((f) => (
+            <Link
+              key={f.key}
+              to="/print/all/$form"
+              params={{ form: f.key }}
+              className="rounded-md border border-border bg-card px-3 py-1.5 text-sm font-medium hover:border-primary hover:bg-accent"
+            >
+              {lang === "ar" ? f.ar : f.en}
+            </Link>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   Pill,
   Users,
   ClipboardList,
+  LayoutDashboard,
 } from "lucide-react";
 import { useLang } from "@/lib/i18n";
 import { useActivePatients } from "@/components/PatientPicker";
@@ -38,6 +39,7 @@ function HomePage() {
   const patients = useActivePatients();
 
   const tiles = [
+    { to: "/handover", icon: LayoutDashboard, label: t("handover"), tone: "plain" },
     { to: "/patients/new", icon: UserPlus, label: t("addPt"), tone: "primary" },
     { to: "/discharge", icon: LogOut, label: t("dischPt"), tone: "plain" },
     { to: "/rounds", icon: Stethoscope, label: t("rounds"), tone: "plain" },

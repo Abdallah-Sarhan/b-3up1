@@ -133,6 +133,22 @@ const dict = {
   today: { ar: "اليوم", en: "Today" },
   openFile: { ar: "فتح الملف", en: "Open file" },
   clear: { ar: "مسح", en: "Clear" },
+  printAll: { ar: "طباعة الكل", en: "Print all" },
+  batchPrint: { ar: "طباعة نموذج لكل المرضى", en: "Print a form for all patients" },
+  handover: { ar: "تسليم الوردية", en: "Shift Handover" },
+  admissionHistory: { ar: "سجل الدخول والخروج", en: "Admission history" },
+  admittedOn: { ar: "تاريخ الدخول", en: "Admitted" },
+  stillAdmitted: { ar: "ما زال بالجناح", en: "Still admitted" },
+  lastVitals: { ar: "آخر علامات حيوية", en: "Last vitals" },
+  vitalsDue: { ar: "علامات حيوية مستحقة", en: "Vitals due" },
+  noVitalsToday: { ar: "لا توجد علامات حيوية اليوم", en: "No vitals today" },
+  todaySbar: { ar: "تسليم اليوم (SBAR)", en: "Today's SBAR" },
+  morning: { ar: "صباحي", en: "Morning" },
+  evening: { ar: "مسائي", en: "Evening" },
+  night: { ar: "ليلي", en: "Night" },
+  unassigned: { ar: "غير موزع", en: "Unassigned" },
+  done: { ar: "تم", en: "Done" },
+  missing: { ar: "ناقص", en: "Missing" },
 } as const;
 
 export type TKey = keyof typeof dict;
