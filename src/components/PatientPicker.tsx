@@ -96,9 +96,10 @@ export function PatientPicker({
       e.preventDefault();
       setActive((i) => Math.max(i - 1, -1));
     } else if (e.key === "Enter") {
-      if (active >= 0 && active < matches.length) {
+      const m = matches[active];
+      if (active >= 0 && m) {
         e.preventDefault();
-        pick(matches[active]);
+        pick(m);
       } else {
         setOpen(false);
       }
