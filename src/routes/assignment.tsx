@@ -104,8 +104,23 @@ function AssignmentPage() {
   const groups = useMemo(() => distribute(list, Math.max(nurseCount, 1)), [list, nurseCount]);
   const shiftLabel = SHIFTS.find((s) => s.key === shift)?.label ?? "";
 
-  async function save() {
-    const existing = await db.assignments.where("date").equals(date).toArray();
+    /** A team leader is mandatory before saving or printing. */
+    function requireLeader(): boolean {
+      if (!leader.trim()) {
+        toast.error(
+          lang === "ar"
+            ? "يجب اختيار قائد الفريق (Team Leader) لهذه الوردية أولاً"
+            : "Please select a team leader for this shift first",
+        );
+        return false;
+      }
+      return true;
+    }
+
+    async function save() {
+      if (!requireLeader()) return;
+      await db.meta.put({ key: `leader:${date}:${shift}`, value: leader.trim() });
+      const existing = await db.assignments.where("date").equals(date).toArray();
     await Promise.all(
       existing.filter((e) => e.shift === shift && e.id != null).map((e) => db.assignments.delete(e.id!)),
     );
@@ -139,10 +154,10 @@ function AssignmentPage() {
             <Save />
             {t("save")}
           </Button>
-          <Button onClick={() => window.print()}>
-            <Printer />
-            {t("print")}
-          </Button>
+            <Button onClick={() => { if (requireLeader()) window.print(); }}>
+              <Printer />
+              {t("print")}
+            </Button>
         </div>
       </div>
 
@@ -173,9 +188,23 @@ function AssignmentPage() {
               onChange={(e) => setNurseCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
             />
           </Field>
-          <Field label={lang === "ar" ? "قائد الفريق" : "Team leader"}>
-            <Input value={leader} onChange={(e) => setLeader(e.target.value)} placeholder="S/N ..." />
-          </Field>
+            <Field label={lang === "ar" ? "قائد الفريق (واحد فقط لكل وردية)" : "Team leader (one per shift)"}>
+              <div className="relative">
+                <Input
+                  value={leader}
+                  onChange={(e) => setLeader(e.target.value)}
+                  placeholder="S/N ..."
+                  list="leader-names"
+                  className="pe-8"
+                />
+                <UserCheck className="pointer-events-none absolute end-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50" />
+              </div>
+              <datalist id="leader-names">
+                {leaderNames.map((n) => (
+                  <option key={n} value={n} />
+                ))}
+              </datalist>
+            </Field>
 
           {nurses.map((n, i) => (
             <Field key={i} label={`${lang === "ar" ? "ممرض" : "Nurse"} ${i + 1}`}>
