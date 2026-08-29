@@ -48,7 +48,7 @@ function NursingDbPrint() {
             <F left={500} top={140} width={65} align="center">{patient.room}</F>
             <F left={587} top={140} width={70} align="center">{patient.bed}</F>
 
-            <F left={845} top={162} width={385} size={14}>{patient.name}</F>
+            <F left={868} top={162} width={385} size={14}>{patient.name}</F>
             <BoxedDigits value={cid} cells={12} left={852} width={363} top={205} iw={IW} ih={IH} size={12} />
 
             <F left={855} top={258} width={70}>{patient.sex}</F>

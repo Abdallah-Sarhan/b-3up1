@@ -61,7 +61,7 @@ function ProgressPrint() {
             <F left={175} top={212} width={135} align="center" size={12}>{patient.doa}</F>
             <F left={330} top={212} width={205} align="center" size={11}>{patient.doctor}</F>
 
-            <F left={270} top={305} width={720} size={12}>{patient.diagnosis}</F>
+            <F left={310} top={305} width={720} size={12}>{patient.diagnosis}</F>
 
             {list.map((r, i) => {
               const top = ROW_TOP + i * ROW_H + 7;

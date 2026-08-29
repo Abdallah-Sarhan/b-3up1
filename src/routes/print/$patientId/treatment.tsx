@@ -44,7 +44,7 @@ function TreatmentPrint() {
         return (
           <>
             <F left={300} top={88} width={280}>KCMH</F>
-            <BoxedDigits value={fileNo} cells={6} left={740} width={325} top={78} iw={IW} ih={IH} />
+            <BoxedDigits value={fileNo} cells={6} left={740} width={325} top={90} iw={IW} ih={IH} />
 
             <F left={190} top={158} width={72} align="center">M</F>
             <F left={273} top={158} width={72} align="center">4</F>

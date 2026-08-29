@@ -29,14 +29,14 @@ function ConsultationPrint() {
         const fileNo = (patient.fileNo || "").replace(/\D/g, "");
         return (
           <>
-            <F left={300} top={52} width={300}>KCMH</F>
+            <F left={330} top={52} width={280}>KCMH</F>
             <BoxedDigits value={fileNo} cells={6} left={845} width={245} top={52} iw={IW} ih={IH} />
 
-            <F left={195} top={112} width={70} align="center">M</F>
-            <F left={275} top={112} width={70} align="center">4</F>
-            <F left={385} top={112} width={70} align="center">39</F>
-            <F left={475} top={112} width={70} align="center">{patient.room}</F>
-            <F left={562} top={112} width={70} align="center">{patient.bed}</F>
+            <F left={195} top={142} width={70} align="center">M</F>
+            <F left={275} top={142} width={70} align="center">4</F>
+            <F left={385} top={142} width={70} align="center">39</F>
+            <F left={475} top={142} width={70} align="center">{patient.room}</F>
+            <F left={562} top={142} width={70} align="center">{patient.bed}</F>
 
             <F left={745} top={148} width={340} size={14}>{patient.name}</F>
             <BoxedDigits value={cid} cells={12} left={730} width={358} top={192} iw={IW} ih={IH} size={12} />
