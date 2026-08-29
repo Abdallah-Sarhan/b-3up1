@@ -29,6 +29,7 @@ import { Route as PrintPatientIdSbarRouteImport } from './routes/print/$patientI
 import { Route as PrintPatientIdSummaryRouteImport } from './routes/print/$patientId/summary'
 import { Route as PrintPatientIdTreatmentRouteImport } from './routes/print/$patientId/treatment'
 import { Route as PrintPatientIdVitalsRouteImport } from './routes/print/$patientId/vitals'
+import { Route as PrintAllFormRouteImport } from './routes/print/all.$form'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -131,6 +132,11 @@ const PrintPatientIdVitalsRoute = PrintPatientIdVitalsRouteImport.update({
   path: '/print/$patientId/vitals',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrintAllFormRoute = PrintAllFormRouteImport.update({
+  id: '/print/all/$form',
+  path: '/print/all/$form',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/print/$patientId/summary': typeof PrintPatientIdSummaryRoute
   '/print/$patientId/treatment': typeof PrintPatientIdTreatmentRoute
   '/print/$patientId/vitals': typeof PrintPatientIdVitalsRoute
+  '/print/all/$form': typeof PrintAllFormRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/print/$patientId/summary': typeof PrintPatientIdSummaryRoute
   '/print/$patientId/treatment': typeof PrintPatientIdTreatmentRoute
   '/print/$patientId/vitals': typeof PrintPatientIdVitalsRoute
+  '/print/all/$form': typeof PrintAllFormRoute
   '/patients/$patientId': typeof PatientsPatientIdIndexRoute
 }
 export interface FileRoutesById {
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/print/$patientId/summary': typeof PrintPatientIdSummaryRoute
   '/print/$patientId/treatment': typeof PrintPatientIdTreatmentRoute
   '/print/$patientId/vitals': typeof PrintPatientIdVitalsRoute
+  '/print/all/$form': typeof PrintAllFormRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/print/$patientId/summary'
     | '/print/$patientId/treatment'
     | '/print/$patientId/vitals'
+    | '/print/all/$form'
     | '/patients/$patientId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -243,6 +253,7 @@ export interface FileRouteTypes {
     | '/print/$patientId/summary'
     | '/print/$patientId/treatment'
     | '/print/$patientId/vitals'
+    | '/print/all/$form'
     | '/patients/$patientId'
   id:
     | '__root__'
@@ -265,6 +276,7 @@ export interface FileRouteTypes {
     | '/print/$patientId/summary'
     | '/print/$patientId/treatment'
     | '/print/$patientId/vitals'
+    | '/print/all/$form'
     | '/patients/$patientId/'
   fileRoutesById: FileRoutesById
 }
@@ -288,6 +300,7 @@ export interface RootRouteChildren {
   PrintPatientIdSummaryRoute: typeof PrintPatientIdSummaryRoute
   PrintPatientIdTreatmentRoute: typeof PrintPatientIdTreatmentRoute
   PrintPatientIdVitalsRoute: typeof PrintPatientIdVitalsRoute
+  PrintAllFormRoute: typeof PrintAllFormRoute
   PatientsPatientIdIndexRoute: typeof PatientsPatientIdIndexRoute
 }
 
@@ -433,6 +446,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrintPatientIdVitalsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/print/all/$form': {
+      id: '/print/all/$form'
+      path: '/print/all/$form'
+      fullPath: '/print/all/$form'
+      preLoaderRoute: typeof PrintAllFormRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -456,6 +476,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrintPatientIdSummaryRoute: PrintPatientIdSummaryRoute,
   PrintPatientIdTreatmentRoute: PrintPatientIdTreatmentRoute,
   PrintPatientIdVitalsRoute: PrintPatientIdVitalsRoute,
+  PrintAllFormRoute: PrintAllFormRoute,
   PatientsPatientIdIndexRoute: PatientsPatientIdIndexRoute,
 }
 export const routeTree = rootRouteImport
