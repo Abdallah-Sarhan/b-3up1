@@ -101,6 +101,15 @@ export interface CarePlanEntry {
   nurseSign: string;
 }
 
+export interface Admission {
+  id?: number;
+  patientId: number;
+  admittedAt: string;
+  dischargedAt?: string;
+  dischargeNote?: string;
+  createdAt: number;
+}
+
 interface MetaRow {
   key: string;
   value: string;
@@ -115,6 +124,7 @@ class WardDB extends Dexie {
   rounds!: Table<RoundEntry, number>;
   tranq!: Table<TranqEntry, number>;
   assignments!: Table<AssignmentEntry, number>;
+  admissions!: Table<Admission, number>;
   meta!: Table<MetaRow, string>;
 
   constructor() {
@@ -132,6 +142,9 @@ class WardDB extends Dexie {
       rounds: "++id, patientId, date",
       tranq: "++id, patientId, date",
       assignments: "++id, patientId, date",
+    });
+    this.version(3).stores({
+      admissions: "++id, patientId, admittedAt, dischargedAt",
     });
   }
 }
@@ -194,4 +207,46 @@ export function emptyPatient(): Omit<Patient, "id"> {
     createdAt: now,
     updatedAt: now,
   };
+}
+
+/** Close the current admission and mark the patient as discharged. */
+export async function dischargePatient(patientId: number, note: string) {
+  const today = new Date().toISOString().slice(0, 10);
+  const patient = await db.patients.get(patientId);
+  const open = (await db.admissions.where("patientId").equals(patientId).toArray()).find(
+    (a) => !a.dischargedAt,
+  );
+  if (open?.id != null) {
+    await db.admissions.update(open.id, { dischargedAt: today, dischargeNote: note });
+  } else {
+    await db.admissions.add({
+      patientId,
+      admittedAt: patient?.doa || today,
+      dischargedAt: today,
+      dischargeNote: note,
+      createdAt: Date.now(),
+    });
+  }
+  await db.patients.update(patientId, {
+    dischargedAt: today,
+    dischargeNote: note,
+    updatedAt: Date.now(),
+  });
+}
+
+/** Re-admit an archived patient; previous history is preserved. */
+export async function readmitPatient(patientId: number, admittedAt?: string) {
+  const doa = admittedAt || new Date().toISOString().slice(0, 10);
+  const open = (await db.admissions.where("patientId").equals(patientId).toArray()).find(
+    (a) => !a.dischargedAt,
+  );
+  if (!open) {
+    await db.admissions.add({ patientId, admittedAt: doa, createdAt: Date.now() });
+  }
+  await db.patients.update(patientId, (obj) => {
+    obj.doa = doa;
+    obj.updatedAt = Date.now();
+    delete obj.dischargedAt;
+    delete obj.dischargeNote;
+  });
 }
