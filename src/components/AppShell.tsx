@@ -1,11 +1,13 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { Activity, Languages, Users } from "lucide-react";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { Activity, ArrowRight, Languages, Users } from "lucide-react";
 import { useLang } from "@/lib/i18n";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { lang, setLang, t } = useLang();
+  const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isPrint = pathname.startsWith("/print");
+  const isHome = pathname === "/";
 
   if (isPrint) return <>{children}</>;
 
@@ -13,6 +15,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur print:hidden">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
+          <div className="flex items-center gap-2">
+            {!isHome && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.history.length > 1) router.history.back();
+                  else router.navigate({ to: "/" });
+                }}
+                className="inline-flex size-9 items-center justify-center rounded-md border border-input hover:bg-accent"
+                aria-label={t("back")}
+                title={t("back")}
+              >
+                <ArrowRight className="size-4" />
+              </button>
+            )}
           <Link to="/" className="flex items-center gap-3">
             <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Activity className="size-5" />
@@ -24,6 +41,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </span>
             </span>
           </Link>
+          </div>
           <nav className="flex items-center gap-2">
             <Link to="/patients">
               <span className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
