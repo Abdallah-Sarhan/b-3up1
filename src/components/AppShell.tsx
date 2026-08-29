@@ -15,13 +15,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur print:hidden">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
-          <Link to="/" className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {!isHome && (
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
+                onClick={() => {
                   if (window.history.length > 1) router.history.back();
                   else router.navigate({ to: "/" });
                 }}
@@ -32,6 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <ArrowRight className="size-4" />
               </button>
             )}
+          <Link to="/" className="flex items-center gap-3">
             <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Activity className="size-5" />
             </span>
