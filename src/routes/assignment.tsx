@@ -101,7 +101,18 @@ function AssignmentPage() {
     return arr;
   }, [patients, seed]);
 
-  const groups = useMemo(() => distribute(list, Math.max(nurseCount, 1)), [list, nurseCount]);
+    // Persist the chosen leader for this (date, shift) as soon as it's set,
+    // guaranteeing a single leader per shift that re-appears automatically.
+    useEffect(() => {
+      const v = leader.trim();
+      if (!v) return;
+      const t = setTimeout(() => {
+        db.meta.put({ key: `leader:${date}:${shift}`, value: v });
+      }, 400);
+      return () => clearTimeout(t);
+    }, [leader, date, shift]);
+
+    const groups = useMemo(() => distribute(list, Math.max(nurseCount, 1)), [list, nurseCount]);
   const shiftLabel = SHIFTS.find((s) => s.key === shift)?.label ?? "";
 
     /** A team leader is mandatory before saving or printing. */
