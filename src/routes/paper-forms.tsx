@@ -28,6 +28,10 @@ function PaperFormsPage() {
     { to: "/print/$patientId/vitals", icon: HeartPulse, label: t("vitalsForm") },
     { to: "/print/$patientId/notes", icon: NotebookPen, label: t("notesForm") },
     { to: "/print/$patientId/careplan", icon: Printer, label: t("careplanForm") },
+    { to: "/print/$patientId/treatment", icon: FileText, label: t("treatmentForm") },
+    { to: "/print/$patientId/consultation", icon: ClipboardList, label: t("consultationForm") },
+    { to: "/print/$patientId/progress", icon: NotebookPen, label: t("progressForm") },
+    { to: "/print/$patientId/nursingdb", icon: FileText, label: t("nursingDbForm") },
   ] as const;
 
   return (
