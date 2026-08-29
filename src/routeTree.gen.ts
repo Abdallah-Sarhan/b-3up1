@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssignmentRouteImport } from './routes/assignment'
 import { Route as DischargeRouteImport } from './routes/discharge'
+import { Route as HandoverRouteImport } from './routes/handover'
 import { Route as NcpRouteImport } from './routes/ncp'
 import { Route as PaperFormsRouteImport } from './routes/paper-forms'
 import { Route as RoundsRouteImport } from './routes/rounds'
@@ -44,6 +45,11 @@ const AssignmentRoute = AssignmentRouteImport.update({
 const DischargeRoute = DischargeRouteImport.update({
   id: '/discharge',
   path: '/discharge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HandoverRoute = HandoverRouteImport.update({
+  id: '/handover',
+  path: '/handover',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NcpRoute = NcpRouteImport.update({
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assignment': typeof AssignmentRoute
   '/discharge': typeof DischargeRoute
+  '/handover': typeof HandoverRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
   '/rounds': typeof RoundsRoute
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assignment': typeof AssignmentRoute
   '/discharge': typeof DischargeRoute
+  '/handover': typeof HandoverRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
   '/rounds': typeof RoundsRoute
@@ -189,6 +197,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/assignment': typeof AssignmentRoute
   '/discharge': typeof DischargeRoute
+  '/handover': typeof HandoverRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
   '/rounds': typeof RoundsRoute
@@ -214,6 +223,7 @@ export interface FileRouteTypes {
     | '/'
     | '/assignment'
     | '/discharge'
+    | '/handover'
     | '/ncp'
     | '/paper-forms'
     | '/rounds'
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/'
     | '/assignment'
     | '/discharge'
+    | '/handover'
     | '/ncp'
     | '/paper-forms'
     | '/rounds'
@@ -260,6 +271,7 @@ export interface FileRouteTypes {
     | '/'
     | '/assignment'
     | '/discharge'
+    | '/handover'
     | '/ncp'
     | '/paper-forms'
     | '/rounds'
@@ -284,6 +296,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AssignmentRoute: typeof AssignmentRoute
   DischargeRoute: typeof DischargeRoute
+  HandoverRoute: typeof HandoverRoute
   NcpRoute: typeof NcpRoute
   PaperFormsRoute: typeof PaperFormsRoute
   RoundsRoute: typeof RoundsRoute
@@ -325,6 +338,13 @@ declare module '@tanstack/react-router' {
       path: '/discharge'
       fullPath: '/discharge'
       preLoaderRoute: typeof DischargeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/handover': {
+      id: '/handover'
+      path: '/handover'
+      fullPath: '/handover'
+      preLoaderRoute: typeof HandoverRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ncp': {
@@ -460,6 +480,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AssignmentRoute: AssignmentRoute,
   DischargeRoute: DischargeRoute,
+  HandoverRoute: HandoverRoute,
   NcpRoute: NcpRoute,
   PaperFormsRoute: PaperFormsRoute,
   RoundsRoute: RoundsRoute,

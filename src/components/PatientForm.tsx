@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { db, emptyPatient, type Patient } from "@/lib/db";
+import { db, emptyPatient, type Patient, readmitPatient } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, Field, Input, Select, Textarea } from "@/components/ui-kit";
 import { SuggestInput } from "@/components/SuggestInput";
@@ -119,6 +119,7 @@ export function PatientForm({ patient }: { patient?: Patient }) {
           delete obj.dischargedAt;
           delete obj.dischargeNote;
         });
+        if (wasDischarged) await readmitPatient(existingId, data.doa);
         toast.success(wasDischarged ? t("readmittedOk") : t("patientAlreadyActive"));
         navigate({ to: "/patients/$patientId", params: { patientId: String(existingId) } });
         return;
