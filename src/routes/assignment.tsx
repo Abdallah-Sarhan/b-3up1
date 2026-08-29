@@ -192,28 +192,15 @@ function AssignmentPage() {
               <div className="text-sm font-bold">DATE: {formatDate(date)}</div>
             </div>
 
+            <div className="flex border-y border-black text-[11px] font-bold">
+              <div className="flex-1 border-e border-black px-1 py-0.5">MINISTRY OF HEALTH</div>
+              <div className="flex-1 border-e border-black px-1 py-0.5 text-center">LEADER: {leader || "\u2014"}</div>
+              <div className="flex-1 border-e border-black px-1 py-0.5 text-center">WARD: 39</div>
+              <div className="flex-1 px-1 py-0.5 text-center">SHIFT {shiftLabel}</div>
+            </div>
+
             <table className="w-full table-fixed border-collapse text-[11px]">
               <tbody>
-                <tr className="font-bold">
-                  <td className="border border-black px-1 py-0.5" colSpan={Math.max(1, Math.ceil(nurseCount / 3))}>
-                    MINISTRY OF HEALTH
-                  </td>
-                  <td
-                    className="border border-black px-1 py-0.5 text-center"
-                    colSpan={Math.max(1, Math.ceil(nurseCount / 3))}
-                  >
-                    LEADER: {leader || "—"}
-                  </td>
-                  <td
-                    className="border border-black px-1 py-0.5 text-center"
-                    colSpan={Math.max(1, nurseCount - 2 * Math.max(1, Math.ceil(nurseCount / 3)) > 0
-                      ? nurseCount - 2 * Math.max(1, Math.ceil(nurseCount / 3))
-                      : 1)}
-                  >
-                    WARD: 39
-                  </td>
-                  <td className="border border-black px-1 py-0.5 text-center">SHIFT {shiftLabel}</td>
-                </tr>
                 <tr className="font-bold">
                   {nurses.map((n, i) => (
                     <th key={i} className="border border-black px-1 py-0.5 text-center">
