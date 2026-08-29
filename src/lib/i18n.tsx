@@ -132,6 +132,7 @@ const dict = {
   remarks: { ar: "ملاحظات", en: "Remarks" },
   today: { ar: "اليوم", en: "Today" },
   openFile: { ar: "فتح الملف", en: "Open file" },
+  clear: { ar: "مسح", en: "Clear" },
 } as const;
 
 export type TKey = keyof typeof dict;
@@ -160,7 +161,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem("ward39-lang", l);
   };
 
-  const t = (k: TKey) => dict[k][lang];
+  const t = (k: TKey) => dict[k]?.[lang] ?? String(k);
 
   return (
     <LangContext.Provider value={{ lang, setLang, t }}>
