@@ -1,11 +1,13 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { Activity, Languages, Users } from "lucide-react";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { Activity, ArrowRight, Languages, Users } from "lucide-react";
 import { useLang } from "@/lib/i18n";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { lang, setLang, t } = useLang();
+  const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isPrint = pathname.startsWith("/print");
+  const isHome = pathname === "/";
 
   if (isPrint) return <>{children}</>;
 
