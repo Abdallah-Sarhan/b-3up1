@@ -182,9 +182,46 @@ async function seedIfNeeded() {
   await db.meta.put({ key: "seedVersion", value: SEED_VERSION });
 }
 
+// File numbers of the patients currently admitted (per the ward census sheet).
+// Everyone else gets discharged once, keeping their full history.
+const CURRENT_INPATIENT_FILE_NOS = new Set([
+  "33547", "49990", "91000", "81274", "43351", "71781", "98960", "44691",
+  "79923", "46844", "87688", "93087", "61977", "71345", "94301", "59032",
+  "56376", "17851", "66049", "72938", "90923", "54708", "49166", "94316",
+  "87747", "76208", "78981", "94285", "80562", "94406", "71756",
+]);
+
+async function dischargeNonCurrentOnce() {
+  const done = await db.meta.get("dischargeExceptCensus2026-08-30");
+  if (done) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const all = await db.patients.toArray();
+  for (const p of all) {
+    if (p.id == null || p.dischargedAt) continue;
+    if (CURRENT_INPATIENT_FILE_NOS.has(p.fileNo.trim())) continue;
+    const open = (
+      await db.admissions.where("patientId").equals(p.id).toArray()
+    ).find((a) => !a.dischargedAt);
+    if (open?.id != null) {
+      await db.admissions.update(open.id, { dischargedAt: today });
+    } else {
+      await db.admissions.add({
+        patientId: p.id,
+        admittedAt: p.doa || today,
+        dischargedAt: today,
+        createdAt: Date.now(),
+      });
+    }
+    await db.patients.update(p.id, { dischargedAt: today, updatedAt: Date.now() });
+  }
+  await db.meta.put({ key: "dischargeExceptCensus2026-08-30", value: "1" });
+}
+
 // Runs only in the browser / Electron renderer (never during SSR).
 export const dbReady: Promise<void> =
-  typeof window === "undefined" ? Promise.resolve() : seedIfNeeded();
+  typeof window === "undefined"
+    ? Promise.resolve()
+    : seedIfNeeded().then(dischargeNonCurrentOnce);
 
 export function emptyPatient(): Omit<Patient, "id"> {
   const now = Date.now();
