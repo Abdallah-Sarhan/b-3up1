@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Printer, Save, Shuffle } from "lucide-react";
+import { Printer, Save, Shuffle, UserCheck } from "lucide-react";
 import { db } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, CardHeader, Field, Input, Select } from "@/components/ui-kit";
@@ -62,8 +62,29 @@ function AssignmentPage() {
   const [leader, setLeader] = useState("");
   const [nurseCount, setNurseCount] = useState(6);
   const [nurses, setNurses] = useState<string[]>(() => Array.from({ length: 6 }, () => ""));
-  const [special, setSpecial] = useState<string[]>(() => Array.from({ length: 6 }, () => ""));
-  const [seed, setSeed] = useState(0);
+    const [special, setSpecial] = useState<string[]>(() => Array.from({ length: 6 }, () => ""));
+    const [seed, setSeed] = useState(0);
+    const [leaderNames, setLeaderNames] = useState<string[]>([]);
+
+    // One team leader per shift: the leader is stored per (date, shift) and
+    // loaded automatically so the print sheet always shows the shift's leader.
+    useEffect(() => {
+      let cancelled = false;
+      db.meta.get(`leader:${date}:${shift}`).then((row) => {
+        if (!cancelled) setLeader(row?.value ?? "");
+      });
+      db.meta
+        .filter((r) => r.key.startsWith("leader:"))
+        .toArray()
+        .then((rows) => {
+          if (cancelled) return;
+          const names = [...new Set(rows.map((r) => r.value).filter(Boolean))];
+          setLeaderNames(names);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [date, shift]);
 
   useEffect(() => {
     setNurses((prev) => Array.from({ length: nurseCount }, (_, i) => prev[i] ?? ""));
