@@ -5,6 +5,7 @@ import { useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
 import { PRINT_FORMS, getPrintForm, type PrintFormDef } from "@/components/print-content";
+import { PrintFontScale } from "@/components/OverlayPrint";
 import type { Patient } from "@/lib/db";
 
 export const Route = createFileRoute("/print/all/$form")({
@@ -201,6 +202,7 @@ function BatchPrintPage() {
             guide={guide}
             dx={dx}
             dy={dy}
+            fontScale={fontScale}
             last={i === list.length - 1}
           />
         ))
