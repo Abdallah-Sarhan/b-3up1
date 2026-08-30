@@ -200,15 +200,6 @@ function AssignmentPage() {
               onChange={(e) => setNurseCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
             />
           </Field>
-          <Field label={lang === "ar" ? "حجم خط أسماء المرضى" : "Patient name font size"}>
-            <Input
-              type="number"
-              min={8}
-              max={24}
-              value={nameSize}
-              onChange={(e) => setNameSize(Math.min(24, Math.max(8, Number(e.target.value) || 11)))}
-            />
-          </Field>
             <Field label={lang === "ar" ? "قائد الفريق (واحد فقط لكل وردية)" : "Team leader (one per shift)"}>
               <div className="relative">
                 <Input
@@ -248,6 +239,23 @@ function AssignmentPage() {
           ))}
         </div>
       </Card>
+
+      {/* Font-size control placed just above the print preview */}
+      <div className="print:hidden mx-auto flex w-full max-w-[277mm] items-end justify-center gap-3 py-2">
+        <Field
+          label={lang === "ar" ? "حجم خط أسماء المرضى" : "Patient name font size"}
+          className="flex items-center gap-2"
+        >
+          <Input
+            type="number"
+            min={8}
+            max={24}
+            value={nameSize}
+            onChange={(e) => setNameSize(Math.min(24, Math.max(8, Number(e.target.value) || 11)))}
+            className="w-24"
+          />
+        </Field>
+      </div>
 
       {/* ---------- Printable sheet ---------- */}
       <div
