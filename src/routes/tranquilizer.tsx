@@ -49,7 +49,7 @@ function groupOf(list: MedEntry[]): Group[] {
 function MedsPage() {
   const [category, setCategory] = useState<MedCategory>("major");
   const patients = useActivePatients();
-  const [form, setForm] = useState({ drug: "", patient: "", dose: "", duration: "" });
+  const [form, setForm] = useState({ drug: "", dose: "" });
   const [fontSize, setFontSize] = useState(9);
 
   const list = useLiveQuery(
@@ -59,19 +59,44 @@ function MedsPage() {
   const groups = useMemo(() => groupOf(list ?? []), [list]);
   const isControl = category === "control";
 
-  async function add() {
+  async function addDrug() {
     if (!form.drug.trim()) return;
     await db.meds.add({
       category,
       drug: form.drug.trim(),
       dose: form.dose.trim(),
       rxNo: "",
-      patient: form.patient.trim(),
-      duration: form.duration.trim(),
+      patient: "",
+      duration: "",
       createdAt: Date.now(),
     });
-    setForm({ ...form, patient: "", duration: "" });
-    toast.success("تمت الإضافة");
+    setForm({ drug: "", dose: "" });
+    toast.success("تمت إضافة الدواء");
+  }
+
+  async function updateGroup(g: Group, drug: string, dose: string) {
+    const ids = (list ?? [])
+      .filter(
+        (e) =>
+          e.drug.trim().toUpperCase() === g.drug.toUpperCase() &&
+          e.dose.trim().toUpperCase() === g.dose.toUpperCase(),
+      )
+      .map((e) => e.id!)
+      .filter(Boolean);
+    await Promise.all(ids.map((id) => db.meds.update(id, { drug: drug.trim(), dose: dose.trim() })));
+  }
+
+  async function deleteGroup(g: Group) {
+    const ids = (list ?? [])
+      .filter(
+        (e) =>
+          e.drug.trim().toUpperCase() === g.drug.toUpperCase() &&
+          e.dose.trim().toUpperCase() === g.dose.toUpperCase(),
+      )
+      .map((e) => e.id!)
+      .filter(Boolean);
+    await Promise.all(ids.map((id) => db.meds.delete(id)));
+    toast.success("تم حذف الدواء");
   }
 
   async function addPatientTo(g: Group) {
@@ -117,48 +142,26 @@ function MedsPage() {
       </div>
 
       <Card className="print:hidden">
-        <CardHeader title="إضافة دواء / مريض" />
-        <div className="grid gap-3 px-5 py-4 sm:grid-cols-4">
+        <CardHeader title="إضافة دواء (الاسم والتركيز فقط — المرضى يضافون من الأسفل)" />
+        <div className="grid gap-3 px-5 py-4 sm:grid-cols-2">
           <Field label="الدواء">
-            <Input
-              list="med-drugs"
-              value={form.drug}
-              onChange={(e) => setForm({ ...form, drug: e.target.value })}
-            />
-            <datalist id="med-drugs">
-              {groups.map((g) => (
-                <option key={`${g.drug}|${g.dose}`} value={g.drug} />
-              ))}
-            </datalist>
+            <Input value={form.drug} onChange={(e) => setForm({ ...form, drug: e.target.value })} />
           </Field>
-          <Field label="المريض">
-            <Input
-              list="med-patients"
-              value={form.patient}
-              onChange={(e) => setForm({ ...form, patient: e.target.value })}
-            />
-            <datalist id="med-patients">
-              {(patients ?? []).map((p) => (
-                <option key={p.id} value={p.name} />
-              ))}
-            </datalist>
-          </Field>
-          <Field label="الجرعة (مثال 5MG)">
+          <Field label="التركيز / الجرعة (مثال 5MG)">
             <Input value={form.dose} onChange={(e) => setForm({ ...form, dose: e.target.value })} />
           </Field>
-          <Field label="المدة / النظام (مثال 1-0-1)">
-            <Input
-              value={form.duration}
-              onChange={(e) => setForm({ ...form, duration: e.target.value })}
-            />
-          </Field>
-          <div className="sm:col-span-4">
-            <Button onClick={add} disabled={!form.drug.trim()}>
+          <div className="sm:col-span-2">
+            <Button onClick={addDrug} disabled={!form.drug.trim()}>
               <Plus />
-              إضافة
+              إضافة دواء
             </Button>
           </div>
         </div>
+        <datalist id="med-patients">
+          {(patients ?? []).map((p) => (
+            <option key={p.id} value={p.name} />
+          ))}
+        </datalist>
       </Card>
 
       {/* editable table */}
@@ -170,9 +173,18 @@ function MedsPage() {
           ) : null}
           {groups.map((g) => (
             <div key={`${g.drug}|${g.dose}`} className="rounded-md border border-border">
-              <div className="flex flex-wrap items-center gap-3 border-b border-border bg-muted/50 px-3 py-2">
-                <span className="font-bold">{g.drug}</span>
-                <span className="text-sm text-muted-foreground">{g.dose}</span>
+              <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/50 px-3 py-2">
+                <Input
+                  className="h-8 w-48 font-bold"
+                  defaultValue={g.drug}
+                  onBlur={(e) => e.target.value.trim() && updateGroup(g, e.target.value, g.dose)}
+                />
+                <Input
+                  className="h-8 w-24"
+                  placeholder="التركيز"
+                  defaultValue={g.dose}
+                  onBlur={(e) => updateGroup(g, g.drug, e.target.value)}
+                />
                 {isControl ? (
                   <Input
                     className="h-8 w-28"
@@ -184,6 +196,9 @@ function MedsPage() {
                     }}
                   />
                 ) : null}
+                <Button variant="ghost" size="sm" title="حذف الدواء" onClick={() => deleteGroup(g)}>
+                  <Trash2 />
+                </Button>
                 <Button size="sm" variant="outline" className="ms-auto" onClick={() => addPatientTo(g)}>
                   <Plus />
                   مريض
