@@ -200,15 +200,6 @@ function AssignmentPage() {
               onChange={(e) => setNurseCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
             />
           </Field>
-          <Field label={lang === "ar" ? "حجم خط أسماء المرضى" : "Patient name font size"}>
-            <Input
-              type="number"
-              min={8}
-              max={24}
-              value={nameSize}
-              onChange={(e) => setNameSize(Math.min(24, Math.max(8, Number(e.target.value) || 11)))}
-            />
-          </Field>
             <Field label={lang === "ar" ? "قائد الفريق (واحد فقط لكل وردية)" : "Team leader (one per shift)"}>
               <div className="relative">
                 <Input
