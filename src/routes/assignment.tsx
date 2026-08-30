@@ -240,6 +240,20 @@ function AssignmentPage() {
         </div>
       </Card>
 
+      {/* Font-size control placed just above the print preview */}
+      <div className="print:hidden mx-auto w-full max-w-[277mm]">
+        <Field label={lang === "ar" ? "حجم خط أسماء المرضى" : "Patient name font size"} inline>
+          <Input
+            type="number"
+            min={8}
+            max={24}
+            value={nameSize}
+            onChange={(e) => setNameSize(Math.min(24, Math.max(8, Number(e.target.value) || 11)))}
+            className="w-24"
+          />
+        </Field>
+      </div>
+
       {/* ---------- Printable sheet ---------- */}
       <div
         dir="ltr"
