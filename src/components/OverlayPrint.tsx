@@ -135,6 +135,7 @@ export function OverlayPrintPage({
   const [guide, setGuide] = useState(true);
   const [dx, setDx] = useState(0);
   const [dy, setDy] = useState(0);
+  const [fontScale, setFontScale] = useState(1);
 
   if (patient === undefined) {
     return <p className="p-10 text-center text-muted-foreground">{t("loading")}</p>;
@@ -183,6 +184,18 @@ export function OverlayPrintPage({
               className="h-8 w-16 rounded-md border border-input px-1"
             />
           </label>
+          <label className="flex items-center gap-1 text-sm">
+            {lang === "ar" ? "حجم الخط (%)" : "Font size (%)"}
+            <input
+              type="number"
+              min={50}
+              max={200}
+              step={5}
+              value={Math.round(fontScale * 100)}
+              onChange={(e) => setFontScale(Math.min(2, Math.max(0.5, (Number(e.target.value) || 100) / 100)))}
+              className="h-8 w-16 rounded-md border border-input px-1"
+            />
+          </label>
           <Button size="sm" onClick={() => window.print()}>
             <Printer />
             {t("print")}
@@ -221,7 +234,7 @@ export function OverlayPrintPage({
           />
         ) : null}
         <div className="absolute inset-0" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
-          {children(patient)}
+          <PrintFontScale.Provider value={fontScale}>{children(patient)}</PrintFontScale.Provider>
         </div>
       </div>
     </div>
