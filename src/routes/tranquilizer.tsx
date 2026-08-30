@@ -49,7 +49,7 @@ function groupOf(list: MedEntry[]): Group[] {
 function MedsPage() {
   const [category, setCategory] = useState<MedCategory>("major");
   const patients = useActivePatients();
-  const [form, setForm] = useState({ drug: "", patient: "", dose: "", duration: "" });
+  const [form, setForm] = useState({ drug: "", dose: "" });
   const [fontSize, setFontSize] = useState(9);
 
   const list = useLiveQuery(
@@ -142,48 +142,26 @@ function MedsPage() {
       </div>
 
       <Card className="print:hidden">
-        <CardHeader title="إضافة دواء / مريض" />
-        <div className="grid gap-3 px-5 py-4 sm:grid-cols-4">
+        <CardHeader title="إضافة دواء (الاسم والتركيز فقط — المرضى يضافون من الأسفل)" />
+        <div className="grid gap-3 px-5 py-4 sm:grid-cols-2">
           <Field label="الدواء">
-            <Input
-              list="med-drugs"
-              value={form.drug}
-              onChange={(e) => setForm({ ...form, drug: e.target.value })}
-            />
-            <datalist id="med-drugs">
-              {groups.map((g) => (
-                <option key={`${g.drug}|${g.dose}`} value={g.drug} />
-              ))}
-            </datalist>
+            <Input value={form.drug} onChange={(e) => setForm({ ...form, drug: e.target.value })} />
           </Field>
-          <Field label="المريض">
-            <Input
-              list="med-patients"
-              value={form.patient}
-              onChange={(e) => setForm({ ...form, patient: e.target.value })}
-            />
-            <datalist id="med-patients">
-              {(patients ?? []).map((p) => (
-                <option key={p.id} value={p.name} />
-              ))}
-            </datalist>
-          </Field>
-          <Field label="الجرعة (مثال 5MG)">
+          <Field label="التركيز / الجرعة (مثال 5MG)">
             <Input value={form.dose} onChange={(e) => setForm({ ...form, dose: e.target.value })} />
           </Field>
-          <Field label="المدة / النظام (مثال 1-0-1)">
-            <Input
-              value={form.duration}
-              onChange={(e) => setForm({ ...form, duration: e.target.value })}
-            />
-          </Field>
-          <div className="sm:col-span-4">
-            <Button onClick={add} disabled={!form.drug.trim()}>
+          <div className="sm:col-span-2">
+            <Button onClick={addDrug} disabled={!form.drug.trim()}>
               <Plus />
-              إضافة
+              إضافة دواء
             </Button>
           </div>
         </div>
+        <datalist id="med-patients">
+          {(patients ?? []).map((p) => (
+            <option key={p.id} value={p.name} />
+          ))}
+        </datalist>
       </Card>
 
       {/* editable table */}
