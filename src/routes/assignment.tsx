@@ -241,8 +241,11 @@ function AssignmentPage() {
       </Card>
 
       {/* Font-size control placed just above the print preview */}
-      <div className="print:hidden mx-auto w-full max-w-[277mm]">
-        <Field label={lang === "ar" ? "حجم خط أسماء المرضى" : "Patient name font size"} inline>
+      <div className="print:hidden mx-auto flex w-full max-w-[277mm] items-end justify-center gap-3 py-2">
+        <Field
+          label={lang === "ar" ? "حجم خط أسماء المرضى" : "Patient name font size"}
+          className="flex items-center gap-2"
+        >
           <Input
             type="number"
             min={8}
