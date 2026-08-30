@@ -138,6 +138,7 @@ class WardDB extends Dexie {
   tranq!: Table<TranqEntry, number>;
   assignments!: Table<AssignmentEntry, number>;
   admissions!: Table<Admission, number>;
+  meds!: Table<MedEntry, number>;
   meta!: Table<MetaRow, string>;
 
   constructor() {
@@ -158,6 +159,9 @@ class WardDB extends Dexie {
     });
     this.version(3).stores({
       admissions: "++id, patientId, admittedAt, dischargedAt",
+    });
+    this.version(4).stores({
+      meds: "++id, category, drug, patient",
     });
   }
 }
