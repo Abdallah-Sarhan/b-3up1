@@ -173,9 +173,18 @@ function MedsPage() {
           ) : null}
           {groups.map((g) => (
             <div key={`${g.drug}|${g.dose}`} className="rounded-md border border-border">
-              <div className="flex flex-wrap items-center gap-3 border-b border-border bg-muted/50 px-3 py-2">
-                <span className="font-bold">{g.drug}</span>
-                <span className="text-sm text-muted-foreground">{g.dose}</span>
+              <div className="flex flex-wrap items-center gap-2 border-b border-border bg-muted/50 px-3 py-2">
+                <Input
+                  className="h-8 w-48 font-bold"
+                  defaultValue={g.drug}
+                  onBlur={(e) => e.target.value.trim() && updateGroup(g, e.target.value, g.dose)}
+                />
+                <Input
+                  className="h-8 w-24"
+                  placeholder="التركيز"
+                  defaultValue={g.dose}
+                  onBlur={(e) => updateGroup(g, g.drug, e.target.value)}
+                />
                 {isControl ? (
                   <Input
                     className="h-8 w-28"
@@ -187,6 +196,9 @@ function MedsPage() {
                     }}
                   />
                 ) : null}
+                <Button variant="ghost" size="sm" title="حذف الدواء" onClick={() => deleteGroup(g)}>
+                  <Trash2 />
+                </Button>
                 <Button size="sm" variant="outline" className="ms-auto" onClick={() => addPatientTo(g)}>
                   <Plus />
                   مريض
