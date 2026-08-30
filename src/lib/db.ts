@@ -110,6 +110,19 @@ export interface Admission {
   createdAt: number;
 }
 
+export type MedCategory = "major" | "control";
+
+export interface MedEntry {
+  id?: number;
+  category: MedCategory;
+  drug: string;
+  dose: string;
+  rxNo: string;
+  patient: string;
+  duration: string;
+  createdAt: number;
+}
+
 interface MetaRow {
   key: string;
   value: string;
