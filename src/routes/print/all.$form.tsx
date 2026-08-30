@@ -5,6 +5,7 @@ import { useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
 import { PRINT_FORMS, getPrintForm, type PrintFormDef } from "@/components/print-content";
+import { PrintFontScale } from "@/components/OverlayPrint";
 import type { Patient } from "@/lib/db";
 
 export const Route = createFileRoute("/print/all/$form")({
@@ -27,6 +28,7 @@ function Sheet({
   guide,
   dx,
   dy,
+  fontScale,
   last,
 }: {
   form: PrintFormDef;
@@ -34,6 +36,7 @@ function Sheet({
   guide: boolean;
   dx: number;
   dy: number;
+  fontScale: number;
   last: boolean;
 }) {
   const breakStyle = last ? undefined : ({ breakAfter: "page", pageBreakAfter: "always" } as const);
@@ -59,7 +62,9 @@ function Sheet({
           />
         ) : null}
         <div className="absolute inset-0" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
-          <form.Content patient={patient} id={patient.id!} />
+          <PrintFontScale.Provider value={fontScale}>
+            <form.Content patient={patient} id={patient.id!} />
+          </PrintFontScale.Provider>
         </div>
       </div>
     );
@@ -89,6 +94,7 @@ function BatchPrintPage() {
   const [guide, setGuide] = useState(false);
   const [dx, setDx] = useState(0);
   const [dy, setDy] = useState(0);
+  const [fontScale, setFontScale] = useState(1);
 
   if (!form) {
     return (
@@ -145,6 +151,18 @@ function BatchPrintPage() {
                   className="h-8 w-16 rounded-md border border-input px-1"
                 />
               </label>
+              <label className="flex items-center gap-1 text-sm">
+                {lang === "ar" ? "حجم الخط (%)" : "Font size (%)"}
+                <input
+                  type="number"
+                  min={50}
+                  max={200}
+                  step={5}
+                  value={Math.round(fontScale * 100)}
+                  onChange={(e) => setFontScale(Math.min(2, Math.max(0.5, (Number(e.target.value) || 100) / 100)))}
+                  className="h-8 w-16 rounded-md border border-input px-1"
+                />
+              </label>
             </>
           ) : null}
           <Button size="sm" onClick={() => window.print()} disabled={list.length === 0}>
@@ -184,6 +202,7 @@ function BatchPrintPage() {
             guide={guide}
             dx={dx}
             dy={dy}
+            fontScale={fontScale}
             last={i === list.length - 1}
           />
         ))
