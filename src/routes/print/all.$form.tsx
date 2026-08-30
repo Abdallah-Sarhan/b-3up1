@@ -27,6 +27,7 @@ function Sheet({
   guide,
   dx,
   dy,
+  fontScale,
   last,
 }: {
   form: PrintFormDef;
@@ -34,6 +35,7 @@ function Sheet({
   guide: boolean;
   dx: number;
   dy: number;
+  fontScale: number;
   last: boolean;
 }) {
   const breakStyle = last ? undefined : ({ breakAfter: "page", pageBreakAfter: "always" } as const);
@@ -59,7 +61,9 @@ function Sheet({
           />
         ) : null}
         <div className="absolute inset-0" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
-          <form.Content patient={patient} id={patient.id!} />
+          <PrintFontScale.Provider value={fontScale}>
+            <form.Content patient={patient} id={patient.id!} />
+          </PrintFontScale.Provider>
         </div>
       </div>
     );
@@ -89,6 +93,7 @@ function BatchPrintPage() {
   const [guide, setGuide] = useState(false);
   const [dx, setDx] = useState(0);
   const [dy, setDy] = useState(0);
+  const [fontScale, setFontScale] = useState(1);
 
   if (!form) {
     return (
@@ -142,6 +147,18 @@ function BatchPrintPage() {
                   step="0.5"
                   value={dy}
                   onChange={(e) => setDy(Number(e.target.value))}
+                  className="h-8 w-16 rounded-md border border-input px-1"
+                />
+              </label>
+              <label className="flex items-center gap-1 text-sm">
+                {lang === "ar" ? "حجم الخط (%)" : "Font size (%)"}
+                <input
+                  type="number"
+                  min={50}
+                  max={200}
+                  step={5}
+                  value={Math.round(fontScale * 100)}
+                  onChange={(e) => setFontScale(Math.min(2, Math.max(0.5, (Number(e.target.value) || 100) / 100)))}
                   className="h-8 w-16 rounded-md border border-input px-1"
                 />
               </label>
