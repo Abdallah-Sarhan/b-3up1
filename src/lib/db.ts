@@ -219,11 +219,22 @@ async function dischargeNonCurrentOnce() {
   await db.meta.put({ key: "dischargeExceptCensus2026-08-30", value: "1" });
 }
 
+// Ask the browser/Electron to keep the data instead of evicting it.
+async function requestPersistence() {
+  try {
+    await navigator.storage?.persist?.();
+  } catch {
+    /* not supported — ignore */
+  }
+}
+
 // Runs only in the browser / Electron renderer (never during SSR).
 export const dbReady: Promise<void> =
   typeof window === "undefined"
     ? Promise.resolve()
-    : seedIfNeeded().then(dischargeNonCurrentOnce);
+    : requestPersistence()
+        .then(seedIfNeeded)
+        .then(dischargeNonCurrentOnce);
 
 export function emptyPatient(): Omit<Patient, "id"> {
   const now = Date.now();
