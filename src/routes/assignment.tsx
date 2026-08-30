@@ -61,6 +61,7 @@ function AssignmentPage() {
   const [shift, setShift] = useState<string>("morning");
   const [leader, setLeader] = useState("");
   const [nurseCount, setNurseCount] = useState(6);
+  const [nameSize, setNameSize] = useState(11);
   const [nurses, setNurses] = useState<string[]>(() => Array.from({ length: 6 }, () => ""));
     const [special, setSpecial] = useState<string[]>(() => Array.from({ length: 6 }, () => ""));
     const [seed, setSeed] = useState(0);
@@ -199,6 +200,15 @@ function AssignmentPage() {
               onChange={(e) => setNurseCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
             />
           </Field>
+          <Field label={lang === "ar" ? "حجم خط أسماء المرضى" : "Patient name font size"}>
+            <Input
+              type="number"
+              min={8}
+              max={24}
+              value={nameSize}
+              onChange={(e) => setNameSize(Math.min(24, Math.max(8, Number(e.target.value) || 11)))}
+            />
+          </Field>
             <Field label={lang === "ar" ? "قائد الفريق (واحد فقط لكل وردية)" : "Team leader (one per shift)"}>
               <div className="relative">
                 <Input
@@ -280,7 +290,11 @@ function AssignmentPage() {
                   {groups.map((g, i) => (
                     <td key={i} className="h-[105mm] border border-black align-top px-1 py-1">
                       {g.map((p) => (
-                        <div key={p.id} className="py-[2px] text-center uppercase leading-tight">
+                        <div
+                          key={p.id}
+                          className="py-[2px] text-center uppercase leading-tight"
+                          style={{ fontSize: `${nameSize}px` }}
+                        >
                           {p.name || `FILE ${p.fileNo}`}
                         </div>
                       ))}
