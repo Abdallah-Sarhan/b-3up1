@@ -100,6 +100,7 @@ export function BoxedDigits({
 }) {
   const digits = value.slice(-cells).padStart(cells, " ").split("");
   const cw = width / cells;
+  const scale = usePrintFontScale();
   return (
     <>
       {digits.map((d, i) => (
@@ -110,7 +111,7 @@ export function BoxedDigits({
             left: `${((left + i * cw) / iw) * 100}%`,
             top: `${(top / ih) * 100}%`,
             width: `${(cw / iw) * 100}%`,
-            fontSize: `${size}px`,
+            fontSize: `${size * scale}px`,
           }}
         >
           {d.trim()}
