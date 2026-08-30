@@ -269,7 +269,7 @@ export function SbarContent({ patient, id, date }: { patient: Patient; id: numbe
           <tr>
             <td rowSpan={2} className="w-[7%] border border-black px-1 py-1 text-center align-middle font-bold">
               DATE
-              <div className="font-normal">{date}</div>
+              <div className="font-normal">&nbsp;</div>
             </td>
             <HCell label="Name:" value={patient.name} width="22%" />
             <HCell label="FILE#" value={patient.fileNo} width="17%" />
