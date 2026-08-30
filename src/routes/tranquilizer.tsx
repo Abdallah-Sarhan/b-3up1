@@ -59,19 +59,44 @@ function MedsPage() {
   const groups = useMemo(() => groupOf(list ?? []), [list]);
   const isControl = category === "control";
 
-  async function add() {
+  async function addDrug() {
     if (!form.drug.trim()) return;
     await db.meds.add({
       category,
       drug: form.drug.trim(),
       dose: form.dose.trim(),
       rxNo: "",
-      patient: form.patient.trim(),
-      duration: form.duration.trim(),
+      patient: "",
+      duration: "",
       createdAt: Date.now(),
     });
-    setForm({ ...form, patient: "", duration: "" });
-    toast.success("تمت الإضافة");
+    setForm({ drug: "", dose: "" });
+    toast.success("تمت إضافة الدواء");
+  }
+
+  async function updateGroup(g: Group, drug: string, dose: string) {
+    const ids = (list ?? [])
+      .filter(
+        (e) =>
+          e.drug.trim().toUpperCase() === g.drug.toUpperCase() &&
+          e.dose.trim().toUpperCase() === g.dose.toUpperCase(),
+      )
+      .map((e) => e.id!)
+      .filter(Boolean);
+    await Promise.all(ids.map((id) => db.meds.update(id, { drug: drug.trim(), dose: dose.trim() })));
+  }
+
+  async function deleteGroup(g: Group) {
+    const ids = (list ?? [])
+      .filter(
+        (e) =>
+          e.drug.trim().toUpperCase() === g.drug.toUpperCase() &&
+          e.dose.trim().toUpperCase() === g.dose.toUpperCase(),
+      )
+      .map((e) => e.id!)
+      .filter(Boolean);
+    await Promise.all(ids.map((id) => db.meds.delete(id)));
+    toast.success("تم حذف الدواء");
   }
 
   async function addPatientTo(g: Group) {
