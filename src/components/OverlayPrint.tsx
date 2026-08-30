@@ -1,4 +1,8 @@
-import { useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
+
+/** Multiplies every printed field's font size (overlay forms). */
+export const PrintFontScale = createContext(1);
+export const usePrintFontScale = () => useContext(PrintFontScale);
 import { Link, useParams } from "@tanstack/react-router";
 import { ArrowRight, Printer } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
