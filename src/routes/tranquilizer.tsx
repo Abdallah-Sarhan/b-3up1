@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
@@ -294,8 +294,8 @@ function PrintSheet({
         </thead>
         <tbody>
           {groups.map((g) => (
-            <>
-              <tr key={`${g.drug}-h`} className="font-bold">
+            <Fragment key={`${g.drug}|${g.dose}`}>
+              <tr className="font-bold">
                 <td className="border border-black px-1 py-0.5">{g.drug.toUpperCase()}</td>
                 <td className="border border-black px-1 py-0.5 text-center">{g.dose.toUpperCase()}</td>
                 {isControl ? <td className="border border-black px-1 py-0.5 text-center">{g.rxNo}</td> : null}
@@ -331,7 +331,7 @@ function PrintSheet({
                   <td key={i} className="border border-black px-1 py-0.5" />
                 ))}
               </tr>
-            </>
+            </Fragment>
           ))}
         </tbody>
       </table>
