@@ -189,6 +189,8 @@ const CURRENT_INPATIENT_FILE_NOS = new Set([
   "79923", "46844", "87688", "93087", "61977", "71345", "94301", "59032",
   "56376", "17851", "66049", "72938", "90923", "54708", "49166", "94316",
   "87747", "76208", "78981", "94285", "80562", "94406", "71756",
+  // file numbers as stored in the registry (differ slightly from the sheet)
+  "93960", "46644", "87683", "78881",
 ]);
 
 async function dischargeNonCurrentOnce() {
