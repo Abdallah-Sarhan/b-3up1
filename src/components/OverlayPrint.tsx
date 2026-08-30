@@ -58,6 +58,7 @@ export function makeField(iw: number, ih: number) {
     spacing?: number;
     bold?: boolean;
   }) {
+    const scale = usePrintFontScale();
     return (
       <div
         className="absolute overflow-hidden leading-tight"
@@ -66,7 +67,7 @@ export function makeField(iw: number, ih: number) {
           top: `${(top / ih) * 100}%`,
           width: `${(width / iw) * 100}%`,
           textAlign: align,
-          fontSize: `${size}px`,
+          fontSize: `${size * scale}px`,
           fontWeight: bold ? 700 : 400,
           letterSpacing: spacing ? `${spacing}px` : "0.2px",
         }}
