@@ -222,8 +222,10 @@ function MedsPage() {
                       onBlur={(e) => r.id && upd(r.id, { patient: e.target.value })}
                     />
                     <Input
-                      className="h-8 w-24"
-                      placeholder="الجرعة"
+                      className="h-8 w-28"
+                      dir="ltr"
+                      placeholder="التكرار (1-0-2)"
+                      title="تكرار الدواء خلال اليوم وعدد الأقراص في كل مرة (صباحًا-ظهرًا-مساءً)"
                       defaultValue={r.dose}
                       onBlur={(e) => r.id && upd(r.id, { dose: e.target.value })}
                     />
