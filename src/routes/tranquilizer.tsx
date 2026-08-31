@@ -84,14 +84,21 @@ function MedsPage() {
   }
 
   async function updateGroup(g: Group, drug: string, dose: string) {
-    const ids = (list ?? [])
-      .filter(
-        (e) =>
-          e.drug.trim().toUpperCase() === g.drug.toUpperCase(),
-      )
-      .map((e) => e.id!)
-      .filter(Boolean);
-    await Promise.all(ids.map((id) => db.meds.update(id, { drug: drug.trim(), dose: dose.trim() })));
+    const entries = (list ?? []).filter(
+      (e) => e.drug.trim().toUpperCase() === g.drug.toUpperCase(),
+    );
+    // The empty-patient row is the drug definition; its dose is the concentration.
+    // Patient rows store their own frequency in dose and must keep it.
+    const header = entries.find((e) => !e.patient.trim());
+    await Promise.all(
+      entries.map((e) => {
+        const patch: Partial<MedEntry> = { drug: drug.trim() };
+        if (header && e.id === header.id) {
+          patch.dose = dose.trim();
+        }
+        return db.meds.update(e.id!, patch);
+      }),
+    );
   }
 
   async function deleteGroup(g: Group) {
