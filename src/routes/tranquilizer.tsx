@@ -110,10 +110,9 @@ function MedsPage() {
     await db.meds.add({
       category,
       drug: g.drug,
-      dose: g.dose,
+      dose: "",
       rxNo: g.rxNo,
       patient: "",
-      dose: "",
       duration: "",
       createdAt: Date.now(),
     });
