@@ -208,13 +208,20 @@ function MedsPage() {
                 {g.rows.map((r) => (
                   <div key={r.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
                     <Input
-                      className="h-8 flex-1 min-w-52"
+                      className="h-8 flex-1 min-w-44"
                       list="med-patients"
                       defaultValue={r.patient}
                       onBlur={(e) => r.id && upd(r.id, { patient: e.target.value })}
                     />
                     <Input
-                      className="h-8 w-28"
+                      className="h-8 w-24"
+                      placeholder="الجرعة"
+                      defaultValue={r.dose}
+                      onBlur={(e) => r.id && upd(r.id, { dose: e.target.value })}
+                    />
+                    <Input
+                      className="h-8 w-24"
+                      placeholder="المدة"
                       defaultValue={r.duration}
                       onBlur={(e) => r.id && upd(r.id, { duration: e.target.value })}
                     />
