@@ -33,18 +33,27 @@ type Group = { drug: string; dose: string; rxNo: string; rows: MedEntry[] };
 
 function groupOf(list: MedEntry[]): Group[] {
   const map = new Map<string, Group>();
+  const seenHeader = new Set<string>();
   for (const e of list) {
-    const key = `${e.drug.trim().toUpperCase()}|${e.dose.trim().toUpperCase()}`;
+    const key = e.drug.trim().toUpperCase();
     let g = map.get(key);
     if (!g) {
       g = { drug: e.drug.trim(), dose: e.dose.trim(), rxNo: e.rxNo || "", rows: [] };
       map.set(key, g);
     }
     if (!g.rxNo && e.rxNo) g.rxNo = e.rxNo;
-    if (e.patient.trim()) g.rows.push(e);
+    // the first (oldest) entry of a drug is the drug definition itself;
+    // every later entry is a patient row, even if the name is still empty.
+    if (!seenHeader.has(key) && !e.patient.trim()) {
+      seenHeader.add(key);
+      continue;
+    }
+    seenHeader.add(key);
+    g.rows.push(e);
   }
   return [...map.values()];
 }
+
 
 function MedsPage() {
   const [category, setCategory] = useState<MedCategory>("major");
@@ -78,8 +87,7 @@ function MedsPage() {
     const ids = (list ?? [])
       .filter(
         (e) =>
-          e.drug.trim().toUpperCase() === g.drug.toUpperCase() &&
-          e.dose.trim().toUpperCase() === g.dose.toUpperCase(),
+          e.drug.trim().toUpperCase() === g.drug.toUpperCase(),
       )
       .map((e) => e.id!)
       .filter(Boolean);
@@ -90,8 +98,7 @@ function MedsPage() {
     const ids = (list ?? [])
       .filter(
         (e) =>
-          e.drug.trim().toUpperCase() === g.drug.toUpperCase() &&
-          e.dose.trim().toUpperCase() === g.dose.toUpperCase(),
+          e.drug.trim().toUpperCase() === g.drug.toUpperCase(),
       )
       .map((e) => e.id!)
       .filter(Boolean);
@@ -109,6 +116,7 @@ function MedsPage() {
       duration: "",
       createdAt: Date.now(),
     });
+    toast.success("تمت إضافة صف مريض");
   }
 
   const upd = (id: number, patch: Partial<MedEntry>) => db.meds.update(id, patch);
