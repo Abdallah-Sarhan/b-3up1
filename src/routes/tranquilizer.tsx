@@ -214,10 +214,6 @@ function MedsPage() {
                 <Button variant="ghost" size="sm" title="حذف الدواء" onClick={() => deleteGroup(g)}>
                   <Trash2 />
                 </Button>
-                <Button size="sm" variant="outline" className="ms-auto" onClick={() => addPatientTo(g)}>
-                  <Plus />
-                  مريض
-                </Button>
               </div>
               <div className="divide-y divide-border/60">
                 {g.rows.map((r) => (
@@ -250,6 +246,12 @@ function MedsPage() {
                 {g.rows.length === 0 ? (
                   <p className="px-3 py-2 text-sm text-muted-foreground">لا يوجد مرضى</p>
                 ) : null}
+              </div>
+              <div className="flex justify-end border-t border-border/60 px-3 py-2">
+                <Button size="sm" variant="outline" onClick={() => addPatientTo(g)}>
+                  <Plus />
+                  مريض
+                </Button>
               </div>
             </div>
           ))}
