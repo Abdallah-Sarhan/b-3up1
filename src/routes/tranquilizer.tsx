@@ -214,10 +214,6 @@ function MedsPage() {
                 <Button variant="ghost" size="sm" title="حذف الدواء" onClick={() => deleteGroup(g)}>
                   <Trash2 />
                 </Button>
-                <Button size="sm" variant="outline" className="ms-auto" onClick={() => addPatientTo(g)}>
-                  <Plus />
-                  مريض
-                </Button>
               </div>
               <div className="divide-y divide-border/60">
                 {g.rows.map((r) => (
