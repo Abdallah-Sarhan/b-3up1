@@ -33,6 +33,7 @@ type Group = { drug: string; dose: string; rxNo: string; rows: MedEntry[] };
 
 function groupOf(list: MedEntry[]): Group[] {
   const map = new Map<string, Group>();
+  const seenHeader = new Set<string>();
   for (const e of list) {
     const key = `${e.drug.trim().toUpperCase()}|${e.dose.trim().toUpperCase()}`;
     let g = map.get(key);
@@ -41,10 +42,18 @@ function groupOf(list: MedEntry[]): Group[] {
       map.set(key, g);
     }
     if (!g.rxNo && e.rxNo) g.rxNo = e.rxNo;
-    if (e.patient.trim()) g.rows.push(e);
+    // the first (oldest) entry of a drug is the drug definition itself;
+    // every later entry is a patient row, even if the name is still empty.
+    if (!seenHeader.has(key) && !e.patient.trim()) {
+      seenHeader.add(key);
+      continue;
+    }
+    seenHeader.add(key);
+    g.rows.push(e);
   }
   return [...map.values()];
 }
+
 
 function MedsPage() {
   const [category, setCategory] = useState<MedCategory>("major");
