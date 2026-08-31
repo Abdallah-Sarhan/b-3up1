@@ -118,6 +118,7 @@ function MedsPage() {
       duration: "",
       createdAt: Date.now(),
     });
+    toast.success("تمت إضافة صف مريض");
   }
 
   const upd = (id: number, patch: Partial<MedEntry>) => db.meds.update(id, patch);
