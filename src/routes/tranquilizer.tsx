@@ -35,7 +35,7 @@ function groupOf(list: MedEntry[]): Group[] {
   const map = new Map<string, Group>();
   const seenHeader = new Set<string>();
   for (const e of list) {
-    const key = `${e.drug.trim().toUpperCase()}|${e.dose.trim().toUpperCase()}`;
+    const key = e.drug.trim().toUpperCase();
     let g = map.get(key);
     if (!g) {
       g = { drug: e.drug.trim(), dose: e.dose.trim(), rxNo: e.rxNo || "", rows: [] };
@@ -87,8 +87,7 @@ function MedsPage() {
     const ids = (list ?? [])
       .filter(
         (e) =>
-          e.drug.trim().toUpperCase() === g.drug.toUpperCase() &&
-          e.dose.trim().toUpperCase() === g.dose.toUpperCase(),
+          e.drug.trim().toUpperCase() === g.drug.toUpperCase(),
       )
       .map((e) => e.id!)
       .filter(Boolean);
@@ -99,8 +98,7 @@ function MedsPage() {
     const ids = (list ?? [])
       .filter(
         (e) =>
-          e.drug.trim().toUpperCase() === g.drug.toUpperCase() &&
-          e.dose.trim().toUpperCase() === g.dose.toUpperCase(),
+          e.drug.trim().toUpperCase() === g.drug.toUpperCase(),
       )
       .map((e) => e.id!)
       .filter(Boolean);
