@@ -208,13 +208,20 @@ function MedsPage() {
                 {g.rows.map((r) => (
                   <div key={r.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
                     <Input
-                      className="h-8 flex-1 min-w-52"
+                      className="h-8 flex-1 min-w-44"
                       list="med-patients"
                       defaultValue={r.patient}
                       onBlur={(e) => r.id && upd(r.id, { patient: e.target.value })}
                     />
                     <Input
-                      className="h-8 w-28"
+                      className="h-8 w-24"
+                      placeholder="الجرعة"
+                      defaultValue={r.dose}
+                      onBlur={(e) => r.id && upd(r.id, { dose: e.target.value })}
+                    />
+                    <Input
+                      className="h-8 w-24"
+                      placeholder="المدة"
                       defaultValue={r.duration}
                       onBlur={(e) => r.id && upd(r.id, { duration: e.target.value })}
                     />
@@ -320,8 +327,13 @@ function PrintSheet({
               </tr>
               {g.rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="border border-black px-1 py-0.5">{r.patient.toUpperCase()}</td>
-                  <td className="border border-black px-1 py-0.5 text-center font-semibold">{r.duration}</td>
+                  <td className="border border-black px-1 py-0.5">
+                    {r.patient.toUpperCase()}
+                    {r.duration ? <span className="text-[85%] opacity-80"> ({r.duration})</span> : null}
+                  </td>
+                  <td className="border border-black px-1 py-0.5 text-center font-semibold">
+                    {r.dose.toUpperCase()}
+                  </td>
                   {isControl ? <td className="border border-black px-1 py-0.5" /> : null}
                   {blank.map((_, i) => (
                     <td key={i} className="border border-black px-1 py-0.5" />
