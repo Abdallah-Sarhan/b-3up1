@@ -327,8 +327,13 @@ function PrintSheet({
               </tr>
               {g.rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="border border-black px-1 py-0.5">{r.patient.toUpperCase()}</td>
-                  <td className="border border-black px-1 py-0.5 text-center font-semibold">{r.duration}</td>
+                  <td className="border border-black px-1 py-0.5">
+                    {r.patient.toUpperCase()}
+                    {r.duration ? <span className="text-[85%] opacity-80"> ({r.duration})</span> : null}
+                  </td>
+                  <td className="border border-black px-1 py-0.5 text-center font-semibold">
+                    {r.dose.toUpperCase()}
+                  </td>
                   {isControl ? <td className="border border-black px-1 py-0.5" /> : null}
                   {blank.map((_, i) => (
                     <td key={i} className="border border-black px-1 py-0.5" />
