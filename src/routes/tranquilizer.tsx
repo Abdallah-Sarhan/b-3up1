@@ -112,6 +112,7 @@ function MedsPage() {
       drug: g.drug,
       dose: g.dose,
       rxNo: g.rxNo,
+      dose: "",
       patient: "",
       duration: "",
       createdAt: Date.now(),
