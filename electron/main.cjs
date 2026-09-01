@@ -1,5 +1,6 @@
-const { app, BrowserWindow, protocol, net } = require("electron");
+const { app, BrowserWindow, protocol, net, session } = require("electron");
 const path = require("node:path");
+const fs = require("node:fs");
 const { pathToFileURL } = require("node:url");
 
 // Chromium does not persist IndexedDB for file:// pages, so the app is served
@@ -13,18 +14,23 @@ protocol.registerSchemesAsPrivileged([
       secure: true,
       supportFetchAPI: true,
       stream: true,
+      allowServiceWorkers: true,
+      bypassCSP: true,
     },
   },
 ]);
 
 const ROOT = path.join(__dirname, "..", "dist-electron");
+const INDEX = path.join(ROOT, "electron.html");
 
 function resolveRequest(url) {
   const { pathname } = new URL(url);
   const rel = decodeURIComponent(pathname).replace(/^\/+/, "");
   const file = path.join(ROOT, rel || "electron.html");
-  // Never escape the bundle directory.
-  if (!file.startsWith(ROOT)) return path.join(ROOT, "electron.html");
+  // Never escape the bundle directory, and always fall back to the SPA shell
+  // so an unknown path renders the app instead of hanging on a failed fetch.
+  if (!file.startsWith(ROOT)) return INDEX;
+  if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) return INDEX;
   return file;
 }
 
@@ -39,6 +45,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      spellcheck: false,
     },
   });
 
@@ -46,6 +53,13 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Storage / clipboard permission prompts have no UI in this app; leaving them
+  // unanswered makes the renderer wait forever and the window looks frozen.
+  session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => {
+    callback(true);
+  });
+  session.defaultSession.setPermissionCheckHandler(() => true);
+
   protocol.handle("app", (request) =>
     net.fetch(pathToFileURL(resolveRequest(request.url)).toString()),
   );
