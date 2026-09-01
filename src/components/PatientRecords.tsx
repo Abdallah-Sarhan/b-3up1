@@ -226,7 +226,7 @@ function SbarTab({ patientId }: { patientId: number }) {
   );
 }
 
-function CarePlanTab({ patientId }: { patientId: number }) {
+export function CarePlanTab({ patientId }: { patientId: number }) {
   const { t } = useLang();
   const entries = useLiveQuery(
     () => db.careplan.where("patientId").equals(patientId).sortBy("dateIdentified"),

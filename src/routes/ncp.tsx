@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
 import { ClipboardList, Printer } from "lucide-react";
-import { db } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, CardHeader, Field } from "@/components/ui-kit";
 import { PatientPicker, useActivePatients } from "@/components/PatientPicker";
+import { CarePlanTab } from "@/components/PatientRecords";
 
 export const Route = createFileRoute("/ncp")({
   head: () => ({
@@ -23,14 +22,6 @@ function NcpPage() {
   const { t } = useLang();
   const patients = useActivePatients();
   const [patientId, setPatientId] = useState<number | "">("");
-
-  const plans = useLiveQuery(
-    () =>
-      patientId
-        ? db.careplan.where("patientId").equals(patientId).toArray()
-        : Promise.resolve([] as import("@/lib/db").CarePlanEntry[]),
-    [patientId],
-  );
 
   return (
     <div className="space-y-4">
@@ -63,22 +54,10 @@ function NcpPage() {
           </div>
 
           <Card>
-            <CardHeader title={t("careplan")} subtitle={String(plans?.length ?? 0)} />
-            <ul className="divide-y divide-border">
-              {(plans ?? []).map((p) => (
-                <li key={p.id} className="space-y-1 px-5 py-3">
-                  <p className="font-medium">
-                    {p.problemNo ? `${p.problemNo}. ` : ""}
-                    {p.problem}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{p.objective}</p>
-                  <p className="text-sm">{p.intervention}</p>
-                </li>
-              ))}
-              {(plans?.length ?? 0) === 0 ? (
-                <li className="px-5 py-8 text-center text-muted-foreground">{t("noEntries")}</li>
-              ) : null}
-            </ul>
+            <CardHeader title={t("careplan")} />
+            <div className="p-5">
+              <CarePlanTab patientId={patientId} />
+            </div>
           </Card>
         </>
       ) : null}

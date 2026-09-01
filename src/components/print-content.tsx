@@ -1,6 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, type Patient, type SbarEntry, type VitalEntry } from "@/lib/db";
-import { STANDARD_PROBLEMS } from "@/lib/careplan-standards";
 import { BoxedDigits, makeField } from "@/components/OverlayPrint";
 import { KcmhHeader, PatientHeaderGrid, PrintTitle } from "@/components/PrintSheet";
 import logoKcmh from "@/assets/logo-kcmh.png.asset.json";
@@ -136,6 +135,126 @@ export function VitalsContent({ patient, id }: { patient: Patient; id: number })
   );
 }
 
+/** Row of bordered digit boxes (HOSP. NO. / C.I.D.) like the MOH pre-printed forms. */
+export function DigitBoxes({
+  value,
+  cells,
+  className = "h-6 w-5 text-[11px]",
+}: {
+  value: string;
+  cells: number;
+  className?: string;
+}) {
+  const chars = (value || "").replace(/[^0-9A-Za-z]/g, "").slice(0, cells).split("");
+  return (
+    <span className="inline-flex">
+      {Array.from({ length: cells }, (_, i) => (
+        <span
+          key={i}
+          className={`flex items-center justify-center border border-black font-bold ${className} ${i > 0 ? "-ms-px" : ""}`}
+        >
+          {chars[i] ?? ""}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/**
+ * MOH-style form header (matches the pre-printed ministry forms):
+ * MOH logo on the left; HOSPITAL / HOSP. NO. boxes, Dept/Unit/Ward/Room/Bed
+ * boxes, Date of Adm., Doctor in Charge, NAME, C.I.D. boxes, SEX, AGE, Diagnosis.
+ */
+export function MohFormHeader({ patient }: { patient: Patient }) {
+  const deptCells: Array<[string, string]> = [
+    ["Dept.", "M"],
+    ["Unit", "2"],
+    ["Ward", "39"],
+    ["Room", patient.room || ""],
+    ["Bed", patient.bed || ""],
+  ];
+  const sex = (patient.sex || "").trim().toUpperCase();
+  return (
+    <div className="mb-3 flex items-stretch gap-3">
+      <div className="flex w-[16%] flex-col items-center justify-center border-e border-black pe-3">
+        <img src={logoMoh.url} alt="Ministry of Health" className="max-h-24 object-contain" />
+        <div className="mt-1 text-center text-[9px] font-bold leading-tight">
+          وزارة الصحة
+          <br />
+          MINISTRY OF HEALTH
+        </div>
+      </div>
+      <div className="flex-1 text-[12px]">
+        <div className="mb-2 flex items-end gap-3">
+          <div className="flex flex-1 items-end gap-1">
+            <b>HOSPITAL :</b>
+            <span className="flex-1 border-b border-dotted border-black text-center font-bold">KCMH</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <b>HOSP. NO.</b>
+            <DigitBoxes value={patient.fileNo} cells={6} className="h-7 w-6 text-xs" />
+          </div>
+        </div>
+        <div className="flex gap-4">
+          <div className="w-[46%]">
+            <div className="flex gap-2">
+              {deptCells.map(([label, value]) => (
+                <div key={label} className="flex flex-col items-start">
+                  <span className="text-[10px]">{label}</span>
+                  <span className="flex h-7 w-10 items-center justify-center border border-black text-xs font-bold">
+                    {value}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 flex items-end gap-3">
+              <div className="flex flex-col items-start">
+                <span className="text-[10px]">Date of Adm.</span>
+                <span className="flex h-7 min-w-24 items-center justify-center border border-black px-1 text-xs font-bold">
+                  {patient.doa || ""}
+                </span>
+              </div>
+              <div className="flex flex-1 flex-col items-start">
+                <span className="text-[10px]">Doctor in Charge</span>
+                <span className="flex h-7 w-full items-center border border-black px-1 text-xs font-bold">
+                  {patient.doctor || ""}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex-1">
+            <div className="mb-1.5 flex items-end gap-1">
+              <b>NAME :</b>
+              <span className="flex-1 border-b border-dotted border-black px-1 font-bold">{patient.name}</span>
+            </div>
+            <div className="mb-1.5 flex items-center gap-2">
+              <b>C.I.D.</b>
+              <DigitBoxes value={patient.cid} cells={12} className="h-6 w-5 text-[10px]" />
+            </div>
+            <div className="mb-1.5 flex items-center gap-4">
+              <span>
+                <b>SEX :</b>{" "}
+                <span className={sex.startsWith("M") ? "font-bold underline" : ""}>M</span>
+                {" / "}
+                <span className={sex.startsWith("F") ? "font-bold underline" : ""}>F</span>
+              </span>
+              <span>
+                <b>AGE:</b> {patient.age || "—"}
+              </span>
+            </div>
+            <div className="flex items-end gap-1">
+              <b>Diagnosis :</b>
+              <span className="flex-1 border-b border-dotted border-black px-1 font-bold">
+                {patient.diagnosis || ""}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function CarePlanContent({ patient, id }: { patient: Patient; id: number }) {
   const entries = useLiveQuery(
     () => db.careplan.where("patientId").equals(id).sortBy("dateIdentified"),
@@ -145,58 +264,29 @@ export function CarePlanContent({ patient, id }: { patient: Patient; id: number 
 
   return (
     <>
-      <div className="mb-3 flex items-start justify-between border-b-2 border-black pb-2">
-        <div className="text-base font-bold">HOSPITAL: KCMH</div>
-        <div className="text-sm font-bold">NURSING CARE PLAN — NURS.6 B</div>
-        <div className="text-sm"><b>HOSPITAL NO:</b> {patient.fileNo}</div>
-      </div>
-
-      <table className="mb-2 w-full border-collapse text-sm">
-        <tbody>
-          <tr>
-            <td className="border border-black px-2 py-1"><b>Dept.</b> M</td>
-            <td className="border border-black px-2 py-1"><b>Unit</b> 2</td>
-            <td className="border border-black px-2 py-1"><b>Ward</b> 39</td>
-            <td className="border border-black px-2 py-1"><b>Room</b> {patient.room || "—"}</td>
-            <td className="border border-black px-2 py-1"><b>Bed</b> {patient.bed || "—"}</td>
-            <td className="border border-black px-2 py-1" colSpan={2}><b>Diagnosis:</b> {patient.diagnosis || "—"}</td>
-          </tr>
-          <tr>
-            <td className="border border-black px-2 py-1" colSpan={3}><b>NAME:</b> {patient.name}</td>
-            <td className="border border-black px-2 py-1" colSpan={2}><b>C.I.D. NO:</b> {patient.cid || "—"}</td>
-            <td className="border border-black px-2 py-1"><b>AGE:</b> {patient.age || "—"}</td>
-            <td className="border border-black px-2 py-1"><b>SEX:</b> {patient.sex || "—"}</td>
-          </tr>
-          <tr>
-            <td className="border border-black px-2 py-1" colSpan={3}><b>Doctor in Charge:</b> {patient.doctor || "—"}</td>
-            <td className="border border-black px-2 py-1" colSpan={2}><b>Date of Adm:</b> {patient.doa || "—"}</td>
-            <td className="border border-black px-2 py-1" colSpan={2}><b>Marital Status:</b> {patient.maritalStatus || "—"}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div className="mb-1 text-center text-sm font-bold">NURSING CARE PLAN — NURS.6 B</div>
+      <MohFormHeader patient={patient} />
 
       <table className="w-full border-collapse text-[11px]" style={{ tableLayout: "fixed" }}>
         <thead>
           <tr>
-            <th className="w-[9%] border border-black bg-neutral-100 px-1 py-1">Date Pro. Identified</th>
-            <th className="w-[5%] border border-black bg-neutral-100 px-1 py-1">Pro. No</th>
-            <th className="w-[20%] border border-black bg-neutral-100 px-1 py-1">Patient's Problem Actual/Potential</th>
-            <th className="w-[20%] border border-black bg-neutral-100 px-1 py-1">Objective (Expected Patient Outcome)</th>
-            <th className="w-[24%] border border-black bg-neutral-100 px-1 py-1">Nursing Intervention</th>
-            <th className="w-[9%] border border-black bg-neutral-100 px-1 py-1">Date Pro Resolved</th>
-            <th className="w-[13%] border border-black bg-neutral-100 px-1 py-1">Nurse Sign</th>
+            <th className="w-[10%] border border-black bg-neutral-100 px-1 py-1">Date Pro. Identified</th>
+            <th className="w-[22%] border border-black bg-neutral-100 px-1 py-1">Patient's Problem Actual/Potential</th>
+            <th className="w-[22%] border border-black bg-neutral-100 px-1 py-1">Objective (Expected Patient Outcome)</th>
+            <th className="w-[26%] border border-black bg-neutral-100 px-1 py-1">Nursing Intervention</th>
+            <th className="w-[10%] border border-black bg-neutral-100 px-1 py-1">Date Pro Resolved</th>
+            <th className="w-[10%] border border-black bg-neutral-100 px-1 py-1">Nurse Sign</th>
           </tr>
         </thead>
         <tbody>
           {list.length === 0 ? (
             <tr>
-              <td className="h-24 border border-black px-1 py-1" colSpan={7}></td>
+              <td className="h-24 border border-black px-1 py-1" colSpan={6}></td>
             </tr>
           ) : (
             list.map((c) => (
               <tr key={c.id}>
                 <td className="border border-black px-1 py-1 align-top">{c.dateIdentified}</td>
-                <td className="border border-black px-1 py-1 align-top">{c.problemNo}</td>
                 <td className="border border-black px-1 py-1 align-top whitespace-pre-wrap">{c.problem}</td>
                 <td className="border border-black px-1 py-1 align-top whitespace-pre-wrap">{c.objective}</td>
                 <td className="border border-black px-1 py-1 align-top whitespace-pre-wrap">{c.intervention}</td>
@@ -208,23 +298,13 @@ export function CarePlanContent({ patient, id }: { patient: Patient; id: number 
         </tbody>
       </table>
 
-      <div className="mt-3 flex gap-3 text-[10px]">
-        <div className="flex-1">
-          <p>(Specify potential problem with pt)</p>
-          <p>Pro. = Problem &nbsp;|&nbsp; Rsvd. = Resolved</p>
-          <p className="mt-2 font-bold">HEALTH TEACHING PLAN:-</p>
-          <p className="mt-4 border-b border-dotted border-black">&nbsp;</p>
-          <p className="mt-4 border-b border-dotted border-black">&nbsp;</p>
-          <p className="mt-4 border-b border-dotted border-black">&nbsp;</p>
-        </div>
-        <div className="w-[38%]">
-          <p className="mb-1 font-bold">Standard Problems Reference:</p>
-          <ol className="list-decimal space-y-0.5 ps-4">
-            {STANDARD_PROBLEMS.map((p) => (
-              <li key={p.no}>{p.problem}</li>
-            ))}
-          </ol>
-        </div>
+      <div className="mt-3 text-[10px]">
+        <p>(Specify potential problem with pt)</p>
+        <p>Pro. = Problem &nbsp;|&nbsp; Rsvd. = Resolved</p>
+        <p className="mt-2 font-bold">HEALTH TEACHING PLAN:-</p>
+        <p className="mt-4 border-b border-dotted border-black">&nbsp;</p>
+        <p className="mt-4 border-b border-dotted border-black">&nbsp;</p>
+        <p className="mt-4 border-b border-dotted border-black">&nbsp;</p>
       </div>
     </>
   );

@@ -1,4 +1,4 @@
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useParams, useRouterState } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ArrowRight, Printer } from "lucide-react";
 import { db, type Patient } from "@/lib/db";
@@ -25,6 +25,8 @@ export function PrintShell({
 }) {
   const { t } = useLang();
   const { patientId } = useParams({ strict: false }) as { patientId: string };
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isNcpPrint = pathname.startsWith("/print/") && pathname.endsWith("/careplan");
 
   if (patient === undefined) {
     return <p className="p-10 text-center text-muted-foreground">{t("loading")}</p>;
@@ -47,12 +49,21 @@ export function PrintShell({
           landscape ? "max-w-[297mm]" : "max-w-[210mm]"
         }`}
       >
-        <Link to="/patients/$patientId" params={{ patientId }}>
-          <Button variant="outline" size="sm">
-            <ArrowRight className="rtl:rotate-180 ltr:rotate-180" />
-            {t("back")}
-          </Button>
-        </Link>
+        {isNcpPrint ? (
+          <Link to="/ncp">
+            <Button variant="outline" size="sm">
+              <ArrowRight className="rtl:rotate-180 ltr:rotate-180" />
+              {t("back")}
+            </Button>
+          </Link>
+        ) : (
+          <Link to="/patients/$patientId" params={{ patientId }}>
+            <Button variant="outline" size="sm">
+              <ArrowRight className="rtl:rotate-180 ltr:rotate-180" />
+              {t("back")}
+            </Button>
+          </Link>
+        )}
         <span className="text-sm font-medium text-muted-foreground">{title}</span>
         <Button size="sm" onClick={() => window.print()}>
           <Printer />
