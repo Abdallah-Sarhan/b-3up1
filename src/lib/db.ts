@@ -237,21 +237,37 @@ async function dischargeNonCurrentOnce() {
 }
 
 // Ask the browser/Electron to keep the data instead of evicting it.
-async function requestPersistence() {
+// In Electron the persistent-storage permission prompt can hang forever, so the
+// call is time-boxed and never allowed to block database startup.
+function requestPersistence(): Promise<void> {
   try {
-    await navigator.storage?.persist?.();
+    const p = navigator.storage?.persist?.();
+    if (!p) return Promise.resolve();
+    return Promise.race([
+      p.then(() => undefined),
+      new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+    ]).catch(() => undefined);
   } catch {
-    /* not supported — ignore */
+    return Promise.resolve();
   }
 }
 
 // Runs only in the browser / Electron renderer (never during SSR).
+// Any failure here must still resolve, otherwise every screen stays stuck on
+// "loading" and the app looks frozen.
 export const dbReady: Promise<void> =
   typeof window === "undefined"
     ? Promise.resolve()
-    : requestPersistence()
-        .then(seedIfNeeded)
-        .then(dischargeNonCurrentOnce);
+    : (async () => {
+        void requestPersistence();
+        try {
+          await seedIfNeeded();
+          await dischargeNonCurrentOnce();
+        } catch (err) {
+          console.error("db init failed", err);
+        }
+      })();
+
 
 export function emptyPatient(): Omit<Patient, "id"> {
   const now = Date.now();

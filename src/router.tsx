@@ -5,18 +5,20 @@ import { routeTree } from "./routeTree.gen";
 export const getRouter = () => {
   const queryClient = new QueryClient();
 
-  // Electron loads the app over file:// where path-based history breaks;
+  // Electron loads the app from a custom scheme (app://) or file://, where
+  // path-based history produces URLs that cannot be resolved on reload;
   // use hash history there and normal history in the browser preview.
-  const isFileProtocol =
-    typeof window !== "undefined" && window.location.protocol === "file:";
+  const protocol = typeof window !== "undefined" ? window.location.protocol : "http:";
+  const needsHashHistory = protocol !== "http:" && protocol !== "https:";
 
   const router = createRouter({
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
-    ...(isFileProtocol ? { history: createHashHistory() } : {}),
+    ...(needsHashHistory ? { history: createHashHistory() } : {}),
   });
+
 
   return router;
 };
