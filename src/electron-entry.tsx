@@ -1,19 +1,13 @@
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
 import { getRouter } from "@/router";
-import { electronCss } from "@/electron-css";
 
-// Standalone entry for the Electron build (loads dist-electron/index.html
-// over the file:// protocol, so SSR/nitro entries cannot be used).
-//
-// Tailwind CSS is embedded as a string and rendered through React, because
-// external stylesheets are stripped by the single-file build and plain
-// <style> tags injected into the HTML get removed at runtime.
+// Standalone entry for the Electron build. CSS is emitted once as a normal
+// local stylesheet; keeping an 80 KB style string out of React avoids a large
+// synchronous DOM update while Windows is activating its text-input service.
 const router = getRouter();
+const root = document.getElementById("root");
 
-createRoot(document.getElementById("root")!).render(
-  <>
-    <style>{electronCss}</style>
-    <RouterProvider router={router} />
-  </>,
-);
+if (!root) throw new Error("Ward 39 root element was not found");
+
+createRoot(root).render(<RouterProvider router={router} />);

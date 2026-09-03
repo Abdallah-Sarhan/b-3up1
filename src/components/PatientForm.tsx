@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { db, emptyPatient, type Patient, readmitPatient } from "@/lib/db";
@@ -18,25 +18,36 @@ export function PatientForm({ patient }: { patient?: Patient }) {
   const [matchedId, setMatchedId] = useState<number | null>(null);
   const [fileNoSugs, setFileNoSugs] = useState<string[]>([]);
   const [cidSugs, setCidSugs] = useState<string[]>([]);
+  const suggestTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const suggestRun = useRef(0);
+
+  useEffect(() => () => clearTimeout(suggestTimer.current), []);
 
   // Live suggestions (prefix search) while typing file no / civil id
-  async function suggest(key: "fileNo" | "cid", value: string) {
+  function suggest(key: "fileNo" | "cid", value: string) {
     const v = value.trim();
+    clearTimeout(suggestTimer.current);
+    const run = ++suggestRun.current;
     if (patient?.id || !v) {
       (key === "fileNo" ? setFileNoSugs : setCidSugs)([]);
       return;
     }
-    const rows = await db.patients.where(key).startsWith(v).limit(6).toArray();
-    (key === "fileNo" ? setFileNoSugs : setCidSugs)(
-      rows.map((r) => r[key]).filter(Boolean),
-    );
+    suggestTimer.current = setTimeout(() => {
+      void db.patients.where(key).startsWith(v).limit(6).toArray().then((rows) => {
+        if (run !== suggestRun.current) return;
+        (key === "fileNo" ? setFileNoSugs : setCidSugs)(
+          rows.map((r) => r[key]).filter(Boolean),
+        );
+      });
+    }, 180);
   }
 
   // Apply a chosen/exact file no or civil id: update suggestions and auto-fill patient data
   async function applyLookup(key: "fileNo" | "cid", value: string) {
     setForm((f) => ({ ...f, [key]: value }));
-    await suggest(key, value);
+    suggest(key, value);
     if (patient?.id) return;
+    if (!value.trim()) return;
     const hit = await db.patients.where(key).equals(value.trim()).first();
     if (hit) {
       setMatchedId(hit.id ?? null);
@@ -48,7 +59,9 @@ export function PatientForm({ patient }: { patient?: Patient }) {
   // On every change: update form, refresh suggestions, auto-fill on exact match
   function onLookupChange(key: "fileNo" | "cid") {
     return async (e: React.ChangeEvent<HTMLInputElement>) => {
-      await applyLookup(key, e.target.value);
+      const value = e.target.value;
+      setForm((f) => ({ ...f, [key]: value }));
+      suggest(key, value);
     };
   }
 

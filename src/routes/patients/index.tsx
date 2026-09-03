@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useDeferredValue, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
@@ -38,6 +38,7 @@ export const Route = createFileRoute("/patients/")({
 function PatientsPage() {
   const { t } = useLang();
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const xlsxInput = useRef<HTMLInputElement>(null);
   const jsonInput = useRef<HTMLInputElement>(null);
 
@@ -48,7 +49,7 @@ function PatientsPage() {
 
   const filtered = useMemo(() => {
     if (!patients) return undefined;
-    const q = query.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     const active = patients.filter((p) => !p.dischargedAt);
     if (!q) return active;
     return active.filter(
@@ -59,7 +60,7 @@ function PatientsPage() {
         p.diagnosis.toLowerCase().includes(q) ||
         p.doctor.toLowerCase().includes(q),
     );
-  }, [patients, query]);
+  }, [deferredQuery, patients]);
 
   async function onImportExcel(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

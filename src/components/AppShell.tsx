@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { Activity, ArrowRight, Languages, Users } from "lucide-react";
+import { Activity, ArrowRight, FileWarning, Languages, Users } from "lucide-react";
 import { useLang } from "@/lib/i18n";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -49,6 +49,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {t("patients")}
               </span>
             </Link>
+            {window.ward39Desktop ? (
+              <button
+                type="button"
+                onClick={() => void window.ward39Desktop?.exportDiagnostics()}
+                className="inline-flex size-9 items-center justify-center rounded-md border border-input hover:bg-accent"
+                aria-label="حفظ تقرير التشخيص"
+                title="حفظ تقرير التشخيص"
+              >
+                <FileWarning className="size-4" />
+              </button>
+            ) : null}
             <button
               onClick={() => setLang(lang === "ar" ? "en" : "ar")}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-input px-3 text-sm font-medium hover:bg-accent"
