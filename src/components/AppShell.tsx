@@ -1,5 +1,6 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { Activity, ArrowRight, FileWarning, Languages, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useLang } from "@/lib/i18n";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -8,6 +9,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isPrint = pathname.startsWith("/print");
   const isHome = pathname === "/";
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    setIsDesktop(Boolean(window.ward39Desktop));
+  }, []);
 
   if (isPrint) return <>{children}</>;
 
@@ -49,7 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {t("patients")}
               </span>
             </Link>
-            {window.ward39Desktop ? (
+            {isDesktop ? (
               <button
                 type="button"
                 onClick={() => void window.ward39Desktop?.exportDiagnostics()}
