@@ -10,4 +10,12 @@ const root = document.getElementById("root");
 
 if (!root) throw new Error("Ward 39 root element was not found");
 
+window.addEventListener("error", (event) => {
+  window.ward39Desktop?.reportError(`renderer error: ${event.message}`);
+});
+window.addEventListener("unhandledrejection", (event) => {
+  const reason = event.reason instanceof Error ? event.reason.message : String(event.reason);
+  window.ward39Desktop?.reportError(`unhandled rejection: ${reason}`);
+});
+
 createRoot(root).render(<RouterProvider router={router} />);

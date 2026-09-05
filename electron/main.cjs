@@ -26,8 +26,6 @@ protocol.registerSchemesAsPrivileged([
       secure: true,
       supportFetchAPI: true,
       stream: true,
-      allowServiceWorkers: true,
-      bypassCSP: true,
     },
   },
 ]);
@@ -119,6 +117,9 @@ app.whenReady().then(() => {
     }
     fs.writeFileSync(result.filePath, header + events, "utf8");
     return true;
+  });
+  ipcMain.on("ward39:renderer-error", (_event, message) => {
+    recordDiagnostic(String(message).replace(/[\r\n]+/g, " ").slice(0, 2000));
   });
   createWindow();
   app.on("activate", () => {
