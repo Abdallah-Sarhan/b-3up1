@@ -88,7 +88,7 @@ function DischargePage() {
                   {p.fileNo} · {p.diagnosis}
                 </p>
               </div>
-              <Button variant="destructive" size="sm" onClick={() => discharge(p.id!)}>
+              <Button variant="destructive" size="sm" onClick={() => setPendingId(p.id!)}>
                 <LogOut />
                 {t("discharged")}
               </Button>
