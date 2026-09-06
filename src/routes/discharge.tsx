@@ -123,7 +123,19 @@ function DischargePage() {
           ) : null}
         </ul>
       </Card>
+
+      <ConfirmDialog
+        open={pendingId != null}
+        title={t("confirmDischarge")}
+        withNote
+        noteLabel={t("dischargeNote")}
+        confirmLabel={t("discharged")}
+        destructive
+        onConfirm={(note) => void confirmDischarge(note)}
+        onCancel={() => setPendingId(null)}
+      />
     </div>
+
   );
 }
 
