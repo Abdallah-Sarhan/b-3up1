@@ -38,7 +38,8 @@ function PatientFilePage() {
   }
 
   async function onDelete() {
-    if (!window.confirm(t("confirmDelete"))) return;
+    setAskDelete(false);
+
     await db.transaction("rw", [db.patients, db.vitals, db.notes, db.sbar, db.careplan], async () => {
       await Promise.all([
         db.vitals.where("patientId").equals(id).delete(),
