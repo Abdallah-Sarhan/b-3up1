@@ -6,6 +6,7 @@ import { LogOut, Search, Undo2 } from "lucide-react";
 import { db, dbReady, dischargePatient, readmitPatient } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, CardHeader, Input } from "@/components/ui-kit";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 export const Route = createFileRoute("/discharge")({
   head: () => ({
@@ -43,10 +44,22 @@ function DischargePage() {
     };
   }, [patients, query]);
 
+  const [pendingId, setPendingId] = useState<number | null>(null);
+
+  async function confirmDischarge(note: string) {
+    const id = pendingId;
+    setPendingId(null);
+    if (id == null) return;
+    await dischargePatient(id, note);
+    toast.success(t("dischargeDone"));
+  }
+
   async function readmit(id: number) {
     await readmitPatient(id);
     toast.success(t("readmittedOk"));
   }
+
+
 
 
   return (
