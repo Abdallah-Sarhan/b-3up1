@@ -6,6 +6,7 @@ import { LogOut, Search, Undo2 } from "lucide-react";
 import { db, dbReady, dischargePatient, readmitPatient } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, CardHeader, Input } from "@/components/ui-kit";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 export const Route = createFileRoute("/discharge")({
   head: () => ({
@@ -43,9 +44,12 @@ function DischargePage() {
     };
   }, [patients, query]);
 
-  async function discharge(id: number) {
-    const note = window.prompt(t("dischargeNote")) ?? "";
-    if (!window.confirm(t("confirmDischarge"))) return;
+  const [pendingId, setPendingId] = useState<number | null>(null);
+
+  async function confirmDischarge(note: string) {
+    const id = pendingId;
+    setPendingId(null);
+    if (id == null) return;
     await dischargePatient(id, note);
     toast.success(t("dischargeDone"));
   }
@@ -54,6 +58,9 @@ function DischargePage() {
     await readmitPatient(id);
     toast.success(t("readmittedOk"));
   }
+
+
+
 
   return (
     <div className="space-y-4">
@@ -81,7 +88,7 @@ function DischargePage() {
                   {p.fileNo} · {p.diagnosis}
                 </p>
               </div>
-              <Button variant="destructive" size="sm" onClick={() => discharge(p.id!)}>
+              <Button variant="destructive" size="sm" onClick={() => setPendingId(p.id!)}>
                 <LogOut />
                 {t("discharged")}
               </Button>
@@ -116,7 +123,19 @@ function DischargePage() {
           ) : null}
         </ul>
       </Card>
+
+      <ConfirmDialog
+        open={pendingId != null}
+        title={t("confirmDischarge")}
+        withNote
+        noteLabel={t("dischargeNote")}
+        confirmLabel={t("discharged")}
+        destructive
+        onConfirm={(note) => void confirmDischarge(note)}
+        onCancel={() => setPendingId(null)}
+      />
     </div>
+
   );
 }
 

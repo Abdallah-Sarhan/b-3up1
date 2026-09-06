@@ -1,4 +1,4 @@
-import { forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes, type ReactNode } from "react";
+import { forwardRef, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type ButtonVariant = "default" | "outline" | "ghost" | "destructive" | "secondary";
@@ -29,8 +29,12 @@ export const Button = forwardRef<
   );
 });
 
+// While Windows composes an Arabic (or any IME) character, rewriting the value
+// from React state resets the caret and can wedge the text-input service.
+// The value is therefore synced only between/after compositions.
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
-  function Input({ className, ...props }, ref) {
+  function Input({ className, onChange, onCompositionStart, onCompositionEnd, ...props }, ref) {
+    const composing = useRef(false);
     return (
       <input
         ref={ref}
@@ -38,6 +42,19 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
           "flex h-10 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50",
           className,
         )}
+        onCompositionStart={(e) => {
+          composing.current = true;
+          onCompositionStart?.(e);
+        }}
+        onCompositionEnd={(e) => {
+          composing.current = false;
+          onCompositionEnd?.(e);
+          onChange?.(e as unknown as React.ChangeEvent<HTMLInputElement>);
+        }}
+        onChange={(e) => {
+          if (composing.current) return;
+          onChange?.(e);
+        }}
         {...props}
       />
     );
@@ -45,7 +62,8 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
 );
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(
-  function Textarea({ className, ...props }, ref) {
+  function Textarea({ className, onChange, onCompositionStart, onCompositionEnd, ...props }, ref) {
+    const composing = useRef(false);
     return (
       <textarea
         ref={ref}
@@ -53,11 +71,25 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
           "flex min-h-20 w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50",
           className,
         )}
+        onCompositionStart={(e) => {
+          composing.current = true;
+          onCompositionStart?.(e);
+        }}
+        onCompositionEnd={(e) => {
+          composing.current = false;
+          onCompositionEnd?.(e);
+          onChange?.(e as unknown as React.ChangeEvent<HTMLTextAreaElement>);
+        }}
+        onChange={(e) => {
+          if (composing.current) return;
+          onChange?.(e);
+        }}
         {...props}
       />
     );
   },
 );
+
 
 export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(
   function Select({ className, children, ...props }, ref) {

@@ -18,4 +18,15 @@ window.addEventListener("unhandledrejection", (event) => {
   window.ward39Desktop?.reportError(`unhandled rejection: ${reason}`);
 });
 
+// Lightweight liveness signal: if the window ever stops painting frames the
+// desktop shell notices and recovers instead of staying frozen.
+if (window.ward39Desktop) {
+  const beat = () => {
+    window.ward39Desktop?.heartbeat();
+    setTimeout(() => requestAnimationFrame(beat), 3000);
+  };
+  requestAnimationFrame(beat);
+}
+
 createRoot(root).render(<RouterProvider router={router} />);
+

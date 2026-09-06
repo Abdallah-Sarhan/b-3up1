@@ -6,6 +6,7 @@ import { Download, FileSpreadsheet, Plus, Search, Upload, DatabaseBackup } from 
 import { db, dbReady } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, Input } from "@/components/ui-kit";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   backupToJson,
   exportPatientsToExcel,
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/patients/")({
 function PatientsPage() {
   const { t } = useLang();
   const [query, setQuery] = useState("");
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
   const deferredQuery = useDeferredValue(query);
   const xlsxInput = useRef<HTMLInputElement>(null);
   const jsonInput = useRef<HTMLInputElement>(null);
@@ -74,11 +76,17 @@ function PatientsPage() {
     }
   }
 
-  async function onRestore(e: React.ChangeEvent<HTMLInputElement>) {
+  function onRestore(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (!window.confirm(t("restoreWarn"))) return;
+    setRestoreFile(file);
+  }
+
+  async function confirmRestore() {
+    const file = restoreFile;
+    setRestoreFile(null);
+    if (!file) return;
     try {
       await restoreFromJson(file);
       toast.success(t("restoreDone"));
@@ -86,6 +94,7 @@ function PatientsPage() {
       toast.error(t("importFail"));
     }
   }
+
 
   return (
     <div className="space-y-4">
@@ -192,7 +201,18 @@ function PatientsPage() {
           </table>
         </div>
       </Card>
+
+      <ConfirmDialog
+        open={restoreFile != null}
+        title={t("restoreJson")}
+        message={t("restoreWarn")}
+        confirmLabel={t("restoreJson")}
+        destructive
+        onConfirm={() => void confirmRestore()}
+        onCancel={() => setRestoreFile(null)}
+      />
     </div>
+
   );
 }
 

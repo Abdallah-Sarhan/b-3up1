@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ward 39 — فحص التشغيل</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+        background: #f4f8f9;
+        color: #16323a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+      }
+      .box {
+        text-align: center;
+      }
+      input,
+      select {
+        font: inherit;
+        padding: 6px 10px;
+        margin: 4px;
+      }
+      .hidden-probe {
+        position: absolute;
+        opacity: 0.01;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <p>جارٍ فحص تشغيل البرنامج على هذا الجهاز…</p>
+      <div class="hidden-probe">
+        <input id="probe-input" type="text" />
+        <select id="probe-select">
+          <option value="a">a</option>
+          <option value="b">b</option>
+        </select>
+      </div>
+    </div>
+    <script>
+      // Verify that focusing a text field, changing its value and switching a
+      // dropdown all complete, and that the compositor keeps painting frames.
+      // If any of this stalls, the main process falls back to the other
+      // rendering mode instead of leaving a frozen window on screen.
+      (function () {
+        var input = document.getElementById("probe-input");
+        var select = document.getElementById("probe-select");
+        var frames = 0;
+
+        function tick() {
+          frames++;
+          if (frames < 12) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+
+        setTimeout(function () {
+          try {
+            input.focus();
+            input.value = "اختبار test";
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            select.focus();
+            select.value = "b";
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+            input.focus();
+            input.setSelectionRange(0, 3);
+            if (
+              frames > 1 &&
+              input.value === "اختبار test" &&
+              select.value === "b" &&
+              window.ward39Desktop
+            ) {
+              window.ward39Desktop.probeOk();
+            }
+          } catch (err) {
+            if (window.ward39Desktop) window.ward39Desktop.reportError("probe failed: " + err);
+          }
+        }, 400);
+      })();
+    </script>
+  </body>
+</html>
