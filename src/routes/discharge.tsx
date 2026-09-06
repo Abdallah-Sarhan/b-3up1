@@ -43,17 +43,11 @@ function DischargePage() {
     };
   }, [patients, query]);
 
-  async function discharge(id: number) {
-    const note = window.prompt(t("dischargeNote")) ?? "";
-    if (!window.confirm(t("confirmDischarge"))) return;
-    await dischargePatient(id, note);
-    toast.success(t("dischargeDone"));
-  }
-
   async function readmit(id: number) {
     await readmitPatient(id);
     toast.success(t("readmittedOk"));
   }
+
 
   return (
     <div className="space-y-4">
