@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
@@ -5,6 +6,7 @@ import { Pencil, Printer, Trash2, FileText, HeartPulse, ClipboardList, NotebookP
 import { db } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Badge, Button, Card, CardHeader } from "@/components/ui-kit";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PatientRecords } from "@/components/PatientRecords";
 
 export const Route = createFileRoute("/patients/$patientId/")({
@@ -25,6 +27,7 @@ function PatientFilePage() {
   const { patientId } = useParams({ from: "/patients/$patientId/" });
   const id = Number(patientId);
   const patient = useLiveQuery(() => db.patients.get(id), [id]);
+  const [askDelete, setAskDelete] = useState(false);
 
   if (patient === undefined) {
     return <p className="py-10 text-center text-muted-foreground">{t("loading")}</p>;
