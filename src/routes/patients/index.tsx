@@ -201,7 +201,18 @@ function PatientsPage() {
           </table>
         </div>
       </Card>
+
+      <ConfirmDialog
+        open={restoreFile != null}
+        title={t("restoreJson")}
+        message={t("restoreWarn")}
+        confirmLabel={t("restoreJson")}
+        destructive
+        onConfirm={() => void confirmRestore()}
+        onCancel={() => setRestoreFile(null)}
+      />
     </div>
+
   );
 }
 
