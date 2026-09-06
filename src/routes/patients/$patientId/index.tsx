@@ -83,7 +83,7 @@ function PatientFilePage() {
               {t("edit")}
             </Button>
           </Link>
-          <Button variant="destructive" onClick={onDelete}>
+          <Button variant="destructive" onClick={() => setAskDelete(true)}>
             <Trash2 />
             {t("delete")}
           </Button>
