@@ -131,7 +131,17 @@ function PatientFilePage() {
       </Card>
 
       <PatientRecords patientId={id} />
+
+      <ConfirmDialog
+        open={askDelete}
+        title={t("confirmDelete")}
+        confirmLabel={t("delete")}
+        destructive
+        onConfirm={() => void onDelete()}
+        onCancel={() => setAskDelete(false)}
+      />
     </div>
+
   );
 }
 
