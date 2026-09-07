@@ -214,27 +214,52 @@ async function dischargeNonCurrentOnce() {
   const done = await db.meta.get("dischargeExceptCensus2026-08-30");
   if (done) return;
   const today = new Date().toISOString().slice(0, 10);
-  const all = await db.patients.toArray();
-  for (const p of all) {
-    if (p.id == null || p.dischargedAt) continue;
-    if (CURRENT_INPATIENT_FILE_NOS.has(p.fileNo.trim())) continue;
-    const open = (
-      await db.admissions.where("patientId").equals(p.id).toArray()
-    ).find((a) => !a.dischargedAt);
-    if (open?.id != null) {
-      await db.admissions.update(open.id, { dischargedAt: today });
-    } else {
-      await db.admissions.add({
-        patientId: p.id,
-        admittedAt: p.doa || today,
-        dischargedAt: today,
-        createdAt: Date.now(),
-      });
+  const now = Date.now();
+
+  // One atomic transaction: if the app is closed mid-way nothing is half-done,
+  // and the whole migration is a handful of bulk operations instead of two or
+  // three separate IndexedDB round trips per patient (which froze the UI).
+  await db.transaction("rw", [db.patients, db.admissions, db.meta], async () => {
+    const [all, admissions] = await Promise.all([
+      db.patients.toArray(),
+      db.admissions.toArray(),
+    ]);
+
+    const openByPatient = new Map<number, Admission>();
+    for (const a of admissions) {
+      if (!a.dischargedAt && !openByPatient.has(a.patientId)) {
+        openByPatient.set(a.patientId, a);
+      }
     }
-    await db.patients.update(p.id, { dischargedAt: today, updatedAt: Date.now() });
-  }
-  await db.meta.put({ key: "dischargeExceptCensus2026-08-30", value: "1" });
+
+    const admissionUpdates: Array<{ key: number; changes: Partial<Admission> }> = [];
+    const admissionInserts: Admission[] = [];
+    const patientUpdates: Array<{ key: number; changes: Partial<Patient> }> = [];
+
+    for (const p of all) {
+      if (p.id == null || p.dischargedAt) continue;
+      if (CURRENT_INPATIENT_FILE_NOS.has(p.fileNo.trim())) continue;
+      const open = openByPatient.get(p.id);
+      if (open?.id != null) {
+        admissionUpdates.push({ key: open.id, changes: { dischargedAt: today } });
+      } else {
+        admissionInserts.push({
+          patientId: p.id,
+          admittedAt: p.doa || today,
+          dischargedAt: today,
+          createdAt: now,
+        });
+      }
+      patientUpdates.push({ key: p.id, changes: { dischargedAt: today, updatedAt: now } });
+    }
+
+    if (admissionUpdates.length) await db.admissions.bulkUpdate(admissionUpdates);
+    if (admissionInserts.length) await db.admissions.bulkAdd(admissionInserts);
+    if (patientUpdates.length) await db.patients.bulkUpdate(patientUpdates);
+    await db.meta.put({ key: "dischargeExceptCensus2026-08-30", value: "1" });
+  });
 }
+
 
 // Ask the browser/Electron to keep the data instead of evicting it.
 // In Electron the persistent-storage permission prompt can hang forever, so the
