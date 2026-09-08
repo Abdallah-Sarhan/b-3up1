@@ -3,10 +3,16 @@ import { Activity, ArrowRight, FileWarning, Languages, Users } from "lucide-reac
 import { useEffect, useState } from "react";
 import { useLang } from "@/lib/i18n";
 
+// In-app navigation trail so the back button retraces the exact path the
+// user took inside the app, step by step, until the home page.
+const navTrail: string[] = ["/"];
+let navigatingBack = false;
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { lang, setLang, t } = useLang();
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const href = useRouterState({ select: (s) => s.location.href });
   const isPrint = pathname.startsWith("/print");
   const isHome = pathname === "/";
   const [isDesktop, setIsDesktop] = useState(false);
@@ -14,6 +20,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setIsDesktop(Boolean(window.ward39Desktop));
   }, []);
+
+  useEffect(() => {
+    if (isPrint) return;
+    if (navigatingBack) {
+      navigatingBack = false;
+      return;
+    }
+    const last = navTrail[navTrail.length - 1];
+    if (last === href) return;
+    // Re-visiting the page right below the top means the user went back
+    // through the browser itself; drop the current entry instead of stacking.
+    if (navTrail.length > 1 && navTrail[navTrail.length - 2] === href) {
+      navTrail.pop();
+      return;
+    }
+    navTrail.push(href);
+  }, [href, isPrint]);
+
+  const goBack = () => {
+    navTrail.pop();
+    const target = navTrail[navTrail.length - 1] ?? "/";
+    navigatingBack = true;
+    router.navigate({ to: target as never });
+  };
 
   if (isPrint) return <>{children}</>;
 
