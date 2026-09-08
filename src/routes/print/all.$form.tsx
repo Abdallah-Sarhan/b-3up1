@@ -29,6 +29,7 @@ function Sheet({
   dx,
   dy,
   fontScale,
+  landscape,
   last,
 }: {
   form: PrintFormDef;
@@ -37,6 +38,7 @@ function Sheet({
   dx: number;
   dy: number;
   fontScale: number;
+  landscape: boolean;
   last: boolean;
 }) {
   const breakStyle = last ? undefined : ({ breakAfter: "page", pageBreakAfter: "always" } as const);
@@ -76,8 +78,8 @@ function Sheet({
       dir="ltr"
       className="mx-auto mb-6 w-full overflow-hidden bg-white p-[12mm] text-black shadow-md print:mb-0 print:p-0 print:shadow-none"
       style={{
-        maxWidth: form.landscape ? "297mm" : "210mm",
-        minHeight: form.landscape ? "188mm" : "275mm",
+        maxWidth: landscape ? "297mm" : "210mm",
+        minHeight: landscape ? "188mm" : "275mm",
         breakInside: "avoid",
         fontFamily: "'Times New Roman', Times, serif",
         ...(breakStyle ?? {}),
@@ -97,6 +99,10 @@ function BatchPrintPage() {
   const [dx, setDx] = useState(0);
   const [dy, setDy] = useState(0);
   const [fontScale, setFontScale] = useState(1);
+  // Page orientation is user-switchable for non-overlay forms; overlay
+  // templates stay portrait because their fields are calibrated to the scan.
+  const [lsOverride, setLsOverride] = useState<boolean | null>(null);
+  const landscape = form?.template ? false : (lsOverride ?? !!form?.landscape);
 
   if (!form) {
     return (
@@ -123,7 +129,7 @@ function BatchPrintPage() {
 
   return (
     <div className="min-h-screen bg-muted py-6 print:bg-white print:py-0">
-      <style>{`@media print { @page { size: A4 ${form.landscape ? "landscape" : "portrait"}; margin: ${
+      <style>{`@media print { @page { size: A4 ${landscape ? "landscape" : "portrait"}; margin: ${
         form.template ? "0" : "8mm"
       }; } }`}</style>
 
@@ -138,6 +144,16 @@ function BatchPrintPage() {
           <span className="text-sm font-medium">
             {lang === "ar" ? form.ar : form.en} — {t("activePatients")}: {list.length}
           </span>
+          {form.template ? null : (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={landscape}
+                onChange={(e) => setLsOverride(e.target.checked)}
+              />
+              {lang === "ar" ? "ورقة أفقية (Landscape)" : "Landscape page"}
+            </label>
+          )}
           {form.template ? (
             <>
               <label className="flex items-center gap-2 text-sm">
@@ -216,6 +232,7 @@ function BatchPrintPage() {
             dx={dx}
             dy={dy}
             fontScale={fontScale}
+            landscape={landscape}
             last={i === list.length - 1}
           />
         ))
