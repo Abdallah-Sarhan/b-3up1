@@ -45,10 +45,11 @@ function Sheet({
     return (
       <div
         dir="ltr"
-        className="relative mx-auto mb-6 bg-white text-black shadow-md print:mb-0 print:shadow-none"
+        className="relative mx-auto mb-6 overflow-hidden bg-white text-black shadow-md print:mb-0 print:shadow-none"
         style={{
           width: "210mm",
-          height: "297mm",
+          height: "296mm",
+          breakInside: "avoid",
           fontFamily: "Arial, Helvetica, sans-serif",
           ...(breakStyle ?? {}),
         }}
@@ -73,10 +74,11 @@ function Sheet({
   return (
     <div
       dir="ltr"
-      className="mx-auto mb-6 w-full bg-white p-[12mm] text-black shadow-md print:mb-0 print:p-0 print:shadow-none"
+      className="mx-auto mb-6 w-full overflow-hidden bg-white p-[12mm] text-black shadow-md print:mb-0 print:p-0 print:shadow-none"
       style={{
         maxWidth: form.landscape ? "297mm" : "210mm",
-        minHeight: form.landscape ? "200mm" : "285mm",
+        minHeight: form.landscape ? "188mm" : "275mm",
+        breakInside: "avoid",
         fontFamily: "'Times New Roman', Times, serif",
         ...(breakStyle ?? {}),
       }}
@@ -106,7 +108,18 @@ function BatchPrintPage() {
     );
   }
 
-  const list = (patients ?? []).filter((p) => p.id != null);
+  // Batch printing follows the ward folder order (Folder No), ascending.
+  const list = (patients ?? [])
+    .filter((p) => p.id != null)
+    .slice()
+    .sort((a, b) => {
+      const na = Number(String(a.fileNo ?? "").replace(/\D/g, ""));
+      const nb = Number(String(b.fileNo ?? "").replace(/\D/g, ""));
+      const va = Number.isFinite(na) ? na : Number.POSITIVE_INFINITY;
+      const vb = Number.isFinite(nb) ? nb : Number.POSITIVE_INFINITY;
+      if (va !== vb) return va - vb;
+      return String(a.fileNo ?? "").localeCompare(String(b.fileNo ?? ""));
+    });
 
   return (
     <div className="min-h-screen bg-muted py-6 print:bg-white print:py-0">
