@@ -97,6 +97,10 @@ function BatchPrintPage() {
   const [dx, setDx] = useState(0);
   const [dy, setDy] = useState(0);
   const [fontScale, setFontScale] = useState(1);
+  // Page orientation is user-switchable for non-overlay forms; overlay
+  // templates stay portrait because their fields are calibrated to the scan.
+  const [lsOverride, setLsOverride] = useState<boolean | null>(null);
+  const landscape = form?.template ? false : (lsOverride ?? !!form?.landscape);
 
   if (!form) {
     return (
