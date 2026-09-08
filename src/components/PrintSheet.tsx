@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams, useRouterState } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ArrowRight, Printer } from "lucide-react";
@@ -23,10 +24,12 @@ export function PrintShell({
   landscape?: boolean;
   children: React.ReactNode;
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { patientId } = useParams({ strict: false }) as { patientId: string };
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isNcpPrint = pathname.startsWith("/print/") && pathname.endsWith("/careplan");
+  // Page orientation is user-switchable; defaults to the form's own setting.
+  const [ls, setLs] = useState(!!landscape);
 
   if (patient === undefined) {
     return <p className="p-10 text-center text-muted-foreground">{t("loading")}</p>;
@@ -41,12 +44,10 @@ export function PrintShell({
 
   return (
     <div className="min-h-screen bg-muted py-6 print:bg-white print:py-0">
-      {landscape ? (
-        <style>{`@media print { @page { size: A4 landscape; margin: 8mm; } }`}</style>
-      ) : null}
+      <style>{`@media print { @page { size: A4 ${ls ? "landscape" : "portrait"}; margin: 8mm; } }`}</style>
       <div
-        className={`mx-auto mb-4 flex items-center justify-between px-4 print:hidden ${
-          landscape ? "max-w-[297mm]" : "max-w-[210mm]"
+        className={`mx-auto mb-4 flex flex-wrap items-center justify-between gap-3 px-4 print:hidden ${
+          ls ? "max-w-[297mm]" : "max-w-[210mm]"
         }`}
       >
         {isNcpPrint ? (
@@ -65,6 +66,10 @@ export function PrintShell({
           </Link>
         )}
         <span className="text-sm font-medium text-muted-foreground">{title}</span>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={ls} onChange={(e) => setLs(e.target.checked)} />
+          {lang === "ar" ? "ورقة أفقية (Landscape)" : "Landscape page"}
+        </label>
         <Button size="sm" onClick={() => window.print()}>
           <Printer />
           {t("print")}
@@ -73,7 +78,7 @@ export function PrintShell({
       <div
         dir="ltr"
         className={`mx-auto w-full bg-white p-[12mm] text-black shadow-md print:max-w-none print:p-0 print:shadow-none ${
-          landscape ? "max-w-[297mm] print:w-full" : "max-w-[210mm]"
+          ls ? "max-w-[297mm] print:w-full" : "max-w-[210mm]"
         }`}
         style={{ fontFamily: "'Times New Roman', Times, serif" }}
       >
