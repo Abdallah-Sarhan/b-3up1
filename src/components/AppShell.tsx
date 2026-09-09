@@ -55,10 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {!isHome && (
               <button
                 type="button"
-                onClick={() => {
-                  if (window.history.length > 1) router.history.back();
-                  else router.navigate({ to: "/" });
-                }}
+                onClick={goBack}
                 className="inline-flex size-9 items-center justify-center rounded-md border border-input hover:bg-accent"
                 aria-label={t("back")}
                 title={t("back")}
