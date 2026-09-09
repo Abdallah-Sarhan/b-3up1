@@ -1,4 +1,4 @@
-import { forwardRef, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes, type ReactNode } from "react";
+import { cloneElement, forwardRef, isValidElement, useId, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactElement, type SelectHTMLAttributes, type TextareaHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 type ButtonVariant = "default" | "outline" | "ghost" | "destructive" | "secondary";
@@ -116,11 +116,28 @@ export function Label({ className, children, ...props }: { className?: string; c
   );
 }
 
-export function Field({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+export function Field({
+  label,
+  children,
+  className,
+  id,
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+  id?: string;
+}) {
+  const autoId = useId();
+  const fieldId = id ?? autoId;
+  const control = isValidElement(children)
+    ? cloneElement(children as ReactElement<{ id?: string }>, {
+        id: (children as ReactElement<{ id?: string }>).props.id ?? fieldId,
+      })
+    : children;
   return (
     <div className={className}>
-      <Label>{label}</Label>
-      {children}
+      <Label htmlFor={fieldId}>{label}</Label>
+      {control}
     </div>
   );
 }

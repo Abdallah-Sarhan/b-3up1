@@ -53,7 +53,7 @@ function HomePage() {
     <div className="space-y-8 py-4">
       <div className="text-center">
         <h1 className="inline-block rounded-xl border-2 border-primary px-8 py-3 text-3xl font-extrabold tracking-wide text-primary">
-          WARD 39
+          WARD 39 — Patient Management System
         </h1>
         <p className="mt-3 text-sm text-muted-foreground">
           {t("activePatients")}: {patients?.length ?? "…"}

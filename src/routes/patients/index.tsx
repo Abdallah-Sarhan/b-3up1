@@ -17,21 +17,23 @@ import {
 export const Route = createFileRoute("/patients/")({
   head: () => ({
     meta: [
-      { title: "سجل مرضى جناح 39 — Ward 39 Patient Registry" },
+      { title: "سجل المرضى النشطين — جناح 39 | Active Patients — Ward 39" },
       {
         name: "description",
         content:
-          "Offline desktop registry for Ward 39 (KCMH): register patients, print patient data, SBAR handover, vital signs, nurses notes and care plans.",
+          "Browse and search active Ward 39 patients by name, file number or ID, open a patient file, and import, export or back up patient records.",
       },
-      { property: "og:title", content: "Ward 39 Patient Registry" },
+      { property: "og:title", content: "Active Patients — Ward 39" },
       {
         property: "og:description",
         content:
-          "Offline patient registry for Ward 39: registration, printing, SBAR, vitals, nursing notes and care plans.",
+          "Search active Ward 39 patient records, open individual files, and import, export or back up the registry.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "/patients" },
       { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "/patients" }],
   }),
   component: PatientsPage,
 });
@@ -142,6 +144,8 @@ function PatientsPage() {
       <div className="relative">
         <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
+          id="patients-search"
+          aria-label={t("search")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("search")}
