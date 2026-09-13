@@ -14,7 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      patients: {
+        Row: {
+          age: string
+          bed: string
+          cid: string
+          created_at: number
+          diagnosis: string
+          discharge_note: string | null
+          discharged_at: string | null
+          doa: string
+          dob: string
+          doctor: string
+          file_no: string
+          folder_no: string
+          id: string
+          marital_status: string
+          name: string
+          nationality: string
+          notes: string
+          room: string
+          sex: string
+          updated_at: number
+        }
+        Insert: {
+          age?: string
+          bed?: string
+          cid?: string
+          created_at?: number
+          diagnosis?: string
+          discharge_note?: string | null
+          discharged_at?: string | null
+          doa?: string
+          dob?: string
+          doctor?: string
+          file_no: string
+          folder_no?: string
+          id?: string
+          marital_status?: string
+          name?: string
+          nationality?: string
+          notes?: string
+          room?: string
+          sex?: string
+          updated_at?: number
+        }
+        Update: {
+          age?: string
+          bed?: string
+          cid?: string
+          created_at?: number
+          diagnosis?: string
+          discharge_note?: string | null
+          discharged_at?: string | null
+          doa?: string
+          dob?: string
+          doctor?: string
+          file_no?: string
+          folder_no?: string
+          id?: string
+          marital_status?: string
+          name?: string
+          nationality?: string
+          notes?: string
+          room?: string
+          sex?: string
+          updated_at?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

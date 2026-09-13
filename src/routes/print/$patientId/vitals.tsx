@@ -15,7 +15,7 @@ export const Route = createFileRoute("/print/$patientId/vitals")({
 });
 
 const COLS = ["DATE", "TIME", "BP", "PULSE", "RESP", "TEMP", "SPO2"] as const;
-const ROWS_PER_BLOCK = 14;
+const ROWS_PER_BLOCK = 26;
 
 function VitalsPrint() {
   const { id, patient } = usePrintPatient();

@@ -96,6 +96,7 @@ function BatchPrintPage() {
   const form = getPrintForm(formKey);
   const patients = useActivePatients();
   const [guide, setGuide] = useState(false);
+  const [copies, setCopies] = useState(1);
   const [dx, setDx] = useState(0);
   const [dy, setDy] = useState(0);
   const [fontScale, setFontScale] = useState(1);
@@ -119,12 +120,12 @@ function BatchPrintPage() {
     .filter((p) => p.id != null)
     .slice()
     .sort((a, b) => {
-      const na = Number(String(a.fileNo ?? "").replace(/\D/g, ""));
-      const nb = Number(String(b.fileNo ?? "").replace(/\D/g, ""));
-      const va = Number.isFinite(na) ? na : Number.POSITIVE_INFINITY;
-      const vb = Number.isFinite(nb) ? nb : Number.POSITIVE_INFINITY;
+      const na = Number(String(a.folderNo ?? "").replace(/\D/g, ""));
+      const nb = Number(String(b.folderNo ?? "").replace(/\D/g, ""));
+      const va = Number.isFinite(na) && String(a.folderNo ?? "").trim() !== "" ? na : Number.POSITIVE_INFINITY;
+      const vb = Number.isFinite(nb) && String(b.folderNo ?? "").trim() !== "" ? nb : Number.POSITIVE_INFINITY;
       if (va !== vb) return va - vb;
-      return String(a.fileNo ?? "").localeCompare(String(b.fileNo ?? ""));
+      return String(a.folderNo ?? "").localeCompare(String(b.folderNo ?? ""));
     });
 
   return (
@@ -194,6 +195,17 @@ function BatchPrintPage() {
               </label>
             </>
           ) : null}
+          <label className="flex items-center gap-1 text-sm">
+            {lang === "ar" ? "عدد النسخ" : "Copies"}
+            <input
+              type="number"
+              min={1}
+              max={10}
+              value={copies}
+              onChange={(e) => setCopies(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
+              className="h-8 w-14 rounded-md border border-input px-1"
+            />
+          </label>
           <Button size="sm" onClick={() => window.print()} disabled={list.length === 0}>
             <Printer />
             {t("printAll")}
@@ -223,19 +235,21 @@ function BatchPrintPage() {
       ) : list.length === 0 ? (
         <p className="p-10 text-center text-muted-foreground print:hidden">{t("noEntries")}</p>
       ) : (
-        list.map((p, i) => (
-          <Sheet
-            key={p.id}
-            form={form}
-            patient={p}
-            guide={guide}
-            dx={dx}
-            dy={dy}
-            fontScale={fontScale}
-            landscape={landscape}
-            last={i === list.length - 1}
-          />
-        ))
+        list.flatMap((p, i) =>
+          Array.from({ length: copies }, (_, c) => (
+            <Sheet
+              key={`${p.id}-${c}`}
+              form={form}
+              patient={p}
+              guide={guide}
+              dx={dx}
+              dy={dy}
+              fontScale={fontScale}
+              landscape={landscape}
+              last={i === list.length - 1 && c === copies - 1}
+            />
+          )),
+        )
       )}
     </div>
   );
