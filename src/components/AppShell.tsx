@@ -17,6 +17,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isPrint = pathname.startsWith("/print");
   const isHome = pathname === "/";
   const [isDesktop, setIsDesktop] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [oldPass, setOldPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [passMsg, setPassMsg] = useState("");
+
+  const lockNow = () => {
+    try {
+      sessionStorage.removeItem("ward39.unlocked");
+    } catch {
+      /* ignore */
+    }
+    window.location.reload();
+  };
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!(await verifyAppPassword(oldPass))) {
+      setPassMsg("كلمة السر الحالية غير صحيحة");
+      return;
+    }
+    if (newPass.length < 4) {
+      setPassMsg("كلمة السر الجديدة يجب أن تكون 4 أحرف على الأقل");
+      return;
+    }
+    await setAppPassword(newPass);
+    setOldPass("");
+    setNewPass("");
+    setPassMsg("تم تغيير كلمة السر");
+  };
 
   useEffect(() => {
     setIsDesktop(Boolean(window.ward39Desktop));
