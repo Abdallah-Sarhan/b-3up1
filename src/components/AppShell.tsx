@@ -131,8 +131,59 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Languages className="size-4" />
               {lang === "ar" ? "English" : "عربي"}
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPassMsg("");
+                setShowPass((v) => !v);
+              }}
+              className="inline-flex size-9 items-center justify-center rounded-md border border-input hover:bg-accent"
+              aria-label="كلمة السر"
+              title="كلمة السر"
+            >
+              <Lock className="size-4" />
+            </button>
           </nav>
         </div>
+        {showPass && (
+          <div className="border-t border-border bg-card">
+            <form
+              onSubmit={changePassword}
+              className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-3"
+            >
+              <input
+                type="password"
+                value={oldPass}
+                onChange={(e) => setOldPass(e.target.value)}
+                placeholder="كلمة السر الحالية"
+                aria-label="كلمة السر الحالية"
+                className="h-9 w-44 rounded-md border border-input bg-background px-3 text-sm"
+              />
+              <input
+                type="password"
+                value={newPass}
+                onChange={(e) => setNewPass(e.target.value)}
+                placeholder="كلمة السر الجديدة"
+                aria-label="كلمة السر الجديدة"
+                className="h-9 w-44 rounded-md border border-input bg-background px-3 text-sm"
+              />
+              <button
+                type="submit"
+                className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                تغيير كلمة السر
+              </button>
+              <button
+                type="button"
+                onClick={lockNow}
+                className="h-9 rounded-md border border-input px-3 text-sm font-medium hover:bg-accent"
+              >
+                قفل البرنامج الآن
+              </button>
+              {passMsg && <span className="text-xs text-muted-foreground">{passMsg}</span>}
+            </form>
+          </div>
+        )}
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6 print:max-w-none print:p-0">{children}</main>
       <footer className="border-t border-border py-4 text-center text-xs text-muted-foreground print:hidden">
