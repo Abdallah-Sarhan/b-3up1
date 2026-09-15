@@ -1,7 +1,8 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { Activity, ArrowRight, FileWarning, Languages, Users } from "lucide-react";
+import { Activity, ArrowRight, FileWarning, Languages, Lock, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLang } from "@/lib/i18n";
+import { setAppPassword, verifyAppPassword } from "@/components/AppLock";
 
 // In-app navigation trail so the back button retraces the exact path the
 // user took inside the app, step by step, until the home page.
