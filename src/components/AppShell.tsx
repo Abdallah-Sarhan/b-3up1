@@ -1,7 +1,8 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { Activity, ArrowRight, FileWarning, Languages, Users } from "lucide-react";
+import { Activity, ArrowRight, FileWarning, Languages, Lock, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLang } from "@/lib/i18n";
+import { setAppPassword, verifyAppPassword } from "@/components/AppLock";
 
 // In-app navigation trail so the back button retraces the exact path the
 // user took inside the app, step by step, until the home page.
@@ -16,6 +17,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isPrint = pathname.startsWith("/print");
   const isHome = pathname === "/";
   const [isDesktop, setIsDesktop] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [oldPass, setOldPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [passMsg, setPassMsg] = useState("");
+
+  const lockNow = () => {
+    try {
+      sessionStorage.removeItem("ward39.unlocked");
+    } catch {
+      /* ignore */
+    }
+    window.location.reload();
+  };
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!(await verifyAppPassword(oldPass))) {
+      setPassMsg("كلمة السر الحالية غير صحيحة");
+      return;
+    }
+    if (newPass.length < 4) {
+      setPassMsg("كلمة السر الجديدة يجب أن تكون 4 أحرف على الأقل");
+      return;
+    }
+    await setAppPassword(newPass);
+    setOldPass("");
+    setNewPass("");
+    setPassMsg("تم تغيير كلمة السر");
+  };
 
   useEffect(() => {
     setIsDesktop(Boolean(window.ward39Desktop));
@@ -101,8 +131,59 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Languages className="size-4" />
               {lang === "ar" ? "English" : "عربي"}
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPassMsg("");
+                setShowPass((v) => !v);
+              }}
+              className="inline-flex size-9 items-center justify-center rounded-md border border-input hover:bg-accent"
+              aria-label="كلمة السر"
+              title="كلمة السر"
+            >
+              <Lock className="size-4" />
+            </button>
           </nav>
         </div>
+        {showPass && (
+          <div className="border-t border-border bg-card">
+            <form
+              onSubmit={changePassword}
+              className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-3"
+            >
+              <input
+                type="password"
+                value={oldPass}
+                onChange={(e) => setOldPass(e.target.value)}
+                placeholder="كلمة السر الحالية"
+                aria-label="كلمة السر الحالية"
+                className="h-9 w-44 rounded-md border border-input bg-background px-3 text-sm"
+              />
+              <input
+                type="password"
+                value={newPass}
+                onChange={(e) => setNewPass(e.target.value)}
+                placeholder="كلمة السر الجديدة"
+                aria-label="كلمة السر الجديدة"
+                className="h-9 w-44 rounded-md border border-input bg-background px-3 text-sm"
+              />
+              <button
+                type="submit"
+                className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                تغيير كلمة السر
+              </button>
+              <button
+                type="button"
+                onClick={lockNow}
+                className="h-9 rounded-md border border-input px-3 text-sm font-medium hover:bg-accent"
+              >
+                قفل البرنامج الآن
+              </button>
+              {passMsg && <span className="text-xs text-muted-foreground">{passMsg}</span>}
+            </form>
+          </div>
+        )}
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6 print:max-w-none print:p-0">{children}</main>
       <footer className="border-t border-border py-4 text-center text-xs text-muted-foreground print:hidden">
