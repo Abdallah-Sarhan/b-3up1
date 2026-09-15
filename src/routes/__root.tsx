@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "../lib/i18n";
 import { AppShell } from "../components/AppShell";
+import { AppLock } from "../components/AppLock";
 
 function NotFoundComponent() {
   return (
