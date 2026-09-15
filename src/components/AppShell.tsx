@@ -21,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [passMsg, setPassMsg] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
 
   const lockNow = () => {
     try {
@@ -180,6 +181,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 قفل البرنامج الآن
               </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setPassMsg("");
+                  setRecoveryCode(await regenerateRecoveryCode());
+                }}
+                className="h-9 rounded-md border border-input px-3 text-sm font-medium hover:bg-accent"
+              >
+                رمز استعادة جديد
+              </button>
+              {recoveryCode && (
+                <span className="rounded-md border border-dashed border-border bg-muted px-2 py-1 text-sm font-bold tracking-widest">
+                  {recoveryCode}
+                </span>
+              )}
               {passMsg && <span className="text-xs text-muted-foreground">{passMsg}</span>}
             </form>
           </div>
