@@ -58,11 +58,11 @@ function PatientsPage() {
     if (!q) return active;
     return active.filter(
       (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.fileNo.toLowerCase().includes(q) ||
-        p.cid.toLowerCase().includes(q) ||
-        p.diagnosis.toLowerCase().includes(q) ||
-        p.doctor.toLowerCase().includes(q),
+        (p.name || "").toLowerCase().includes(q) ||
+        (p.fileNo || "").toLowerCase().includes(q) ||
+        (p.cid || "").toLowerCase().includes(q) ||
+        (p.diagnosis || "").toLowerCase().includes(q) ||
+        (p.doctor || "").toLowerCase().includes(q),
     );
   }, [deferredQuery, patients]);
 

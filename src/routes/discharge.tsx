@@ -34,9 +34,9 @@ function DischargePage() {
     const list = (patients ?? []).filter(
       (p) =>
         !q ||
-        p.name.toLowerCase().includes(q) ||
-        p.fileNo.toLowerCase().includes(q) ||
-        p.cid.toLowerCase().includes(q),
+        (p.name || "").toLowerCase().includes(q) ||
+        (p.fileNo || "").toLowerCase().includes(q) ||
+        (p.cid || "").toLowerCase().includes(q),
     );
     return {
       active: list.filter((p) => !p.dischargedAt),
