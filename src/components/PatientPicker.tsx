@@ -48,9 +48,9 @@ export function PatientPicker({
       ? patients
       : patients.filter(
           (p) =>
-            p.name.toLowerCase().includes(q) ||
-            p.fileNo.toLowerCase().includes(q) ||
-            p.cid.toLowerCase().includes(q),
+            (p.name || "").toLowerCase().includes(q) ||
+            (p.fileNo || "").toLowerCase().includes(q) ||
+            (p.cid || "").toLowerCase().includes(q),
         );
     return list.slice(0, 50);
   }, [patients, query]);
