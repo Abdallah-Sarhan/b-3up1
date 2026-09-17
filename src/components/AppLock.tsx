@@ -34,7 +34,7 @@ function normalizeCode(code: string): string {
 export function generateRecoveryCode(): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const bytes = new Uint8Array(12);
-  if (globalThis.crypto?.getRandomValues) crypto.getRandomValues(bytes);
+  if (typeof globalThis.crypto?.getRandomValues === "function") crypto.getRandomValues(bytes);
   else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
   const raw = [...bytes].map((b) => alphabet[b % alphabet.length]).join("");
   return `${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8, 12)}`;
