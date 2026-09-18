@@ -13,10 +13,12 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssignmentRouteImport } from './routes/assignment'
 import { Route as DischargeRouteImport } from './routes/discharge'
 import { Route as HandoverRouteImport } from './routes/handover'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as NcpRouteImport } from './routes/ncp'
 import { Route as PaperFormsRouteImport } from './routes/paper-forms'
 import { Route as RoundsRouteImport } from './routes/rounds'
 import { Route as TranquilizerRouteImport } from './routes/tranquilizer'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as PatientsIndexRouteImport } from './routes/patients/index'
 import { Route as PatientsNewRouteImport } from './routes/patients/new'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId/index'
@@ -52,6 +54,11 @@ const HandoverRoute = HandoverRouteImport.update({
   path: '/handover',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NcpRoute = NcpRouteImport.update({
   id: '/ncp',
   path: '/ncp',
@@ -72,6 +79,12 @@ const TranquilizerRoute = TranquilizerRouteImport.update({
   path: '/tranquilizer',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PatientsIndexRoute = PatientsIndexRouteImport.update({
   id: '/patients/',
   path: '/patients/',
@@ -149,10 +162,12 @@ export interface FileRoutesByFullPath {
   '/assignment': typeof AssignmentRoute
   '/discharge': typeof DischargeRoute
   '/handover': typeof HandoverRoute
+  '/mcp': typeof McpRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
   '/rounds': typeof RoundsRoute
   '/tranquilizer': typeof TranquilizerRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/patients/new': typeof PatientsNewRoute
   '/patients/': typeof PatientsIndexRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
@@ -173,10 +188,12 @@ export interface FileRoutesByTo {
   '/assignment': typeof AssignmentRoute
   '/discharge': typeof DischargeRoute
   '/handover': typeof HandoverRoute
+  '/mcp': typeof McpRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
   '/rounds': typeof RoundsRoute
   '/tranquilizer': typeof TranquilizerRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/patients/new': typeof PatientsNewRoute
   '/patients': typeof PatientsIndexRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
@@ -198,10 +215,12 @@ export interface FileRoutesById {
   '/assignment': typeof AssignmentRoute
   '/discharge': typeof DischargeRoute
   '/handover': typeof HandoverRoute
+  '/mcp': typeof McpRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
   '/rounds': typeof RoundsRoute
   '/tranquilizer': typeof TranquilizerRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/patients/new': typeof PatientsNewRoute
   '/patients/': typeof PatientsIndexRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
@@ -224,10 +243,12 @@ export interface FileRouteTypes {
     | '/assignment'
     | '/discharge'
     | '/handover'
+    | '/mcp'
     | '/ncp'
     | '/paper-forms'
     | '/rounds'
     | '/tranquilizer'
+    | '/.well-known/oauth-protected-resource'
     | '/patients/new'
     | '/patients/'
     | '/patients/$patientId/edit'
@@ -248,10 +269,12 @@ export interface FileRouteTypes {
     | '/assignment'
     | '/discharge'
     | '/handover'
+    | '/mcp'
     | '/ncp'
     | '/paper-forms'
     | '/rounds'
     | '/tranquilizer'
+    | '/.well-known/oauth-protected-resource'
     | '/patients/new'
     | '/patients'
     | '/patients/$patientId/edit'
@@ -272,10 +295,12 @@ export interface FileRouteTypes {
     | '/assignment'
     | '/discharge'
     | '/handover'
+    | '/mcp'
     | '/ncp'
     | '/paper-forms'
     | '/rounds'
     | '/tranquilizer'
+    | '/.well-known/oauth-protected-resource'
     | '/patients/new'
     | '/patients/'
     | '/patients/$patientId/edit'
@@ -297,10 +322,12 @@ export interface RootRouteChildren {
   AssignmentRoute: typeof AssignmentRoute
   DischargeRoute: typeof DischargeRoute
   HandoverRoute: typeof HandoverRoute
+  McpRoute: typeof McpRoute
   NcpRoute: typeof NcpRoute
   PaperFormsRoute: typeof PaperFormsRoute
   RoundsRoute: typeof RoundsRoute
   TranquilizerRoute: typeof TranquilizerRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   PatientsNewRoute: typeof PatientsNewRoute
   PatientsIndexRoute: typeof PatientsIndexRoute
   PatientsPatientIdEditRoute: typeof PatientsPatientIdEditRoute
@@ -347,6 +374,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HandoverRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ncp': {
       id: '/ncp'
       path: '/ncp'
@@ -373,6 +407,13 @@ declare module '@tanstack/react-router' {
       path: '/tranquilizer'
       fullPath: '/tranquilizer'
       preLoaderRoute: typeof TranquilizerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patients/': {
@@ -481,10 +522,13 @@ const rootRouteChildren: RootRouteChildren = {
   AssignmentRoute: AssignmentRoute,
   DischargeRoute: DischargeRoute,
   HandoverRoute: HandoverRoute,
+  McpRoute: McpRoute,
   NcpRoute: NcpRoute,
   PaperFormsRoute: PaperFormsRoute,
   RoundsRoute: RoundsRoute,
   TranquilizerRoute: TranquilizerRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   PatientsNewRoute: PatientsNewRoute,
   PatientsIndexRoute: PatientsIndexRoute,
   PatientsPatientIdEditRoute: PatientsPatientIdEditRoute,
