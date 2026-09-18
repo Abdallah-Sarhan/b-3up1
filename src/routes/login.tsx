@@ -26,7 +26,7 @@ export const Route = createFileRoute("/login")({
     ],
   }),
   validateSearch: (s: Record<string, unknown>) => ({
-    next: typeof s.next === "string" ? s.next : "",
+    next: typeof s["next"] === "string" ? (s["next"] as string) : "",
   }),
   component: Login,
 });
