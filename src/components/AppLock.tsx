@@ -100,7 +100,12 @@ export function clearAppPassword(): void {
 
 export function AppLock({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isPrint = pathname.startsWith("/print");
+  // Print sheets open in their own window, and the staff sign-in / assistant
+  // approval pages must stay reachable for the browser OAuth flow.
+  const isPrint =
+    pathname.startsWith("/print") ||
+    pathname === "/login" ||
+    pathname.startsWith("/.lovable/oauth");
 
   const [ready, setReady] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
