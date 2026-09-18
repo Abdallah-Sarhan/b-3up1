@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "sdk_version": "2.2.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://bcdnhgvtmyfcewsgazbn.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "b-3up1",
+      "version": "0.1.0",
+      "title": "B-3up1"
+    },
+    "tools": [
+      {
+        "name": "ward_summary",
+        "title": "Ward occupancy summary",
+        "description": "Summarise Ward 39: how many patients are currently admitted, how many are discharged, and the rooms in use.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_patients",
+        "title": "List ward patients",
+        "description": "List patients in Ward 39, ordered by folder number. By default only current (not discharged) patients are returned.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "include_discharged": {
+              "type": "boolean",
+              "description": "Include discharged patients as well. Defaults to false."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Maximum number of patients to return (1-200)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_patients",
+        "title": "Search patients",
+        "description": "Search Ward 39 patients by name, file number, folder number, diagnosis or doctor.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Free text to match against patient fields."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Maximum number of matches to return (1-100)."
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_patient",
+        "title": "Get patient record",
+        "description": "Fetch one Ward 39 patient's full record by file number.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file_no": {
+              "type": "string",
+              "description": "The patient's file number."
+            }
+          },
+          "required": [
+            "file_no"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

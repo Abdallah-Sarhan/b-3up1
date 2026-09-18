@@ -13,12 +13,16 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssignmentRouteImport } from './routes/assignment'
 import { Route as DischargeRouteImport } from './routes/discharge'
 import { Route as HandoverRouteImport } from './routes/handover'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as NcpRouteImport } from './routes/ncp'
 import { Route as PaperFormsRouteImport } from './routes/paper-forms'
 import { Route as RoundsRouteImport } from './routes/rounds'
 import { Route as TranquilizerRouteImport } from './routes/tranquilizer'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as PatientsIndexRouteImport } from './routes/patients/index'
 import { Route as PatientsNewRouteImport } from './routes/patients/new'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId/index'
 import { Route as PatientsPatientIdEditRouteImport } from './routes/patients/$patientId/edit'
 import { Route as PrintPatientIdCareplanRouteImport } from './routes/print/$patientId/careplan'
@@ -52,6 +56,16 @@ const HandoverRoute = HandoverRouteImport.update({
   path: '/handover',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NcpRoute = NcpRouteImport.update({
   id: '/ncp',
   path: '/ncp',
@@ -72,6 +86,12 @@ const TranquilizerRoute = TranquilizerRouteImport.update({
   path: '/tranquilizer',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PatientsIndexRoute = PatientsIndexRouteImport.update({
   id: '/patients/',
   path: '/patients/',
@@ -80,6 +100,11 @@ const PatientsIndexRoute = PatientsIndexRouteImport.update({
 const PatientsNewRoute = PatientsNewRouteImport.update({
   id: '/patients/new',
   path: '/patients/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PatientsPatientIdIndexRoute = PatientsPatientIdIndexRouteImport.update({
@@ -149,12 +174,16 @@ export interface FileRoutesByFullPath {
   '/assignment': typeof AssignmentRoute
   '/discharge': typeof DischargeRoute
   '/handover': typeof HandoverRoute
+  '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
   '/rounds': typeof RoundsRoute
   '/tranquilizer': typeof TranquilizerRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/patients/new': typeof PatientsNewRoute
   '/patients/': typeof PatientsIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/print/$patientId/careplan': typeof PrintPatientIdCareplanRoute
   '/print/$patientId/consultation': typeof PrintPatientIdConsultationRoute
@@ -173,12 +202,16 @@ export interface FileRoutesByTo {
   '/assignment': typeof AssignmentRoute
   '/discharge': typeof DischargeRoute
   '/handover': typeof HandoverRoute
+  '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
   '/rounds': typeof RoundsRoute
   '/tranquilizer': typeof TranquilizerRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/patients/new': typeof PatientsNewRoute
   '/patients': typeof PatientsIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/print/$patientId/careplan': typeof PrintPatientIdCareplanRoute
   '/print/$patientId/consultation': typeof PrintPatientIdConsultationRoute
@@ -198,12 +231,16 @@ export interface FileRoutesById {
   '/assignment': typeof AssignmentRoute
   '/discharge': typeof DischargeRoute
   '/handover': typeof HandoverRoute
+  '/login': typeof LoginRoute
+  '/mcp': typeof McpRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
   '/rounds': typeof RoundsRoute
   '/tranquilizer': typeof TranquilizerRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/patients/new': typeof PatientsNewRoute
   '/patients/': typeof PatientsIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/print/$patientId/careplan': typeof PrintPatientIdCareplanRoute
   '/print/$patientId/consultation': typeof PrintPatientIdConsultationRoute
@@ -224,12 +261,16 @@ export interface FileRouteTypes {
     | '/assignment'
     | '/discharge'
     | '/handover'
+    | '/login'
+    | '/mcp'
     | '/ncp'
     | '/paper-forms'
     | '/rounds'
     | '/tranquilizer'
+    | '/.well-known/oauth-protected-resource'
     | '/patients/new'
     | '/patients/'
+    | '/.lovable/oauth/consent'
     | '/patients/$patientId/edit'
     | '/print/$patientId/careplan'
     | '/print/$patientId/consultation'
@@ -248,12 +289,16 @@ export interface FileRouteTypes {
     | '/assignment'
     | '/discharge'
     | '/handover'
+    | '/login'
+    | '/mcp'
     | '/ncp'
     | '/paper-forms'
     | '/rounds'
     | '/tranquilizer'
+    | '/.well-known/oauth-protected-resource'
     | '/patients/new'
     | '/patients'
+    | '/.lovable/oauth/consent'
     | '/patients/$patientId/edit'
     | '/print/$patientId/careplan'
     | '/print/$patientId/consultation'
@@ -272,12 +317,16 @@ export interface FileRouteTypes {
     | '/assignment'
     | '/discharge'
     | '/handover'
+    | '/login'
+    | '/mcp'
     | '/ncp'
     | '/paper-forms'
     | '/rounds'
     | '/tranquilizer'
+    | '/.well-known/oauth-protected-resource'
     | '/patients/new'
     | '/patients/'
+    | '/.lovable/oauth/consent'
     | '/patients/$patientId/edit'
     | '/print/$patientId/careplan'
     | '/print/$patientId/consultation'
@@ -297,12 +346,16 @@ export interface RootRouteChildren {
   AssignmentRoute: typeof AssignmentRoute
   DischargeRoute: typeof DischargeRoute
   HandoverRoute: typeof HandoverRoute
+  LoginRoute: typeof LoginRoute
+  McpRoute: typeof McpRoute
   NcpRoute: typeof NcpRoute
   PaperFormsRoute: typeof PaperFormsRoute
   RoundsRoute: typeof RoundsRoute
   TranquilizerRoute: typeof TranquilizerRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   PatientsNewRoute: typeof PatientsNewRoute
   PatientsIndexRoute: typeof PatientsIndexRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   PatientsPatientIdEditRoute: typeof PatientsPatientIdEditRoute
   PrintPatientIdCareplanRoute: typeof PrintPatientIdCareplanRoute
   PrintPatientIdConsultationRoute: typeof PrintPatientIdConsultationRoute
@@ -347,6 +400,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HandoverRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ncp': {
       id: '/ncp'
       path: '/ncp'
@@ -375,6 +442,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TranquilizerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/patients/': {
       id: '/patients/'
       path: '/patients'
@@ -387,6 +461,13 @@ declare module '@tanstack/react-router' {
       path: '/patients/new'
       fullPath: '/patients/new'
       preLoaderRoute: typeof PatientsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patients/$patientId/': {
@@ -481,12 +562,17 @@ const rootRouteChildren: RootRouteChildren = {
   AssignmentRoute: AssignmentRoute,
   DischargeRoute: DischargeRoute,
   HandoverRoute: HandoverRoute,
+  LoginRoute: LoginRoute,
+  McpRoute: McpRoute,
   NcpRoute: NcpRoute,
   PaperFormsRoute: PaperFormsRoute,
   RoundsRoute: RoundsRoute,
   TranquilizerRoute: TranquilizerRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   PatientsNewRoute: PatientsNewRoute,
   PatientsIndexRoute: PatientsIndexRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   PatientsPatientIdEditRoute: PatientsPatientIdEditRoute,
   PrintPatientIdCareplanRoute: PrintPatientIdCareplanRoute,
   PrintPatientIdConsultationRoute: PrintPatientIdConsultationRoute,

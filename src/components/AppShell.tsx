@@ -14,7 +14,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const href = useRouterState({ select: (s) => s.location.href });
-  const isPrint = pathname.startsWith("/print");
+  const isPrint =
+    pathname.startsWith("/print") ||
+    pathname === "/login" ||
+    pathname.startsWith("/.lovable/oauth");
   const isHome = pathname === "/";
   const [isDesktop, setIsDesktop] = useState(false);
   const [showPass, setShowPass] = useState(false);
