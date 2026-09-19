@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { Activity, ArrowRight, FileWarning, Languages, Lock, Users } from "lucide-react";
+import { Activity, ArrowRight, Bot, FileWarning, Languages, Lock, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import { regenerateRecoveryCode, setAppPassword, verifyAppPassword } from "@/components/AppLock";
@@ -114,6 +114,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
                 <Users className="size-4" />
                 {t("patients")}
+              </span>
+            </Link>
+            <Link to="/assistant">
+              <span className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+                <Bot className="size-4" />
+                المساعد
               </span>
             </Link>
             {isDesktop ? (
