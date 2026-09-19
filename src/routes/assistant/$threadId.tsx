@@ -40,7 +40,7 @@ function AssistantThread() {
     if (session !== "in") return;
     setMessages(null);
     void getThreadMessages({ data: { threadId } })
-      .then(setMessages)
+      .then((rows) => setMessages(rows as unknown as UIMessage[]))
       .catch(() => setMessages([]));
   }, [threadId, session]);
 
