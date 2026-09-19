@@ -55,8 +55,8 @@ export const getThreadMessages = createServerFn({ method: "POST" })
       .order("created_at", { ascending: true });
     if (error) throw new Error(error.message);
     return (rows ?? []).map((row) => ({
-      id: row.id as string,
-      role: row.role as UIMessage["role"],
-      parts: (row.parts ?? []) as UIMessage["parts"],
-    })) as UIMessage[];
+      id: String(row.id),
+      role: String(row.role),
+      parts: JSON.parse(JSON.stringify(row.parts ?? [])) as unknown[],
+    }));
   });
