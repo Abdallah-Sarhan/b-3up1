@@ -20,6 +20,7 @@ import { Route as PaperFormsRouteImport } from './routes/paper-forms'
 import { Route as RoundsRouteImport } from './routes/rounds'
 import { Route as TranquilizerRouteImport } from './routes/tranquilizer'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as PatientsIndexRouteImport } from './routes/patients/index'
 import { Route as PatientsNewRouteImport } from './routes/patients/new'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
@@ -92,6 +93,11 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PatientsIndexRoute = PatientsIndexRouteImport.update({
   id: '/patients/',
   path: '/patients/',
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/rounds': typeof RoundsRoute
   '/tranquilizer': typeof TranquilizerRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/api/chat': typeof ApiChatRoute
   '/patients/new': typeof PatientsNewRoute
   '/patients/': typeof PatientsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/rounds': typeof RoundsRoute
   '/tranquilizer': typeof TranquilizerRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/api/chat': typeof ApiChatRoute
   '/patients/new': typeof PatientsNewRoute
   '/patients': typeof PatientsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/rounds': typeof RoundsRoute
   '/tranquilizer': typeof TranquilizerRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/api/chat': typeof ApiChatRoute
   '/patients/new': typeof PatientsNewRoute
   '/patients/': typeof PatientsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -268,6 +277,7 @@ export interface FileRouteTypes {
     | '/rounds'
     | '/tranquilizer'
     | '/.well-known/oauth-protected-resource'
+    | '/api/chat'
     | '/patients/new'
     | '/patients/'
     | '/.lovable/oauth/consent'
@@ -296,6 +306,7 @@ export interface FileRouteTypes {
     | '/rounds'
     | '/tranquilizer'
     | '/.well-known/oauth-protected-resource'
+    | '/api/chat'
     | '/patients/new'
     | '/patients'
     | '/.lovable/oauth/consent'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
     | '/rounds'
     | '/tranquilizer'
     | '/.well-known/oauth-protected-resource'
+    | '/api/chat'
     | '/patients/new'
     | '/patients/'
     | '/.lovable/oauth/consent'
@@ -353,6 +365,7 @@ export interface RootRouteChildren {
   RoundsRoute: typeof RoundsRoute
   TranquilizerRoute: typeof TranquilizerRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  ApiChatRoute: typeof ApiChatRoute
   PatientsNewRoute: typeof PatientsNewRoute
   PatientsIndexRoute: typeof PatientsIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
@@ -447,6 +460,13 @@ declare module '@tanstack/react-router' {
       path: '/.well-known/oauth-protected-resource'
       fullPath: '/.well-known/oauth-protected-resource'
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patients/': {
@@ -570,6 +590,7 @@ const rootRouteChildren: RootRouteChildren = {
   TranquilizerRoute: TranquilizerRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  ApiChatRoute: ApiChatRoute,
   PatientsNewRoute: PatientsNewRoute,
   PatientsIndexRoute: PatientsIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
