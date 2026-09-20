@@ -8,7 +8,6 @@ import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-import { viteSingleFile } from "vite-plugin-singlefile";
 import tsConfigPaths from "vite-tsconfig-paths";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -27,23 +26,47 @@ export default defineConfig({
         if (id === "\0empty-css-url") return 'export default "data:text/css,"';
       },
     },
+    // Server-only routes (MCP, OAuth metadata, the streaming chat endpoint) and
+    // the cloud chat server functions cannot be bundled into an offline SPA —
+    // they pull in TanStack Start's server entry and blow up the build, which is
+    // what left the packaged desktop app on a blank white window. Replace them
+    // with inert client-safe stubs; the desktop build has no server anyway.
+    {
+      name: "electron-stub-server-routes",
+      enforce: "pre" as const,
+      load(id: string) {
+        const file = id.split("?")[0] ?? "";
+        const routeStub = (routePath: string) =>
+          `import { createFileRoute } from "@tanstack/react-router";\n` +
+          `export const Route = createFileRoute(${JSON.stringify(routePath)})({});\n`;
+        if (file.endsWith("src/routes/api/chat.ts")) return routeStub("/api/chat");
+        if (file.endsWith("src/routes/mcp.ts")) return routeStub("/mcp");
+        if (file.endsWith("oauth-protected-resource.ts"))
+          return routeStub("/.well-known/oauth-protected-resource");
+        if (file.endsWith("src/lib/chat.functions.ts")) {
+          const offline = `() => { throw new Error("المساعد الذكي يحتاج اتصالاً بالإنترنت"); }`;
+          return (
+            `export const listThreads = async () => [];\n` +
+            `export const getThreadMessages = async () => [];\n` +
+            `export const createThread = ${offline};\n` +
+            `export const deleteThread = ${offline};\n`
+          );
+        }
+        return null;
+      },
+    },
     tsConfigPaths(),
     tailwindcss(),
     tanstackRouter({ target: "react", autoCodeSplitting: true }),
     react(),
-    // Chromium refuses external ES-module JS over file://, but plain CSS
-    // files load fine — so inline only the JS, keep CSS as a linked file.
-    viteSingleFile({ inlinePattern: ["**/*.js"] }),
   ],
   build: {
     outDir: "dist-electron",
     emptyOutDir: true,
     cssCodeSplit: false,
-    assetsInlineLimit: 100000000,
     chunkSizeWarningLimit: 10000,
     rollupOptions: {
       input: path.resolve(__dirname, "electron.html"),
-      output: { inlineDynamicImports: true },
     },
   },
 });
