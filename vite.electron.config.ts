@@ -27,6 +27,35 @@ export default defineConfig({
         if (id === "\0empty-css-url") return 'export default "data:text/css,"';
       },
     },
+    // Server-only routes (MCP, OAuth metadata, the streaming chat endpoint) and
+    // the cloud chat server functions cannot be bundled into an offline SPA —
+    // they pull in TanStack Start's server entry and blow up the build, which is
+    // what left the packaged desktop app on a blank white window. Replace them
+    // with inert client-safe stubs; the desktop build has no server anyway.
+    {
+      name: "electron-stub-server-routes",
+      enforce: "pre" as const,
+      load(id: string) {
+        const file = id.split("?")[0] ?? "";
+        const routeStub = (routePath: string) =>
+          `import { createFileRoute } from "@tanstack/react-router";\n` +
+          `export const Route = createFileRoute(${JSON.stringify(routePath)})({});\n`;
+        if (file.endsWith("src/routes/api/chat.ts")) return routeStub("/api/chat");
+        if (file.endsWith("src/routes/mcp.ts")) return routeStub("/mcp");
+        if (file.endsWith("oauth-protected-resource.ts"))
+          return routeStub("/.well-known/oauth-protected-resource");
+        if (file.endsWith("src/lib/chat.functions.ts")) {
+          const offline = `() => { throw new Error("المساعد الذكي يحتاج اتصالاً بالإنترنت"); }`;
+          return (
+            `export const listThreads = async () => [];\n` +
+            `export const getThreadMessages = async () => [];\n` +
+            `export const createThread = ${offline};\n` +
+            `export const deleteThread = ${offline};\n`
+          );
+        }
+        return null;
+      },
+    },
     tsConfigPaths(),
     tailwindcss(),
     tanstackRouter({ target: "react", autoCodeSplitting: true }),
