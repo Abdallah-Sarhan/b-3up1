@@ -60,19 +60,14 @@ export default defineConfig({
     tailwindcss(),
     tanstackRouter({ target: "react", autoCodeSplitting: true }),
     react(),
-    // Chromium refuses external ES-module JS over file://, but plain CSS
-    // files load fine — so inline only the JS, keep CSS as a linked file.
-    viteSingleFile({ inlinePattern: ["**/*.js"] }),
   ],
   build: {
     outDir: "dist-electron",
     emptyOutDir: true,
     cssCodeSplit: false,
-    assetsInlineLimit: 100000000,
     chunkSizeWarningLimit: 10000,
     rollupOptions: {
       input: path.resolve(__dirname, "electron.html"),
-      output: { inlineDynamicImports: true },
     },
   },
 });
