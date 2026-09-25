@@ -32,3 +32,4 @@ dist-ssr
 *.sw?
 electron-release/
 dist-electron/
+.env
