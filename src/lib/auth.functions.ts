@@ -103,9 +103,10 @@ export const requestPasswordReset = createServerFn({ method: "POST" })
         if (email) {
           const origin = getRequestHeader("origin") ?? "";
           const sb = await publicClient();
-          await sb.auth.resetPasswordForEmail(email, {
-            redirectTo: origin.startsWith("http") ? `${origin}/reset-password` : undefined,
-          });
+          await sb.auth.resetPasswordForEmail(
+            email,
+            origin.startsWith("http") ? { redirectTo: `${origin}/reset-password` } : {},
+          );
         }
       }
     } catch (e) {

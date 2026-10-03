@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Auth: username login resolved server-side to the auth email (= recovery email); profiles.approved + is_approved() gate patients RLS — keeps emails off the client and data behind admin approval.
