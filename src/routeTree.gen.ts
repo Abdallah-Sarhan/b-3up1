@@ -17,8 +17,10 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as NcpRouteImport } from './routes/ncp'
 import { Route as PaperFormsRouteImport } from './routes/paper-forms'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RoundsRouteImport } from './routes/rounds'
 import { Route as TranquilizerRouteImport } from './routes/tranquilizer'
+import { Route as UsersRouteImport } from './routes/users'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AssistantIndexRouteImport } from './routes/assistant/index'
@@ -79,6 +81,11 @@ const PaperFormsRoute = PaperFormsRouteImport.update({
   path: '/paper-forms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RoundsRoute = RoundsRouteImport.update({
   id: '/rounds',
   path: '/rounds',
@@ -87,6 +94,11 @@ const RoundsRoute = RoundsRouteImport.update({
 const TranquilizerRoute = TranquilizerRouteImport.update({
   id: '/tranquilizer',
   path: '/tranquilizer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsersRoute = UsersRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Char91DotwellKnownChar93OauthProtectedResourceRoute =
@@ -196,8 +208,10 @@ export interface FileRoutesByFullPath {
   '/mcp': typeof McpRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/rounds': typeof RoundsRoute
   '/tranquilizer': typeof TranquilizerRoute
+  '/users': typeof UsersRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/chat': typeof ApiChatRoute
   '/assistant/$threadId': typeof AssistantThreadIdRoute
@@ -227,8 +241,10 @@ export interface FileRoutesByTo {
   '/mcp': typeof McpRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/rounds': typeof RoundsRoute
   '/tranquilizer': typeof TranquilizerRoute
+  '/users': typeof UsersRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/chat': typeof ApiChatRoute
   '/assistant/$threadId': typeof AssistantThreadIdRoute
@@ -259,8 +275,10 @@ export interface FileRoutesById {
   '/mcp': typeof McpRoute
   '/ncp': typeof NcpRoute
   '/paper-forms': typeof PaperFormsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/rounds': typeof RoundsRoute
   '/tranquilizer': typeof TranquilizerRoute
+  '/users': typeof UsersRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/api/chat': typeof ApiChatRoute
   '/assistant/$threadId': typeof AssistantThreadIdRoute
@@ -292,8 +310,10 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/ncp'
     | '/paper-forms'
+    | '/reset-password'
     | '/rounds'
     | '/tranquilizer'
+    | '/users'
     | '/.well-known/oauth-protected-resource'
     | '/api/chat'
     | '/assistant/$threadId'
@@ -323,8 +343,10 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/ncp'
     | '/paper-forms'
+    | '/reset-password'
     | '/rounds'
     | '/tranquilizer'
+    | '/users'
     | '/.well-known/oauth-protected-resource'
     | '/api/chat'
     | '/assistant/$threadId'
@@ -354,8 +376,10 @@ export interface FileRouteTypes {
     | '/mcp'
     | '/ncp'
     | '/paper-forms'
+    | '/reset-password'
     | '/rounds'
     | '/tranquilizer'
+    | '/users'
     | '/.well-known/oauth-protected-resource'
     | '/api/chat'
     | '/assistant/$threadId'
@@ -386,8 +410,10 @@ export interface RootRouteChildren {
   McpRoute: typeof McpRoute
   NcpRoute: typeof NcpRoute
   PaperFormsRoute: typeof PaperFormsRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   RoundsRoute: typeof RoundsRoute
   TranquilizerRoute: typeof TranquilizerRoute
+  UsersRoute: typeof UsersRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ApiChatRoute: typeof ApiChatRoute
   AssistantThreadIdRoute: typeof AssistantThreadIdRoute
@@ -467,6 +493,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PaperFormsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rounds': {
       id: '/rounds'
       path: '/rounds'
@@ -479,6 +512,13 @@ declare module '@tanstack/react-router' {
       path: '/tranquilizer'
       fullPath: '/tranquilizer'
       preLoaderRoute: typeof TranquilizerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/users': {
+      id: '/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof UsersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/.well-known/oauth-protected-resource': {
@@ -626,8 +666,10 @@ const rootRouteChildren: RootRouteChildren = {
   McpRoute: McpRoute,
   NcpRoute: NcpRoute,
   PaperFormsRoute: PaperFormsRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   RoundsRoute: RoundsRoute,
   TranquilizerRoute: TranquilizerRoute,
+  UsersRoute: UsersRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ApiChatRoute: ApiChatRoute,

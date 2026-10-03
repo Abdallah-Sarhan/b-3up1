@@ -14,7 +14,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "../lib/i18n";
 import { AppShell } from "../components/AppShell";
-import { AppLock } from "../components/AppLock";
+import { AuthGate } from "../components/AuthGate";
 
 function NotFoundComponent() {
   return (
@@ -131,12 +131,12 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        <AppLock>
+        <AuthGate>
           <AppShell>
             {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
             <Outlet />
           </AppShell>
-        </AppLock>
+        </AuthGate>
         <Toaster richColors position="top-center" />
       </LanguageProvider>
     </QueryClientProvider>

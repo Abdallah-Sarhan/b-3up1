@@ -1,8 +1,9 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { Activity, ArrowRight, Bot, FileWarning, Languages, Lock, Users } from "lucide-react";
+import { Activity, ArrowRight, Bot, FileWarning, Languages, Lock, LogOut, ShieldCheck, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLang } from "@/lib/i18n";
-import { regenerateRecoveryCode, setAppPassword, verifyAppPassword } from "@/components/AppLock";
+import { supabase } from "@/integrations/supabase/client";
+import { isPublicPath, signOutEverywhere, useAuthProfile } from "@/components/AuthGate";
 
 // In-app navigation trail so the back button retraces the exact path the
 // user took inside the app, step by step, until the home page.
@@ -14,40 +15,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const href = useRouterState({ select: (s) => s.location.href });
-  const isPrint =
-    pathname.startsWith("/print") ||
-    pathname === "/login" ||
-    pathname.startsWith("/.lovable/oauth");
+  const isPrint = isPublicPath(pathname);
+  const profile = useAuthProfile();
   const isHome = pathname === "/";
   const [isDesktop, setIsDesktop] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [passMsg, setPassMsg] = useState("");
-  const [recoveryCode, setRecoveryCode] = useState("");
-
-  const lockNow = () => {
-    try {
-      sessionStorage.removeItem("ward39.unlocked");
-    } catch {
-      /* ignore */
-    }
-    window.location.reload();
-  };
+  const [confirmPass, setConfirmPass] = useState("");
 
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!(await verifyAppPassword(oldPass))) {
-      setPassMsg("كلمة السر الحالية غير صحيحة");
-      return;
-    }
-    if (newPass.length < 4) {
-      setPassMsg("كلمة السر الجديدة يجب أن تكون 4 أحرف على الأقل");
-      return;
-    }
-    await setAppPassword(newPass);
-    setOldPass("");
-    setNewPass("");
+    if (newPass.length < 8) return setPassMsg("كلمة السر الجديدة 8 أحرف على الأقل");
+    if (newPass !== confirmPass) return setPassMsg("كلمتا السر غير متطابقتين");
+    const { error } = await supabase.auth.updateUser({ password: newPass, current_password: oldPass } as never);
+    if (error) return setPassMsg(/current|incorrect|invalid/i.test(error.message) ? "كلمة السر الحالية غير صحيحة" : "تعذّر تغيير كلمة السر");
+    setOldPass(""); setNewPass(""); setConfirmPass("");
     setPassMsg("تم تغيير كلمة السر");
   };
 
@@ -122,6 +106,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 المساعد
               </span>
             </Link>
+            {profile?.is_admin && (
+              <Link to="/users">
+                <span className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+                  <ShieldCheck className="size-4" />
+                  إدارة المستخدمين
+                </span>
+              </Link>
+            )}
             {isDesktop ? (
               <button
                 type="button"
@@ -148,10 +140,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 setShowPass((v) => !v);
               }}
               className="inline-flex size-9 items-center justify-center rounded-md border border-input hover:bg-accent"
-              aria-label="كلمة السر"
-              title="كلمة السر"
+              aria-label="تغيير كلمة السر"
+              title="تغيير كلمة السر"
             >
               <Lock className="size-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => void signOutEverywhere()}
+              className="inline-flex size-9 items-center justify-center rounded-md border border-input hover:bg-accent"
+              aria-label="تسجيل الخروج"
+              title={profile ? `تسجيل الخروج (${profile.login_name})` : "تسجيل الخروج"}
+            >
+              <LogOut className="size-4" />
             </button>
           </nav>
         </div>
@@ -177,34 +178,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 aria-label="كلمة السر الجديدة"
                 className="h-9 w-44 rounded-md border border-input bg-background px-3 text-sm"
               />
+              <input
+                type="password"
+                value={confirmPass}
+                onChange={(e) => setConfirmPass(e.target.value)}
+                placeholder="تأكيد كلمة السر"
+                aria-label="تأكيد كلمة السر"
+                className="h-9 w-44 rounded-md border border-input bg-background px-3 text-sm"
+              />
               <button
                 type="submit"
                 className="h-9 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               >
                 تغيير كلمة السر
               </button>
-              <button
-                type="button"
-                onClick={lockNow}
-                className="h-9 rounded-md border border-input px-3 text-sm font-medium hover:bg-accent"
-              >
-                قفل البرنامج الآن
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  setPassMsg("");
-                  setRecoveryCode(await regenerateRecoveryCode());
-                }}
-                className="h-9 rounded-md border border-input px-3 text-sm font-medium hover:bg-accent"
-              >
-                رمز استعادة جديد
-              </button>
-              {recoveryCode && (
-                <span className="rounded-md border border-dashed border-border bg-muted px-2 py-1 text-sm font-bold tracking-widest">
-                  {recoveryCode}
-                </span>
-              )}
               {passMsg && <span className="text-xs text-muted-foreground">{passMsg}</span>}
             </form>
           </div>

@@ -22,3 +22,6 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Sign-in
+Username + password (Lovable Cloud). New accounts need admin approval (page "إدارة المستخدمين"). Password recovery link goes to the recovery email. The desktop app needs internet for the first sign-in.
