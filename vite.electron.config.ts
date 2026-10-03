@@ -52,6 +52,17 @@ export default defineConfig({
             `export const deleteThread = ${offline};\n`
           );
         }
+        if (file.endsWith("src/lib/auth.functions.ts")) {
+          const off = `async () => { throw new Error("يحتاج اتصالاً بالإنترنت"); }`;
+          return (
+            `import { z } from "zod";\n` +
+            `export const usernameSchema = z.string().trim().regex(/^[A-Za-z0-9_]{3,30}$/, "اسم المستخدم 3–30 حرفًا (أحرف إنجليزية، أرقام، _)");\n` +
+            `export const passwordSchema = z.string().min(8, "كلمة السر 8 أحرف على الأقل").max(72);\n` +
+            ["signInWithUsername", "signUpWithUsername", "requestPasswordReset", "listUsers", "setApproved"]
+              .map((n) => `export const ${n} = ${off};\n`)
+              .join("")
+          );
+        }
         return null;
       },
     },
