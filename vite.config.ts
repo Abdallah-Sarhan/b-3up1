@@ -15,5 +15,18 @@ export default defineConfig({
   },
   vite: {
     plugins: [mcpPlugin()],
+    // Fallback public (publishable) backend values: .env is git-ignored in this
+    // project, so published builds would otherwise ship without them.
+    define: {
+      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(
+        process.env.VITE_SUPABASE_URL || "https://bcdnhgvtmyfcewsgazbn.supabase.co",
+      ),
+      "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
+        process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_N-i8Ie5rTw7dHQXC3hC9gA_CgOI5ae0",
+      ),
+      "import.meta.env.VITE_SUPABASE_PROJECT_ID": JSON.stringify(
+        process.env.VITE_SUPABASE_PROJECT_ID || "bcdnhgvtmyfcewsgazbn",
+      ),
+    },
   },
 });
