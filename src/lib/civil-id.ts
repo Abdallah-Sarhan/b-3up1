@@ -72,7 +72,7 @@ export async function uploadSide(fileNo: string, side: Side, file: File) {
     const col = side === "front" ? "front_path" : "back_path";
     const { error } = await supabase
       .from("patient_documents")
-      .upsert({ file_no: fn, [col]: path }, { onConflict: "file_no" });
+      .upsert({ file_no: fn, ...(side === "front" ? { front_path: path } : { back_path: path }) }, { onConflict: "file_no" });
     if (error) throw error;
     const prev = old?.[col];
     if (prev) await supabase.storage.from(BUCKET).remove([prev]);
@@ -88,7 +88,7 @@ export async function removeSide(fileNo: string, side: Side) {
   const col = side === "front" ? "front_path" : "back_path";
   const prev = old?.[col];
   if (prev) await supabase.storage.from(BUCKET).remove([prev]);
-  const { error } = await supabase.from("patient_documents").update({ [col]: null }).eq("file_no", fn);
+  const { error } = await supabase.from("patient_documents").update(side === "front" ? { front_path: null } : { back_path: null }).eq("file_no", fn);
   if (error) throw friendly(error);
 }
 

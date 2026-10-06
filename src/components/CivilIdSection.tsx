@@ -38,7 +38,7 @@ export function CivilIdSection({ fileNo, patientId }: { fileNo: string; patientI
   async function onFile(side: Side, file?: File) {
     if (!file) return;
     const bad = validateFile(file);
-    if (bad) return toast.error(bad);
+    if (bad) { toast.error(bad); return; }
     setBusy(side);
     try {
       await uploadSide(fn, side, file);
