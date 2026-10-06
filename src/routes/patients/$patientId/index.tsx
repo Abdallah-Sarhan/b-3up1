@@ -8,6 +8,8 @@ import { useLang } from "@/lib/i18n";
 import { Badge, Button, Card, CardHeader } from "@/components/ui-kit";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PatientRecords } from "@/components/PatientRecords";
+import { CivilIdSection } from "@/components/CivilIdSection";
+import { removeAllForFileNo } from "@/lib/civil-id";
 
 export const Route = createFileRoute("/patients/$patientId/")({
   head: () => ({
@@ -49,6 +51,7 @@ function PatientFilePage() {
         db.patients.delete(id),
       ]);
     });
+    void removeAllForFileNo(patient!.fileNo ?? "");
     toast.success(t("deletedOk"));
     navigate({ to: "/patients" });
   }
@@ -129,6 +132,8 @@ function PatientFilePage() {
           ))}
         </div>
       </Card>
+
+      <CivilIdSection fileNo={patient.fileNo ?? ""} patientId={patientId} />
 
       <PatientRecords patientId={id} />
 
