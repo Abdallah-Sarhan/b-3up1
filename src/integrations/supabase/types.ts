@@ -76,6 +76,30 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_documents: {
+        Row: {
+          back_path: string | null
+          created_at: string
+          file_no: string
+          front_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          back_path?: string | null
+          created_at?: string
+          file_no: string
+          front_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          back_path?: string | null
+          created_at?: string
+          file_no?: string
+          front_path?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           age: string
