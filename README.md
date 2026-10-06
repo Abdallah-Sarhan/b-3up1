@@ -25,3 +25,6 @@ npm run dev
 
 ## Sign-in
 Username + password (Lovable Cloud). New accounts need admin approval (page "إدارة المستخدمين"). Password recovery link goes to the recovery email. The desktop app needs internet for the first sign-in.
+
+## البطاقة المدنية
+صورتا الوجه والخلف تُرفعان من صفحة المريض إلى تخزين سحابي خاص (`civil-ids`) وتُربطان برقم الملف في `patient_documents`. القراءة للموظفين المعتمدين فقط عبر روابط مؤقتة، والطباعة من `/print/$patientId/civilid`. تحتاج إنترنت، ولا تدخل في النسخ الاحتياطي أو المزامنة أو المساعد الذكي.

@@ -31,6 +31,7 @@ import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId/index'
 import { Route as PatientsPatientIdEditRouteImport } from './routes/patients/$patientId/edit'
 import { Route as PrintPatientIdCareplanRouteImport } from './routes/print/$patientId/careplan'
+import { Route as PrintPatientIdCivilidRouteImport } from './routes/print/$patientId/civilid'
 import { Route as PrintPatientIdConsultationRouteImport } from './routes/print/$patientId/consultation'
 import { Route as PrintPatientIdNotesRouteImport } from './routes/print/$patientId/notes'
 import { Route as PrintPatientIdNursingdbRouteImport } from './routes/print/$patientId/nursingdb'
@@ -152,6 +153,11 @@ const PrintPatientIdCareplanRoute = PrintPatientIdCareplanRouteImport.update({
   path: '/print/$patientId/careplan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrintPatientIdCivilidRoute = PrintPatientIdCivilidRouteImport.update({
+  id: '/print/$patientId/civilid',
+  path: '/print/$patientId/civilid',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrintPatientIdConsultationRoute =
   PrintPatientIdConsultationRouteImport.update({
     id: '/print/$patientId/consultation',
@@ -221,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/print/$patientId/careplan': typeof PrintPatientIdCareplanRoute
+  '/print/$patientId/civilid': typeof PrintPatientIdCivilidRoute
   '/print/$patientId/consultation': typeof PrintPatientIdConsultationRoute
   '/print/$patientId/notes': typeof PrintPatientIdNotesRoute
   '/print/$patientId/nursingdb': typeof PrintPatientIdNursingdbRoute
@@ -254,6 +261,7 @@ export interface FileRoutesByTo {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/print/$patientId/careplan': typeof PrintPatientIdCareplanRoute
+  '/print/$patientId/civilid': typeof PrintPatientIdCivilidRoute
   '/print/$patientId/consultation': typeof PrintPatientIdConsultationRoute
   '/print/$patientId/notes': typeof PrintPatientIdNotesRoute
   '/print/$patientId/nursingdb': typeof PrintPatientIdNursingdbRoute
@@ -288,6 +296,7 @@ export interface FileRoutesById {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/print/$patientId/careplan': typeof PrintPatientIdCareplanRoute
+  '/print/$patientId/civilid': typeof PrintPatientIdCivilidRoute
   '/print/$patientId/consultation': typeof PrintPatientIdConsultationRoute
   '/print/$patientId/notes': typeof PrintPatientIdNotesRoute
   '/print/$patientId/nursingdb': typeof PrintPatientIdNursingdbRoute
@@ -323,6 +332,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/patients/$patientId/edit'
     | '/print/$patientId/careplan'
+    | '/print/$patientId/civilid'
     | '/print/$patientId/consultation'
     | '/print/$patientId/notes'
     | '/print/$patientId/nursingdb'
@@ -356,6 +366,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/patients/$patientId/edit'
     | '/print/$patientId/careplan'
+    | '/print/$patientId/civilid'
     | '/print/$patientId/consultation'
     | '/print/$patientId/notes'
     | '/print/$patientId/nursingdb'
@@ -389,6 +400,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/patients/$patientId/edit'
     | '/print/$patientId/careplan'
+    | '/print/$patientId/civilid'
     | '/print/$patientId/consultation'
     | '/print/$patientId/notes'
     | '/print/$patientId/nursingdb'
@@ -423,6 +435,7 @@ export interface RootRouteChildren {
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   PatientsPatientIdEditRoute: typeof PatientsPatientIdEditRoute
   PrintPatientIdCareplanRoute: typeof PrintPatientIdCareplanRoute
+  PrintPatientIdCivilidRoute: typeof PrintPatientIdCivilidRoute
   PrintPatientIdConsultationRoute: typeof PrintPatientIdConsultationRoute
   PrintPatientIdNotesRoute: typeof PrintPatientIdNotesRoute
   PrintPatientIdNursingdbRoute: typeof PrintPatientIdNursingdbRoute
@@ -591,6 +604,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrintPatientIdCareplanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/print/$patientId/civilid': {
+      id: '/print/$patientId/civilid'
+      path: '/print/$patientId/civilid'
+      fullPath: '/print/$patientId/civilid'
+      preLoaderRoute: typeof PrintPatientIdCivilidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/print/$patientId/consultation': {
       id: '/print/$patientId/consultation'
       path: '/print/$patientId/consultation'
@@ -680,6 +700,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   PatientsPatientIdEditRoute: PatientsPatientIdEditRoute,
   PrintPatientIdCareplanRoute: PrintPatientIdCareplanRoute,
+  PrintPatientIdCivilidRoute: PrintPatientIdCivilidRoute,
   PrintPatientIdConsultationRoute: PrintPatientIdConsultationRoute,
   PrintPatientIdNotesRoute: PrintPatientIdNotesRoute,
   PrintPatientIdNursingdbRoute: PrintPatientIdNursingdbRoute,
