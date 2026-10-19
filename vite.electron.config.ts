@@ -40,6 +40,7 @@ export default defineConfig({
           `import { createFileRoute } from "@tanstack/react-router";\n` +
           `export const Route = createFileRoute(${JSON.stringify(routePath)})({});\n`;
         if (file.endsWith("src/routes/api/chat.ts")) return routeStub("/api/chat");
+        if (file.endsWith("src/routes/api/public/desktop-auth.ts")) return routeStub("/api/public/desktop-auth");
         if (file.endsWith("src/routes/mcp.ts")) return routeStub("/mcp");
         if (file.endsWith("oauth-protected-resource.ts"))
           return routeStub("/.well-known/oauth-protected-resource");
@@ -53,15 +54,7 @@ export default defineConfig({
           );
         }
         if (file.endsWith("src/lib/auth.functions.ts")) {
-          const off = `async () => { throw new Error("يحتاج اتصالاً بالإنترنت"); }`;
-          return (
-            `import { z } from "zod";\n` +
-            `export const usernameSchema = z.string().trim().regex(/^[A-Za-z0-9_]{3,30}$/, "اسم المستخدم 3–30 حرفًا (أحرف إنجليزية، أرقام، _)");\n` +
-            `export const passwordSchema = z.string().min(8, "كلمة السر 8 أحرف على الأقل").max(72);\n` +
-            ["signInWithUsername", "signUpWithUsername", "requestPasswordReset", "listUsers", "setApproved"]
-              .map((n) => `export const ${n} = ${off};\n`)
-              .join("")
-          );
+          return `export * from "@/lib/desktop-auth";\n`;
         }
         return null;
       },

@@ -28,6 +28,7 @@ import { Route as AssistantThreadIdRouteImport } from './routes/assistant/$threa
 import { Route as PatientsIndexRouteImport } from './routes/patients/index'
 import { Route as PatientsNewRouteImport } from './routes/patients/new'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as ApiPublicDesktopAuthRouteImport } from './routes/api/public/desktop-auth'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId/index'
 import { Route as PatientsPatientIdEditRouteImport } from './routes/patients/$patientId/edit'
 import { Route as PrintPatientIdCareplanRouteImport } from './routes/print/$patientId/careplan'
@@ -138,6 +139,11 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDesktopAuthRoute = ApiPublicDesktopAuthRouteImport.update({
+  id: '/api/public/desktop-auth',
+  path: '/api/public/desktop-auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PatientsPatientIdIndexRoute = PatientsPatientIdIndexRouteImport.update({
   id: '/patients/$patientId/',
   path: '/patients/$patientId/',
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/assistant/': typeof AssistantIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/api/public/desktop-auth': typeof ApiPublicDesktopAuthRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/print/$patientId/careplan': typeof PrintPatientIdCareplanRoute
   '/print/$patientId/civilid': typeof PrintPatientIdCivilidRoute
@@ -259,6 +266,7 @@ export interface FileRoutesByTo {
   '/assistant': typeof AssistantIndexRoute
   '/patients': typeof PatientsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/api/public/desktop-auth': typeof ApiPublicDesktopAuthRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/print/$patientId/careplan': typeof PrintPatientIdCareplanRoute
   '/print/$patientId/civilid': typeof PrintPatientIdCivilidRoute
@@ -294,6 +302,7 @@ export interface FileRoutesById {
   '/assistant/': typeof AssistantIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/api/public/desktop-auth': typeof ApiPublicDesktopAuthRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/print/$patientId/careplan': typeof PrintPatientIdCareplanRoute
   '/print/$patientId/civilid': typeof PrintPatientIdCivilidRoute
@@ -330,6 +339,7 @@ export interface FileRouteTypes {
     | '/assistant/'
     | '/patients/'
     | '/.lovable/oauth/consent'
+    | '/api/public/desktop-auth'
     | '/patients/$patientId/edit'
     | '/print/$patientId/careplan'
     | '/print/$patientId/civilid'
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/assistant'
     | '/patients'
     | '/.lovable/oauth/consent'
+    | '/api/public/desktop-auth'
     | '/patients/$patientId/edit'
     | '/print/$patientId/careplan'
     | '/print/$patientId/civilid'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/assistant/'
     | '/patients/'
     | '/.lovable/oauth/consent'
+    | '/api/public/desktop-auth'
     | '/patients/$patientId/edit'
     | '/print/$patientId/careplan'
     | '/print/$patientId/civilid'
@@ -433,6 +445,7 @@ export interface RootRouteChildren {
   AssistantIndexRoute: typeof AssistantIndexRoute
   PatientsIndexRoute: typeof PatientsIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
+  ApiPublicDesktopAuthRoute: typeof ApiPublicDesktopAuthRoute
   PatientsPatientIdEditRoute: typeof PatientsPatientIdEditRoute
   PrintPatientIdCareplanRoute: typeof PrintPatientIdCareplanRoute
   PrintPatientIdCivilidRoute: typeof PrintPatientIdCivilidRoute
@@ -583,6 +596,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/desktop-auth': {
+      id: '/api/public/desktop-auth'
+      path: '/api/public/desktop-auth'
+      fullPath: '/api/public/desktop-auth'
+      preLoaderRoute: typeof ApiPublicDesktopAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/patients/$patientId/': {
       id: '/patients/$patientId/'
       path: '/patients/$patientId'
@@ -698,6 +718,7 @@ const rootRouteChildren: RootRouteChildren = {
   AssistantIndexRoute: AssistantIndexRoute,
   PatientsIndexRoute: PatientsIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
+  ApiPublicDesktopAuthRoute: ApiPublicDesktopAuthRoute,
   PatientsPatientIdEditRoute: PatientsPatientIdEditRoute,
   PrintPatientIdCareplanRoute: PrintPatientIdCareplanRoute,
   PrintPatientIdCivilidRoute: PrintPatientIdCivilidRoute,

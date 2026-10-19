@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Auth: username login resolved server-side to the auth email (= recovery email); profiles.approved + is_approved() gate patients RLS — keeps emails off the client and data behind admin approval.
+- Desktop auth uses a dedicated HTTPS JSON route with the same username resolution and server-validated admin checks; Electron must not bundle server-function handlers or resolve recovery emails locally.
