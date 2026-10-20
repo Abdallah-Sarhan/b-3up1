@@ -1,4 +1,9 @@
--- Staff roles
+-- Guarded: this change was already applied to the live database. It only runs on an
+-- empty database, so replaying it never recreates superseded (anon-permissive) policies.
+DO $guard$
+BEGIN
+  IF to_regclass('public.profiles') IS NULL THEN
+    EXECUTE $legacy$-- Staff roles
 create type public.app_role as enum ('admin', 'nurse');
 
 create table public.profiles (
@@ -91,3 +96,7 @@ create policy "patients updatable by staff"
   on public.patients for update to authenticated using (true) with check (true);
 create policy "patients deletable by staff"
   on public.patients for delete to authenticated using (true);
+$legacy$;
+  END IF;
+END
+$guard$;

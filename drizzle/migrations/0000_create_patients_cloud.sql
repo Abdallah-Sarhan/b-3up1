@@ -1,4 +1,9 @@
-CREATE TABLE public.patients (
+-- Guarded: this change was already applied to the live database. It only runs on an
+-- empty database, so replaying it never recreates superseded (anon-permissive) policies.
+DO $guard$
+BEGIN
+  IF to_regclass('public.patients') IS NULL THEN
+    EXECUTE $legacy$CREATE TABLE public.patients (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   file_no TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL DEFAULT '',
@@ -31,3 +36,7 @@ CREATE POLICY "patients readable by anyone" ON public.patients FOR SELECT USING 
 CREATE POLICY "patients insertable by anyone" ON public.patients FOR INSERT WITH CHECK (true);
 CREATE POLICY "patients updatable by anyone" ON public.patients FOR UPDATE USING (true) WITH CHECK (true);
 CREATE POLICY "patients deletable by anyone" ON public.patients FOR DELETE USING (true);
+$legacy$;
+  END IF;
+END
+$guard$;
