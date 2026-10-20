@@ -15,6 +15,13 @@
       "when": 1789294016921,
       "tag": "0001_staff_accounts_and_lock_patients",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792534772241,
+      "tag": "0002_shared_clinical_sync",
+      "breakpoints": true
     }
   ]
 }

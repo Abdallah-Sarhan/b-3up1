@@ -76,6 +76,135 @@ export type Database = {
         }
         Relationships: []
       }
+      clinical_sync_receipts: {
+        Row: {
+          created_at: string
+          op_id: string
+          result: Json
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          op_id: string
+          result: Json
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          op_id?: string
+          result?: Json
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      medication_register: {
+        Row: {
+          changed_at: number
+          created_at: string
+          data: Json
+          deleted_at: string | null
+          id: string
+          patient_id: string | null
+          sync_seq: number | null
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id?: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
+      patient_admissions: {
+        Row: {
+          changed_at: number
+          created_at: string
+          data: Json
+          deleted_at: string | null
+          id: string
+          patient_id: string | null
+          sync_seq: number | null
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id?: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
+      patient_care_plans: {
+        Row: {
+          changed_at: number
+          created_at: string
+          data: Json
+          deleted_at: string | null
+          id: string
+          patient_id: string | null
+          sync_seq: number | null
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id?: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       patient_documents: {
         Row: {
           back_path: string | null
@@ -100,12 +229,194 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_nurse_notes: {
+        Row: {
+          changed_at: number
+          created_at: string
+          data: Json
+          deleted_at: string | null
+          id: string
+          patient_id: string | null
+          sync_seq: number | null
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id?: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
+      patient_rounds: {
+        Row: {
+          changed_at: number
+          created_at: string
+          data: Json
+          deleted_at: string | null
+          id: string
+          patient_id: string | null
+          sync_seq: number | null
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id?: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
+      patient_sbar: {
+        Row: {
+          changed_at: number
+          created_at: string
+          data: Json
+          deleted_at: string | null
+          id: string
+          patient_id: string | null
+          sync_seq: number | null
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id?: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
+      patient_tranquilizer_events: {
+        Row: {
+          changed_at: number
+          created_at: string
+          data: Json
+          deleted_at: string | null
+          id: string
+          patient_id: string | null
+          sync_seq: number | null
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id?: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
+      patient_vitals: {
+        Row: {
+          changed_at: number
+          created_at: string
+          data: Json
+          deleted_at: string | null
+          id: string
+          patient_id: string | null
+          sync_seq: number | null
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id?: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           age: string
           bed: string
+          changed_at: number
           cid: string
           created_at: number
+          deleted_at: string | null
           diagnosis: string
           discharge_note: string | null
           discharged_at: string | null
@@ -121,13 +432,18 @@ export type Database = {
           notes: string
           room: string
           sex: string
+          sync_seq: number | null
           updated_at: number
+          updated_by: string | null
+          version: number
         }
         Insert: {
           age?: string
           bed?: string
+          changed_at?: number
           cid?: string
           created_at?: number
+          deleted_at?: string | null
           diagnosis?: string
           discharge_note?: string | null
           discharged_at?: string | null
@@ -143,13 +459,18 @@ export type Database = {
           notes?: string
           room?: string
           sex?: string
+          sync_seq?: number | null
           updated_at?: number
+          updated_by?: string | null
+          version?: number
         }
         Update: {
           age?: string
           bed?: string
+          changed_at?: number
           cid?: string
           created_at?: number
+          deleted_at?: string | null
           diagnosis?: string
           discharge_note?: string | null
           discharged_at?: string | null
@@ -165,7 +486,10 @@ export type Database = {
           notes?: string
           room?: string
           sex?: string
+          sync_seq?: number | null
           updated_at?: number
+          updated_by?: string | null
+          version?: number
         }
         Relationships: []
       }
@@ -196,6 +520,78 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_assignments: {
+        Row: {
+          changed_at: number
+          created_at: string
+          data: Json
+          deleted_at: string | null
+          id: string
+          patient_id: string | null
+          sync_seq: number | null
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id?: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
+      sync_history: {
+        Row: {
+          created_at: string
+          discarded: Json | null
+          field: string
+          id: string
+          kept: Json | null
+          op_id: string | null
+          record_id: string
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          discarded?: Json | null
+          field: string
+          id?: string
+          kept?: Json | null
+          op_id?: string | null
+          record_id: string
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          discarded?: Json | null
+          field?: string
+          id?: string
+          kept?: Json | null
+          op_id?: string | null
+          record_id?: string
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -214,11 +610,60 @@ export type Database = {
         }
         Relationships: []
       }
+      ward_shift_settings: {
+        Row: {
+          changed_at: number
+          created_at: string
+          data: Json
+          deleted_at: string | null
+          id: string
+          patient_id: string | null
+          sync_seq: number | null
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          changed_at?: number
+          created_at?: string
+          data?: Json
+          deleted_at?: string | null
+          id?: string
+          patient_id?: string | null
+          sync_seq?: number | null
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      apply_clinical_edit: {
+        Args: {
+          p_base_version: number
+          p_changed_at: number
+          p_fields: Json
+          p_id: string
+          p_op: string
+          p_op_id: string
+          p_patient_id?: string
+          p_table: string
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
