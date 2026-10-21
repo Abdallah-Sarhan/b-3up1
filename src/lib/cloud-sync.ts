@@ -485,7 +485,7 @@ export async function retryClinicalCloudInitialization(): Promise<void> {
   await initializeClinicalCloud(wardDB);
 }
 
-export function getClinicalCloudStatus(): { online: boolean; warning: string | null } {
+export function getClinicalCloudStatus(): { online: boolean; available: boolean; warning: string | null } {
   return {
     online: typeof navigator === "undefined" ? true : navigator.onLine,
     warning: lastErrorMessage,
