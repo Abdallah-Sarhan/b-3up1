@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { db, emptyPatient, type Patient, readmitPatient } from "@/lib/db";
+import { db, emptyPatient, type Patient } from "@/lib/db";
+import { createPatientCloudFirst, readmitPatientCloudFirst, updatePatientCloudFirst } from "@/lib/clinical-cloud";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, Field, Input, Select, Textarea } from "@/components/ui-kit";
 import { SuggestInput } from "@/components/SuggestInput";
@@ -138,7 +139,7 @@ export function PatientForm({ patient }: { patient?: Patient }) {
     try {
       if (patient?.id) {
         const data = { ...form, updatedAt: Date.now() };
-        await db.patients.update(patient.id, data);
+        await updatePatientCloudFirst(patient.id, data);
         toast.success(t("savedOk"));
         navigate({ to: "/patients/$patientId", params: { patientId: String(patient.id) } });
         return;
@@ -154,21 +155,23 @@ export function PatientForm({ patient }: { patient?: Patient }) {
         };
         delete data.dischargedAt;
         delete data.dischargeNote;
-        await db.patients.update(existingId, (obj) => {
-          Object.assign(obj, data);
-          delete obj.dischargedAt;
-          delete obj.dischargeNote;
+        await updatePatientCloudFirst(existingId, {
+          ...data,
+          dischargedAt: undefined,
+          dischargeNote: undefined,
         });
-        if (wasDischarged) await readmitPatient(existingId, data.doa);
+        if (wasDischarged) await readmitPatientCloudFirst(existingId, data.doa);
         toast.success(wasDischarged ? t("readmittedOk") : t("patientAlreadyActive"));
         navigate({ to: "/patients/$patientId", params: { patientId: String(existingId) } });
         return;
       }
       const addData = { ...form, updatedAt: Date.now() } as Partial<Patient>;
       delete addData.id;
-      const id = await db.patients.add(addData as Omit<Patient, "id">);
+      const id = await createPatientCloudFirst(addData as Omit<Patient, "id">);
       toast.success(t("savedOk"));
       navigate({ to: "/patients/$patientId", params: { patientId: String(id) } });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ بيانات المريض في السحابة.");
     } finally {
       setSaving(false);
     }
