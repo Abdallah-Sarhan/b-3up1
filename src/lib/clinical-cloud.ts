@@ -481,11 +481,14 @@ export async function deleteClinicalRecordCloudFirst(
 }
 
 /** Patient and its attached clinical records are removed from active cloud views before cache cleanup. */
-export async function deletePatientCloudFirst(localId: number): Promise<void> {
+export async function deletePatientCloudFirst(localId: number, expectedVersion?: number | null): Promise<void> {
   const patient = await db.patients.get(localId);
   if (!patient) return;
   const cloudId = await uploadPatientRemote(patient, localId, { migration: true });
-  const baseVersion = await versionFor("patients", cloudId);
+  const baseVersion = expectedVersion === undefined ? getCloudVersion("patients", localId) : expectedVersion;
+  if (baseVersion == null) {
+    throw new Error("إصدار سجل المريض غير معروف على هذا الجهاز. حدّث الصفحة قبل الحذف.");
+  }
   await applyEdit({ table: "patients", id: cloudId, op: "delete", baseVersion, fields: {} });
   const children: ClinicalTable[] = ["vitals", "notes", "sbar", "careplan", "rounds", "tranq", "assignments", "admissions"];
   await withCloudCacheMutation(async () => {
