@@ -137,9 +137,9 @@ function cloudPatient(row: RemoteRow): Omit<Patient, "id"> {
     notes: row.notes ?? "",
     createdAt: Number(row.created_at ?? 0),
     updatedAt: Number(row.updated_at ?? 0),
-    dischargedAt: row.discharged_at ?? undefined,
-    dischargeNote: row.discharge_note ?? undefined,
   };
+  if (row.discharged_at != null) out["dischargedAt"] = row.discharged_at;
+  if (row.discharge_note != null) out["dischargeNote"] = row.discharge_note;
   return out as Omit<Patient, "id">;
 }
 
