@@ -1,6 +1,4 @@
 import Dexie, { type Table } from "dexie";
-import seedData from "@/data/seed-patients.json";
-import { restoreFromFileIfNewer, startFileBackup } from "@/lib/persist";
 
 export interface Patient {
   id?: number;
@@ -169,99 +167,6 @@ class WardDB extends Dexie {
 
 export const db = new WardDB();
 
-const SEED_VERSION = "1";
-
-async function seedIfNeeded() {
-  const seeded = await db.meta.get("seedVersion");
-  if (seeded?.value === SEED_VERSION) return;
-  const now = Date.now();
-  const patients: Patient[] = (seedData as Array<Record<string, string>>).map(
-    (p) => ({
-      fileNo: p["fileNo"] ?? "",
-      name: p["name"] ?? "",
-      nationality: p["nationality"] ?? "",
-      diagnosis: p["diagnosis"] ?? "",
-      folderNo: p["folderNo"] ?? "",
-      age: p["age"] ?? "",
-      doctor: p["doctor"] ?? "",
-      cid: p["cid"] ?? "",
-      doa: p["doa"] ?? "",
-      dob: "",
-      sex: "",
-      room: "",
-      bed: "",
-      maritalStatus: "",
-      notes: "",
-      createdAt: now,
-      updatedAt: now,
-    }),
-  );
-  await db.patients.bulkAdd(patients);
-  await db.meta.put({ key: "seedVersion", value: SEED_VERSION });
-}
-
-// File numbers of the patients currently admitted (per the ward census sheet).
-// Everyone else gets discharged once, keeping their full history.
-const CURRENT_INPATIENT_FILE_NOS = new Set([
-  "33547", "49990", "91000", "81274", "43351", "71781", "98960", "44691",
-  "79923", "46844", "87688", "93087", "61977", "71345", "94301", "59032",
-  "56376", "17851", "66049", "72938", "90923", "54708", "49166", "94316",
-  "87747", "76208", "78981", "94285", "80562", "94406", "71756",
-  // file numbers as stored in the registry (differ slightly from the sheet)
-  "93960", "46644", "87683", "78881",
-]);
-
-async function dischargeNonCurrentOnce() {
-  const done = await db.meta.get("dischargeExceptCensus2026-08-30");
-  if (done) return;
-  const today = new Date().toISOString().slice(0, 10);
-  const now = Date.now();
-
-  // One atomic transaction: if the app is closed mid-way nothing is half-done,
-  // and the whole migration is a handful of bulk operations instead of two or
-  // three separate IndexedDB round trips per patient (which froze the UI).
-  await db.transaction("rw", [db.patients, db.admissions, db.meta], async () => {
-    const [all, admissions] = await Promise.all([
-      db.patients.toArray(),
-      db.admissions.toArray(),
-    ]);
-
-    const openByPatient = new Map<number, Admission>();
-    for (const a of admissions) {
-      if (!a.dischargedAt && !openByPatient.has(a.patientId)) {
-        openByPatient.set(a.patientId, a);
-      }
-    }
-
-    const admissionUpdates: Array<{ key: number; changes: Partial<Admission> }> = [];
-    const admissionInserts: Admission[] = [];
-    const patientUpdates: Array<{ key: number; changes: Partial<Patient> }> = [];
-
-    for (const p of all) {
-      if (p.id == null || p.dischargedAt) continue;
-      if (CURRENT_INPATIENT_FILE_NOS.has(p.fileNo.trim())) continue;
-      const open = openByPatient.get(p.id);
-      if (open?.id != null) {
-        admissionUpdates.push({ key: open.id, changes: { dischargedAt: today } });
-      } else {
-        admissionInserts.push({
-          patientId: p.id,
-          admittedAt: p.doa || today,
-          dischargedAt: today,
-          createdAt: now,
-        });
-      }
-      patientUpdates.push({ key: p.id, changes: { dischargedAt: today, updatedAt: now } });
-    }
-
-    if (admissionUpdates.length) await db.admissions.bulkUpdate(admissionUpdates);
-    if (admissionInserts.length) await db.admissions.bulkAdd(admissionInserts);
-    if (patientUpdates.length) await db.patients.bulkUpdate(patientUpdates);
-    await db.meta.put({ key: "dischargeExceptCensus2026-08-30", value: "1" });
-  });
-}
-
-
 // Ask the browser/Electron to keep the data instead of evicting it.
 // In Electron the persistent-storage permission prompt can hang forever, so the
 // call is time-boxed and never allowed to block database startup.
@@ -281,33 +186,36 @@ function requestPersistence(): Promise<void> {
 // Runs only in the browser / Electron renderer (never during SSR).
 // Any failure here must still resolve, otherwise every screen stays stuck on
 // "loading" and the app looks frozen.
+// Online-only guard: reject clinical writes while the device has no network.
+// This prevents offline edits from being queued in IndexedDB for later sync.
+function requireOnlineWrite() {
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    throw new Error("لا يمكن حفظ التغييرات دون اتصال بالإنترنت. اتصل بالإنترنت ثم حاول مرة أخرى.");
+  }
+}
+
+for (const tableName of [
+  "patients", "vitals", "notes", "sbar", "careplan", "rounds",
+  "tranq", "assignments", "admissions", "meds",
+]) {
+  const table = db.table(tableName);
+  table.hook("creating", () => requireOnlineWrite());
+  table.hook("updating", () => requireOnlineWrite());
+  table.hook("deleting", () => requireOnlineWrite());
+}
+
+// Keep local schema available for compatibility, but never seed fake patients,
+// restore a file backup, or run a hard-coded census migration at startup.
 export const dbReady: Promise<void> =
   typeof window === "undefined"
     ? Promise.resolve()
     : (async () => {
-        void requestPersistence();
-        try {
-          // Desktop: bring back the file-backed copy first, so a wiped or stale
-          // IndexedDB store never loses new patients or discharges.
-          await restoreFromFileIfNewer(db);
-          await seedIfNeeded();
-          await dischargeNonCurrentOnce();
-        } catch (err) {
-          console.error("db init failed", err);
-        }
-        try {
-          startFileBackup(db);
-        } catch (err) {
-          console.error("file backup unavailable", err);
-        }
-        // Shared cloud copy: pull what other devices saved, then mirror local
-        // changes so the published link always shows the same registry.
         try {
           const { pullPatientsFromCloud, startCloudSync } = await import("@/lib/cloud-sync");
           await pullPatientsFromCloud(db);
           startCloudSync(db);
         } catch (err) {
-          console.error("cloud sync unavailable", err);
+          console.error("cloud connection unavailable", err);
         }
       })();
 
