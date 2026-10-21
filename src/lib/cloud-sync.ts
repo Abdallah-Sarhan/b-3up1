@@ -363,6 +363,7 @@ async function refreshCloudViews(): Promise<void> {
     assertOnline();
     await pullAllCloudData();
     lastErrorMessage = null;
+    cloudUnavailable = false;
   })().finally(() => {
     refreshInFlight = null;
   });
