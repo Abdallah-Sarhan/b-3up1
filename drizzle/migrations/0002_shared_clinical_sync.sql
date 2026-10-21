@@ -173,6 +173,19 @@ REVOKE ALL ON FUNCTION public.apply_clinical_edit(uuid, text, uuid, text, intege
 REVOKE ALL ON FUNCTION public.apply_clinical_edit(uuid, text, uuid, text, integer, jsonb, bigint, uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.apply_clinical_edit(uuid, text, uuid, text, integer, jsonb, bigint, uuid) TO authenticated;
 
+-- Remove permissive legacy patient policies: permissive policies combine with OR.
+REVOKE ALL ON public.patients FROM anon;
+REVOKE INSERT, UPDATE, DELETE ON public.patients FROM authenticated;
+GRANT SELECT ON public.patients TO authenticated;
+DROP POLICY IF EXISTS "patients readable by anyone" ON public.patients;
+DROP POLICY IF EXISTS "patients insertable by anyone" ON public.patients;
+DROP POLICY IF EXISTS "patients updatable by anyone" ON public.patients;
+DROP POLICY IF EXISTS "patients deletable by anyone" ON public.patients;
+DROP POLICY IF EXISTS "Approved staff read patients" ON public.patients;
+CREATE POLICY "Approved staff read patients"
+  ON public.patients FOR SELECT TO authenticated
+  USING (public.is_approved(auth.uid()));
+
 DO $p$ DECLARE t text; BEGIN
   FOREACH t IN ARRAY ARRAY['patients','patient_vitals','patient_nurse_notes','patient_sbar','patient_care_plans','patient_rounds','patient_tranquilizer_events','patient_admissions','staff_assignments','medication_register','ward_shift_settings'] LOOP
     IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = t) THEN
