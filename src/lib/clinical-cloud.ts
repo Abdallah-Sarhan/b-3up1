@@ -150,18 +150,18 @@ function stableJson(value: unknown): string {
 }
 
 async function findMatchingRemotePatient(patient: Record<string, unknown>): Promise<RemoteRow | null> {
-  const fileNo = String(patient.fileNo ?? "").trim();
-  const cid = String(patient.cid ?? "").trim();
-  const name = String(patient.name ?? "").trim();
+  const fileNo = String(patient["fileNo"] ?? "").trim();
+  const cid = String(patient["cid"] ?? "").trim();
+  const name = String(patient["name"] ?? "").trim();
   let query = supabase.from("patients").select("id,version,deleted_at,file_no,cid,name,dob,doa,created_at");
 
   if (fileNo) {
     query = query.eq("file_no", fileNo) as typeof query;
   } else if (cid) {
     query = query.eq("cid", cid).eq("name", name) as typeof query;
-  } else if (name && String(patient.dob ?? "").trim()) {
+  } else if (name && String(patient["dob"] ?? "").trim()) {
     query = query.eq("name", name).eq("dob", String(patient.dob)) as typeof query;
-  } else if (name && Number(patient.createdAt ?? 0) > 0) {
+  } else if (name && Number(patient["createdAt"] ?? 0) > 0) {
     query = query.eq("name", name).eq("created_at", Number(patient.createdAt)) as typeof query;
   } else {
     return null;
@@ -191,7 +191,7 @@ async function applyEdit(args: {
   patientId?: string | null;
 }): Promise<RemoteRow | null> {
   await assertSignedIn();
-  const { data, error } = await supabase.rpc("apply_clinical_edit", {
+  const { data, error } = await (supabase as any).rpc("apply_clinical_edit", {
     p_op_id: newUuid(),
     p_table: args.table,
     p_id: args.id,
@@ -217,7 +217,7 @@ async function uploadPatientRemote(
   localId?: number,
   options: { migration?: boolean; changedFields?: Partial<Patient> } = {},
 ): Promise<string> {
-  const currentFileNo = String((patient as Record<string, unknown>).fileNo ?? "").trim();
+  const currentFileNo = String((patient as Record<string, unknown>)["fileNo"] ?? "").trim();
   let cloudId = localId == null ? null : getCloudId("patients", localId);
   let currentVersion = 0;
 
@@ -227,7 +227,7 @@ async function uploadPatientRemote(
     return cloudId;
   } else if (cloudId) {
     currentVersion = await versionFor("patients", cloudId);
-  } else if (currentFileNo || options.migration || String((patient as Record<string, unknown>).cid ?? "").trim()) {
+  } else if (currentFileNo || options.migration || String((patient as Record<string, unknown>)["cid"] ?? "").trim()) {
     const existing = await findMatchingRemotePatient(patient as Record<string, unknown>);
     if (existing && existing.deleted_at) {
       throw new Error("يوجد سجل محذوف بهذا الرقم في السحابة. راجع المشرف قبل إعادة استخدام رقم الملف.");
@@ -378,7 +378,13 @@ export async function updatePatientCloudFirst(localId: number, patch: PatientClo
   const baseVersion = await versionFor("patients", cloudId);
   await applyEdit({ table: "patients", id: cloudId, op: "upsert", baseVersion, fields });
   try {
-    await withCloudCacheMutation(() => db.patients.update(localId, patch));
+    await withCloudCacheMutation(() => db.patients.update(localId, (obj) => {
+      const target = obj as unknown as Record<string, unknown>;
+      for (const [key, value] of Object.entries(patch)) {
+        if (value === undefined) delete target[key];
+        else target[key] = value;
+      }
+    }));
   } catch {
     throw new Error("تم تأكيد الحفظ السحابي، لكن تعذر تحديث عرض هذا الجهاز. حدّث الصفحة لاسترجاع البيانات.");
   }
@@ -390,7 +396,7 @@ export async function createClinicalRecordCloudFirst<T extends object>(
   value: T,
 ): Promise<number> {
   const clean = { ...(value as Record<string, unknown>) };
-  delete clean.id;
+  delete clean["id"];
   const cloudId = await uploadChildRemote(table, clean);
   try {
     const localId = await withCloudCacheMutation(() => db.table(table).add(clean as never));
@@ -412,7 +418,7 @@ export async function updateClinicalRecordCloudFirst(
   const fields = childPayload(patch);
   const remote = remoteTableName(table);
   const baseVersion = await versionFor(remote, cloudId);
-  const parentCloudId = typeof current.patientId === "number" ? await cloudPatientId(current.patientId) : null;
+  const parentCloudId = typeof current["patientId"] === "number" ? await cloudPatientId(current["patientId"]) : null;
   await applyEdit({ table: remote, id: cloudId, op: "upsert", baseVersion, fields, patientId: parentCloudId });
   try {
     await withCloudCacheMutation(() => db.table(table).update(localId, patch as never));
@@ -427,7 +433,7 @@ export async function deleteClinicalRecordCloudFirst(table: ClinicalTable, local
   const cloudId = await uploadChildRemote(table, current, localId, { migration: true });
   const remote = remoteTableName(table);
   const baseVersion = await versionFor(remote, cloudId);
-  const parentCloudId = typeof current.patientId === "number" ? await cloudPatientId(current.patientId) : null;
+  const parentCloudId = typeof current["patientId"] === "number" ? await cloudPatientId(current["patientId"]) : null;
   await applyEdit({ table: remote, id: cloudId, op: "delete", baseVersion, fields: {}, patientId: parentCloudId });
   await withCloudCacheMutation(() => db.table(table).delete(localId));
 }
@@ -476,7 +482,7 @@ export async function saveSharedSetting(key: string, value: string): Promise<voi
   }
   const { data, error } = await (supabase.from("ward_shift_settings") as any).select("id,version,deleted_at,data");
   if (error) throw cleanError(error);
-  const found = ((data ?? []) as RemoteRow[]).find((row) => row.data?.key === key && !row.deleted_at);
+  const found = ((data ?? []) as RemoteRow[]).find((row) => row.data?.["key"] === key && !row.deleted_at);
   const cloudId = found?.id ?? getCloudId("ward_shift_settings", key) ?? newUuid();
   const baseVersion = found ? Number(found.version ?? 0) : 0;
   await applyEdit({
