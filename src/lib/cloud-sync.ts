@@ -409,6 +409,7 @@ export async function initializeClinicalCloud(db: Dexie = wardDB): Promise<void>
   if (initialization && initializationUserId === userId) return initialization;
   if (initializationUserId && initializationUserId !== userId) {
     stopLiveSync();
+    await refreshInFlight?.catch(() => undefined);
     await withCloudCacheMutation(async () => {
       for (const table of db.tables) await table.clear();
     });
@@ -483,6 +484,7 @@ export async function clearClinicalCloudCache(): Promise<void> {
   if (cacheClearPromise) return cacheClearPromise;
   cacheClearPromise = (async () => {
     stopLiveSync();
+    await refreshInFlight?.catch(() => undefined);
     // Never erase the only copy of data after an incomplete/failed migration.
     let safelyMigrated = false;
     try {
