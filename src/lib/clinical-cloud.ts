@@ -368,7 +368,9 @@ export async function createPatientCloudFirst(value: Omit<Patient, "id">): Promi
 }
 
 /** Update selected fields in the cloud, then update the local display cache. */
-export async function updatePatientCloudFirst(localId: number, patch: Partial<Patient>): Promise<void> {
+export type PatientCloudPatch = { [K in keyof Patient]?: Patient[K] | undefined };
+
+export async function updatePatientCloudFirst(localId: number, patch: PatientCloudPatch): Promise<void> {
   const current = await db.patients.get(localId);
   if (!current) throw new Error("تعذر العثور على المريض. حدّث الصفحة ثم أعد المحاولة.");
   const cloudId = await uploadPatientRemote(current, localId, { migration: true });
