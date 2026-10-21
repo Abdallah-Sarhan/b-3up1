@@ -92,6 +92,7 @@ export function BoxedDigits({
   iw,
   ih,
   size = 15,
+  bold = false,
 }: {
   value: string;
   cells: number;
@@ -101,6 +102,7 @@ export function BoxedDigits({
   iw: number;
   ih: number;
   size?: number;
+  bold?: boolean;
 }) {
   const digits = value.slice(-cells).padStart(cells, " ").split("");
   const cw = width / cells;
@@ -116,6 +118,7 @@ export function BoxedDigits({
             top: `${(top / ih) * 100}%`,
             width: `${(cw / iw) * 100}%`,
             fontSize: `${size * scale}px`,
+            fontWeight: bold ? 700 : 400,
           }}
         >
           {d.trim()}
