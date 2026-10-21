@@ -229,22 +229,27 @@ function MedsPage() {
                 <Input
                   className="h-8 w-48 font-bold"
                   defaultValue={g.drug}
-                  onBlur={(e) => e.target.value.trim() && updateGroup(g, e.target.value, g.dose)}
+                  onFocus={() => rememberGroupVersions(g)}
+                  onBlur={(e) => e.target.value.trim() && void updateGroup(g, e.target.value, g.dose)}
                 />
                 <Input
                   className="h-8 w-24"
                   placeholder="التركيز"
                   defaultValue={g.dose}
-                  onBlur={(e) => updateGroup(g, g.drug, e.target.value)}
+                  onFocus={() => rememberGroupVersions(g)}
+                  onBlur={(e) => void updateGroup(g, g.drug, e.target.value)}
                 />
                 {isControl ? (
                   <Input
                     className="h-8 w-28"
                     placeholder="Rx No."
                     defaultValue={g.rxNo}
+                    onFocus={() => rememberGroupVersions(g)}
                     onBlur={(e) => {
                       const v = e.target.value;
-                      g.rows.forEach((r) => r.id && upd(r.id, { rxNo: v }));
+                      g.rows.forEach((r) => {
+                        if (r.id != null) void upd(r.id, { rxNo: v }, expectedVersionForEdit(r.id));
+                      });
                     }}
                   />
                 ) : null}
@@ -259,7 +264,8 @@ function MedsPage() {
                       className="h-8 flex-1 min-w-44"
                       list="med-patients"
                       defaultValue={r.patient}
-                      onBlur={(e) => r.id && upd(r.id, { patient: e.target.value })}
+                      onFocus={() => { if (r.id != null) rememberVersion(r.id); }}
+                      onBlur={(e) => r.id && void upd(r.id, { patient: e.target.value }, expectedVersionForEdit(r.id))}
                     />
                     <Input
                       className="h-8 w-28"
@@ -267,13 +273,15 @@ function MedsPage() {
                       placeholder="التكرار (1-0-2)"
                       title="تكرار الدواء خلال اليوم وعدد الأقراص في كل مرة (صباحًا-ظهرًا-مساءً)"
                       defaultValue={r.dose}
-                      onBlur={(e) => r.id && upd(r.id, { dose: e.target.value })}
+                      onFocus={() => { if (r.id != null) rememberVersion(r.id); }}
+                      onBlur={(e) => r.id && void upd(r.id, { dose: e.target.value }, expectedVersionForEdit(r.id))}
                     />
                     <Input
                       className="h-8 w-24"
                       placeholder="المدة"
                       defaultValue={r.duration}
-                      onBlur={(e) => r.id && upd(r.id, { duration: e.target.value })}
+                      onFocus={() => { if (r.id != null) rememberVersion(r.id); }}
+                      onBlur={(e) => r.id && void upd(r.id, { duration: e.target.value }, expectedVersionForEdit(r.id))}
                     />
                     <Button variant="ghost" size="sm" onClick={() => r.id && void deleteClinicalRecordCloudFirst("meds", r.id).then(() => toast.success("تم حذف السجل")).catch((error) => toast.error(error instanceof Error ? error.message : "تعذر حذف السجل في السحابة."))}>
                       <Trash2 />
