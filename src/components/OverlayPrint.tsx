@@ -167,11 +167,21 @@ export function OverlayPrintPage({
           <fieldset className="flex flex-wrap items-center gap-3 rounded-md border border-input px-3 py-2 text-sm">
             <legend className="px-1 font-medium">Print option</legend>
             <label className="flex items-center gap-2">
-              <input type="radio" name="single-print-mode" checked={printMode === "white"} onChange={() => setPrintMode("white")} />
+              <input
+                type="radio"
+                name="single-print-mode"
+                checked={printMode === "white"}
+                onChange={() => setPrintMode("white")}
+              />
               Print on White Paper
             </label>
             <label className="flex items-center gap-2">
-              <input type="radio" name="single-print-mode" checked={printMode === "form"} onChange={() => setPrintMode("form")} />
+              <input
+                type="radio"
+                name="single-print-mode"
+                checked={printMode === "form"}
+                onChange={() => setPrintMode("form")}
+              />
               Print on Form
             </label>
           </fieldset>
@@ -189,7 +199,7 @@ export function OverlayPrintPage({
             {lang === "ar" ? "إزاحة رأسي (mm)" : "Offset Y (mm)"}
             <input
               type="number"
-              step="0.5"
+              step="0.1"
               value={dy}
               onChange={(e) => setDy(Number(e.target.value))}
               className="h-8 w-16 rounded-md border border-input px-1"
