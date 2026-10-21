@@ -120,7 +120,6 @@ export function usePrintFieldPosition(
     left: defaultLeft,
     top: defaultTop,
   });
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     const saved = readFieldPositions()[formKey]?.[fieldKey];
@@ -128,7 +127,6 @@ export function usePrintFieldPosition(
       left: typeof saved?.left === "number" && Number.isFinite(saved.left) ? saved.left : defaultLeft,
       top: typeof saved?.top === "number" && Number.isFinite(saved.top) ? saved.top : defaultTop,
     });
-    setLoaded(true);
   }, [formKey, fieldKey, defaultLeft, defaultTop]);
 
   useEffect(() => {
@@ -154,30 +152,22 @@ export function usePrintFieldPosition(
     };
   }, [formKey, fieldKey, defaultLeft, defaultTop]);
 
-  useEffect(() => {
-    if (!loaded) return;
-    try {
-      const stored = readFieldPositions();
-      stored[formKey] ??= {};
-      stored[formKey][fieldKey] = position;
-      window.localStorage.setItem(FIELD_POSITION_STORAGE_KEY, JSON.stringify(stored));
-    } catch {
-      // Position saving is optional; printing remains available if storage fails.
-    }
-  }, [formKey, fieldKey, position, loaded]);
-
   const setPosition = (left: number, top: number) => {
     if (!Number.isFinite(left) || !Number.isFinite(top)) return;
     const nextPosition = { left, top };
     setPositionState(nextPosition);
     try {
+      const stored = readFieldPositions();
+      stored[formKey] ??= {};
+      stored[formKey][fieldKey] = nextPosition;
+      window.localStorage.setItem(FIELD_POSITION_STORAGE_KEY, JSON.stringify(stored));
       window.dispatchEvent(
         new CustomEvent(FIELD_POSITION_CHANGE_EVENT, {
           detail: { formKey, fieldKey, position: nextPosition },
         }),
       );
     } catch {
-      // Some non-browser rendering environments don't support custom events.
+      // Position saving/syncing is optional if browser storage is unavailable.
     }
   };
 
