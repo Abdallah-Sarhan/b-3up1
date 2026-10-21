@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, type CSSProperties, type PointerEventHandler, type ReactNode } from "react";
+import { createContext, useContext, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type PointerEventHandler, type ReactNode } from "react";
+import { resetPrintFieldPositions, usePrintCalibration, usePrintFieldPosition } from "@/lib/print-calibration";
 
 /** Multiplies every printed field's font size (overlay forms). */
 export const PrintFontScale = createContext(1);
@@ -11,6 +12,7 @@ import { useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
 import { usePrintCalibration } from "@/lib/print-calibration";
 
+export const PrintActiveFormKey = createContext<string>("notes");
 export const PrintTemplateMode = createContext<"white" | "form">("white");
 export const usePrintTemplateMode = () => useContext(PrintTemplateMode);
 
@@ -53,7 +55,8 @@ export function makeField(iw: number, ih: number) {
     size = 13,
     spacing,
     bold,
-    draggable = false,
+    draggable = true,
+    fieldKey,
     onPointerDown,
     onPointerMove,
     onPointerUp,
@@ -70,6 +73,7 @@ export function makeField(iw: number, ih: number) {
     spacing?: number;
     bold?: boolean;
     draggable?: boolean;
+    fieldKey?: string;
     onPointerDown?: PointerEventHandler<HTMLDivElement>;
     onPointerMove?: PointerEventHandler<HTMLDivElement>;
     onPointerUp?: PointerEventHandler<HTMLDivElement>;
@@ -77,22 +81,59 @@ export function makeField(iw: number, ih: number) {
     style?: CSSProperties;
   }) {
     const scale = usePrintFontScale();
+    const activeFormKey = useContext(PrintActiveFormKey);
+    const key = fieldKey ?? `field.${left}.${top}.${width}`;
+    const { position, setPosition } = usePrintFieldPosition(activeFormKey, key, left, top);
+    const dragStart = useRef<{ pointerId: number; x: number; y: number; left: number; top: number; parentWidth: number; parentHeight: number } | null>(null);
+    const customDragHandlers = Boolean(onPointerDown || onPointerMove || onPointerUp || onPointerCancel);
+    const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (customDragHandlers) { onPointerDown?.(event); return; }
+      if (!draggable || event.button !== 0) return;
+      const parent = event.currentTarget.offsetParent as HTMLElement | null;
+      const rect = parent?.getBoundingClientRect();
+      if (!rect || rect.width <= 0 || rect.height <= 0) return;
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      dragStart.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: position.left, top: position.top, parentWidth: rect.width, parentHeight: rect.height };
+    };
+    const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (customDragHandlers) { onPointerMove?.(event); return; }
+      const start = dragStart.current;
+      if (!start || start.pointerId !== event.pointerId) return;
+      setPosition(
+        Math.max(0, Math.min(iw - width, start.left + ((event.clientX - start.x) * iw) / start.parentWidth)),
+        Math.max(0, Math.min(ih - (height ?? 20), start.top + ((event.clientY - start.y) * ih) / start.parentHeight)),
+      );
+    };
+    const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (customDragHandlers) { onPointerUp?.(event); return; }
+      if (dragStart.current?.pointerId === event.pointerId) dragStart.current = null;
+    };
+    const handlePointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (customDragHandlers) { onPointerCancel?.(event); return; }
+      if (dragStart.current?.pointerId === event.pointerId) dragStart.current = null;
+    };
+    const useSavedPosition = !customDragHandlers;
     return (
       <div
-        className={`absolute overflow-hidden leading-tight ${draggable ? "cursor-grab active:cursor-grabbing select-none touch-none" : ""}`}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerCancel}
+        className={`absolute leading-tight ${draggable && !customDragHandlers ? "cursor-grab active:cursor-grabbing select-none touch-none" : ""}`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        data-print-field={key}
+        title={draggable && !customDragHandlers ? "Drag to reposition" : undefined}
         style={{
-          left: `${(left / iw) * 100}%`,
-          top: `${(top / ih) * 100}%`,
+          left: `${((useSavedPosition ? position.left : left) / iw) * 100}%`,
+          top: `${((useSavedPosition ? position.top : top) / ih) * 100}%`,
           width: `${(width / iw) * 100}%`,
           height: height == null ? undefined : `${(height / ih) * 100}%`,
           textAlign: align,
           fontSize: `${size * scale}px`,
           fontWeight: bold ? 700 : 400,
           letterSpacing: spacing ? `${spacing}px` : "0.2px",
+          whiteSpace: "pre-wrap",
+          overflowWrap: "anywhere",
           ...(customStyle ?? {}),
         }}
       >
@@ -245,6 +286,9 @@ export function OverlayPrintPage({
               className="h-8 w-16 rounded-md border border-input px-1"
             />
           </label>
+          <Button variant="outline" size="sm" onClick={() => resetPrintFieldPositions(formKey)}>
+            {lang === "ar" ? "إعادة ضبط مواضع الحقول" : "Reset field positions"}
+          </Button>
           <Button variant="outline" size="sm" onClick={resetCalibration}>
             {lang === "ar" ? "إعادة ضبط المحاذاة" : "Reset alignment"}
           </Button>
@@ -293,7 +337,9 @@ export function OverlayPrintPage({
           />
         ) : null}
         <div className="absolute inset-0" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
-          <PrintFontScale.Provider value={fontScale}>{children(patient)}</PrintFontScale.Provider>
+          <PrintActiveFormKey.Provider value={formKey}>
+            <PrintFontScale.Provider value={fontScale}>{children(patient)}</PrintFontScale.Provider>
+          </PrintActiveFormKey.Provider>
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
 import { PRINT_FORMS, getPrintForm, type PrintFormDef } from "@/components/print-content";
-import { PrintFontScale, PrintTemplateMode } from "@/components/OverlayPrint";
+import { PrintActiveFormKey, PrintFontScale, PrintTemplateMode } from "@/components/OverlayPrint";
 import { resetPrintFieldPositions, usePrintCalibration } from "@/lib/print-calibration";
 import type { Patient } from "@/lib/db";
 
@@ -68,11 +68,13 @@ function Sheet({
           />
         ) : null}
         <div className="absolute inset-0" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
-          <PrintTemplateMode.Provider value={printMode}>
-            <PrintFontScale.Provider value={fontScale}>
-              <form.Content patient={patient} id={patient.id!} />
-            </PrintFontScale.Provider>
-          </PrintTemplateMode.Provider>
+          <PrintActiveFormKey.Provider value={form.key}>
+            <PrintTemplateMode.Provider value={printMode}>
+              <PrintFontScale.Provider value={fontScale}>
+                <form.Content patient={patient} id={patient.id!} />
+              </PrintFontScale.Provider>
+            </PrintTemplateMode.Provider>
+          </PrintActiveFormKey.Provider>
         </div>
       </div>
     );
@@ -96,11 +98,13 @@ function Sheet({
           transformOrigin: "top left",
         }}
       >
-        <PrintTemplateMode.Provider value={printMode}>
-          <PrintFontScale.Provider value={fontScale}>
-            <form.Content patient={patient} id={patient.id!} />
-          </PrintFontScale.Provider>
-        </PrintTemplateMode.Provider>
+        <PrintActiveFormKey.Provider value={form.key}>
+          <PrintTemplateMode.Provider value={printMode}>
+            <PrintFontScale.Provider value={fontScale}>
+              <form.Content patient={patient} id={patient.id!} />
+            </PrintFontScale.Provider>
+          </PrintTemplateMode.Provider>
+        </PrintActiveFormKey.Provider>
       </div>
     </div>
   );
@@ -237,13 +241,13 @@ function BatchPrintPage() {
               <Button variant="outline" size="sm" onClick={resetCalibration}>
                 {lang === "ar" ? "إعادة ضبط المحاذاة" : "Reset alignment"}
               </Button>
-              {form.key === "careplan" ? (
+              {form.template ? (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => resetPrintFieldPositions("careplan")}>
+                  <Button variant="outline" size="sm" onClick={() => resetPrintFieldPositions(form.key)}>
                     {lang === "ar" ? "إعادة ضبط مواضع الحقول" : "Reset field positions"}
                   </Button>
                   <span className="basis-full text-xs text-muted-foreground">
-                    {lang === "ar" ? "اسحب أي خانة بالماوس لتغيير موضعها؛ يتم حفظ مكانها تلقائيًا." : "Drag any field with the mouse; its position is saved automatically."}
+                    {lang === "ar" ? "اسحب أي خانة بالماوس لتغيير موضعها؛ يتم حفظ مكانها تلقائيًا." : "Drag any movable field with the mouse; its position is saved automatically for this form."}
                   </span>
                 </>
               ) : null}
