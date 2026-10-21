@@ -89,6 +89,7 @@ const LEGACY_MARKER = "ward39.cloud.initialized.v2";
 const ACTIVE_USER_MARKER = "ward39.cloud.active-user";
 
 let initialization: Promise<void> | null = null;
+let initializationUserId: string | null = null;
 let refreshInFlight: Promise<void> | null = null;
 let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -391,10 +392,19 @@ function startLiveSync(): void {
  * from rendering, rather than presenting old IndexedDB data as current.
  */
 export async function initializeClinicalCloud(db: Dexie = wardDB): Promise<void> {
-  if (initialization) return initialization;
+  const userId = await assertApprovedSession();
+  if (initialization && initializationUserId === userId) return initialization;
+  if (initializationUserId && initializationUserId !== userId) {
+    stopLiveSync();
+    await withCloudCacheMutation(async () => {
+      for (const table of db.tables) await table.clear();
+    });
+    await clearClinicalMappings();
+    initialization = null;
+  }
+  initializationUserId = userId;
   initialization = (async () => {
     try {
-      const userId = await assertApprovedSession();
       // Never reuse another account's browser cache or cloud-id mappings.
       let previousUser: string | null = null;
       try { previousUser = localStorage.getItem(ACTIVE_USER_MARKER); } catch { /* no local marker */ }
@@ -419,6 +429,7 @@ export async function initializeClinicalCloud(db: Dexie = wardDB): Promise<void>
       startLiveSync();
     } catch (error) {
       initialization = null;
+      initializationUserId = null;
       stopLiveSync();
       throw safeError(error);
     }
@@ -429,6 +440,7 @@ export async function initializeClinicalCloud(db: Dexie = wardDB): Promise<void>
 /** Retry path used by AuthGate after network or cloud settings are repaired. */
 export async function retryClinicalCloudInitialization(): Promise<void> {
   initialization = null;
+  initializationUserId = null;
   await initializeClinicalCloud(wardDB);
 }
 
@@ -443,6 +455,7 @@ export function getClinicalCloudStatus(): { online: boolean; warning: string | n
 export async function stopClinicalCloudSync(): Promise<void> {
   stopLiveSync();
   initialization = null;
+  initializationUserId = null;
 }
 
 export async function clearClinicalCloudCache(): Promise<void> {
@@ -460,6 +473,7 @@ export async function clearClinicalCloudCache(): Promise<void> {
     // This is only local-cache cleanup; cloud data remains unchanged.
   }
   initialization = null;
+  initializationUserId = null;
 }
 
 /** Explicitly clear only device-side ID mappings; no cloud clinical data is deleted. */
