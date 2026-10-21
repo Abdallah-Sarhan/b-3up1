@@ -127,7 +127,38 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (isPublic) return <>{children}</>;
   if (state === "loading" || state === "out") {
-    return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">جارٍ التحميل…</div>;
+    return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">جارٍ التحقق من الحساب وتحميل بيانات السحابة…</div>;
+  }
+  if (state === "cloud-error") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center shadow-sm">
+          <h1 className="text-base font-bold">تعذر الاتصال ببيانات الجناح السحابية</h1>
+          <p className="mt-3 text-sm text-muted-foreground">{cloudError}</p>
+          <p className="mt-2 text-xs text-muted-foreground">لم نعرض بيانات محلية قديمة على أنها محدثة من السحابة، ولم نؤكد أي حفظ لم يصل إلى الخادم.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setState("loading");
+              void retryClinicalCloudInitialization().then(() => setState("in")).catch((error) => {
+                setCloudError(error instanceof Error ? error.message : "تعذر الاتصال بالسحابة.");
+                setState("cloud-error");
+              });
+            }}
+            className="mt-5 h-10 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            إعادة الاتصال والمحاولة
+          </button>
+          <button
+            type="button"
+            onClick={() => void signOutEverywhere()}
+            className="mt-2 h-10 w-full rounded-md border border-input text-sm font-medium hover:bg-accent"
+          >
+            تسجيل الخروج
+          </button>
+        </div>
+      </div>
+    );
   }
   if (state === "pending") {
     return (
