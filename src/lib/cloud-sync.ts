@@ -428,10 +428,14 @@ export async function initializeClinicalCloud(db: Dexie = wardDB): Promise<void>
       const marker = (() => {
         try { return localStorage.getItem(`${LEGACY_MARKER}:${userId}`); } catch { return null; }
       })();
+      // First reconcile cloud records and tombstones with this device cache.
+      // Then migrate only the rows that are still genuinely local-only, and
+      // pull once more so newly imported rows have confirmed cloud identities.
+      await pullAllCloudData();
       if (marker !== "done") {
         await migrateUnlinkedLegacyCache(db);
+        await pullAllCloudData();
       }
-      await pullAllCloudData();
       try {
         localStorage.setItem(`${LEGACY_MARKER}:${userId}`, "done");
         localStorage.setItem(ACTIVE_USER_MARKER, userId);
