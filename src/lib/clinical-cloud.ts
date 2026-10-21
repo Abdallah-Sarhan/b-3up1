@@ -462,13 +462,20 @@ export async function updateClinicalRecordCloudFirst(
   }
 }
 
-export async function deleteClinicalRecordCloudFirst(table: ClinicalTable, localId: number): Promise<void> {
+export async function deleteClinicalRecordCloudFirst(
+  table: ClinicalTable,
+  localId: number,
+  expectedVersion?: number | null,
+): Promise<void> {
   const current = (await db.table(table).get(localId)) as Record<string, unknown> | undefined;
   if (!current) return;
   const cloudId = await uploadChildRemote(table, current, localId, { migration: true });
   const remote = remoteTableName(table);
-  const baseVersion = await versionFor(remote, cloudId);
-  const parentCloudId = typeof current["patientId"] === "number" ? await cloudPatientId(current["patientId"]) : null;
+  const baseVersion = expectedVersion === undefined ? getCloudVersion(table, localId) : expectedVersion;
+  if (baseVersion == null) {
+    throw new Error("إصدار السجل السحابي غير معروف. حدّث الصفحة قبل حذف السجل.");
+  }
+  const parentCloudId = typeof current["patientId"] === "number" ? await cloudPatientId(current["patientId"] as number) : null;
   await applyEdit({ table: remote, id: cloudId, op: "delete", baseVersion, fields: {}, patientId: parentCloudId });
   await withCloudCacheMutation(() => db.table(table).delete(localId));
 }
