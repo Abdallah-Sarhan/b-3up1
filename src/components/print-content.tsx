@@ -315,58 +315,96 @@ export const NURSING_CARE_PLAN_TEMPLATE = "/nursing-care-plan-template.png";
 
 const NCP_TEMPLATE_W = 1472;
 const NCP_TEMPLATE_H = 1044;
-const NCPF = makeField(NCP_TEMPLATE_W, NCP_TEMPLATE_H);
+const NCPFieldBase = makeField(NCP_TEMPLATE_W, NCP_TEMPLATE_H);
+function NCPF(props: React.ComponentProps<typeof NCPFieldBase>) {
+  return <NCPFieldBase {...props} bold={props.bold ?? true} />;
+}
 const NCP_ROW_TOP = 318;
 const NCP_ROW_HEIGHT = 39.5;
 const NCP_MAX_ROWS = 10;
 
-/** Patient and care-plan values positioned over the scanned NURS. 6B sheet. */
+/**
+ * Break a numbered nursing-intervention list into separate printable rows.
+ * Supports text entered on one line ("1. First 2. Second"), one item per line,
+ * numbered parentheses, and bullet characters.
+ */
+function splitCarePlanInterventions(value: string): string[] {
+  const normalized = (value || "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/\s+(?=\d{1,2}[.)]\s+)/g, "\n")
+    .replace(/\s+(?=\(\d{1,2}\)\s+)/g, "\n")
+    .trim();
+
+  const points = normalized
+    .split(/\n+/)
+    .map((line) => line.replace(/^\s*(?:\d{1,2}[.)]|\(\d{1,2}\)|[-•])\s*/, "").trim())
+    .filter(Boolean);
+
+  return points.length ? points : [""];
+}
+
+/** Patient and care-plan values positioned over the scanned NURS. 6B paper form. */
 export function NursingCarePlanTemplateContent({ patient, id }: { patient: Patient; id: number }) {
   const entries = useLiveQuery(
     () => db.careplan.where("patientId").equals(id).sortBy("dateIdentified"),
     [id],
   );
-  // The pre-printed form has ten available rows; keep the most recent entries.
-  const list = (entries ?? []).slice(-NCP_MAX_ROWS);
+
+  // Every intervention becomes an independent physical row in the supplied form.
+  const expandedRows = (entries ?? []).flatMap((entry, entryIndex) =>
+    splitCarePlanInterventions(entry.intervention).map((point, pointIndex) => ({
+      entry,
+      point,
+      key: `${entry.id ?? entryIndex}-${pointIndex}`,
+    })),
+  );
+  const visibleRows = expandedRows.slice(-NCP_MAX_ROWS);
   const fileNo = (patient.fileNo || "").replace(/\D/g, "");
   const cid = (patient.cid || "").replace(/\D/g, "");
   const sex = (patient.sex || "").trim().toUpperCase();
 
   return (
     <>
-      <BoxedDigits value={fileNo} cells={6} left={1023} width={250} top={87} iw={NCP_TEMPLATE_W} ih={NCP_TEMPLATE_H} size={13} />
-      <NCPF left={1027} top={130} width={347} height={19} size={12}>{patient.name}</NCPF>
-      <BoxedDigits value={cid} cells={12} left={1022} width={358} top={151} iw={NCP_TEMPLATE_W} ih={NCP_TEMPLATE_H} size={11} />
-      <NCPF left={1005} top={197} width={112} height={18} size={11}>{patient.age}</NCPF>
+      <BoxedDigits value={fileNo} cells={6} left={1023} width={250} top={87} iw={NCP_TEMPLATE_W} ih={NCP_TEMPLATE_H} size={9} bold />
+      <NCPF left={1027} top={130} width={347} height={19} size={9}>{patient.name}</NCPF>
+      <BoxedDigits value={cid} cells={12} left={1022} width={358} top={151} iw={NCP_TEMPLATE_W} ih={NCP_TEMPLATE_H} size={8} bold />
+      <NCPF left={1005} top={197} width={112} height={18} size={8}>{patient.age}</NCPF>
       {sex.startsWith("M") ? (
-        <NCPF left={1134} top={196} width={25} height={20} align="center" size={12} bold>✓</NCPF>
+        <NCPF left={1134} top={196} width={25} height={20} align="center" size={9} bold>✓</NCPF>
       ) : sex.startsWith("F") ? (
-        <NCPF left={1185} top={196} width={25} height={20} align="center" size={12} bold>✓</NCPF>
+        <NCPF left={1185} top={196} width={25} height={20} align="center" size={9} bold>✓</NCPF>
       ) : null}
-      <NCPF left={1060} top={224} width={320} height={18} size={11}>{patient.maritalStatus}</NCPF>
+      <NCPF left={1060} top={224} width={320} height={18} size={8}>{patient.maritalStatus}</NCPF>
 
-      <NCPF left={155} top={132} width={52} height={29} align="center" size={11} bold>M</NCPF>
-      <NCPF left={225} top={132} width={52} height={29} align="center" size={11} bold>2</NCPF>
-      <NCPF left={294} top={132} width={52} height={29} align="center" size={11} bold>39</NCPF>
-      <NCPF left={363} top={132} width={52} height={29} align="center" size={11} bold>{patient.room}</NCPF>
-      <NCPF left={431} top={132} width={52} height={29} align="center" size={11} bold>{patient.bed}</NCPF>
-      <NCPF left={506} top={132} width={260} height={25} size={11}>{patient.diagnosis}</NCPF>
+      <NCPF left={155} top={132} width={52} height={29} align="center" size={9}>M</NCPF>
+      <NCPF left={225} top={132} width={52} height={29} align="center" size={9}>2</NCPF>
+      <NCPF left={294} top={132} width={52} height={29} align="center" size={9}>39</NCPF>
+      <NCPF left={363} top={132} width={52} height={29} align="center" size={9}>{patient.room}</NCPF>
+      <NCPF left={431} top={132} width={52} height={29} align="center" size={9}>{patient.bed}</NCPF>
+      <NCPF left={506} top={132} width={260} height={25} size={8}>{patient.diagnosis}</NCPF>
 
-      <NCPF left={151} top={208} width={192} height={23} size={10}>{patient.doctor}</NCPF>
-      <NCPF left={356} top={209} width={133} height={23} align="center" size={10}>{patient.doa}</NCPF>
-      <NCPF left={500} top={209} width={130} height={23} align="center" size={10}>{patient.dischargedAt ?? ""}</NCPF>
+      <NCPF left={151} top={208} width={192} height={23} size={8}>{patient.doctor}</NCPF>
+      <NCPF left={356} top={209} width={133} height={23} align="center" size={8}>{patient.doa}</NCPF>
+      <NCPF left={500} top={209} width={130} height={23} align="center" size={8}>{patient.dischargedAt ?? ""}</NCPF>
 
-      {list.map((entry, index) => {
-        const top = NCP_ROW_TOP + index * NCP_ROW_HEIGHT;
+      {visibleRows.map((row, index) => {
+        const previous = visibleRows[index - 1];
+        // Keep the problem metadata on the first visible line for each plan item.
+        const startsEntry = !previous || previous.entry.id !== row.entry.id;
+        const top = NCP_ROW_TOP + index * NCP_ROW_HEIGHT + 2;
         return (
-          <div key={entry.id ?? index}>
-            <NCPF left={151} top={top} width={88} height={35} align="center" size={9}>{entry.dateIdentified}</NCPF>
-            <NCPF left={245} top={top} width={52} height={35} align="center" size={9}>{entry.problemNo}</NCPF>
-            <NCPF left={306} top={top} width={160} height={35} size={9}>{entry.problem}</NCPF>
-            <NCPF left={475} top={top} width={179} height={35} size={9}>{entry.objective}</NCPF>
-            <NCPF left={665} top={top} width={560} height={35} size={9}>{entry.intervention}</NCPF>
-            <NCPF left={1235} top={top} width={52} height={35} align="center" size={8}>{entry.dateResolved}</NCPF>
-            <NCPF left={1295} top={top} width={98} height={35} size={9}>{entry.nurseSign}</NCPF>
+          <div key={row.key}>
+            {startsEntry ? (
+              <>
+                <NCPF left={151} top={top} width={88} height={34} align="center" size={7}>{row.entry.dateIdentified}</NCPF>
+                <NCPF left={245} top={top} width={52} height={34} align="center" size={7}>{row.entry.problemNo}</NCPF>
+                <NCPF left={306} top={top} width={160} height={34} size={7}>{row.entry.problem}</NCPF>
+                <NCPF left={475} top={top} width={179} height={34} size={7}>{row.entry.objective}</NCPF>
+                <NCPF left={1235} top={top} width={52} height={34} align="center" size={7}>{row.entry.dateResolved}</NCPF>
+                <NCPF left={1295} top={top} width={98} height={34} size={7}>{row.entry.nurseSign}</NCPF>
+              </>
+            ) : null}
+            <NCPF left={665} top={top} width={560} height={34} size={7}>{row.point}</NCPF>
           </div>
         );
       })}
