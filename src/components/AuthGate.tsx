@@ -1,7 +1,7 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { clearClinicalCloudCache, initializeClinicalCloud, retryClinicalCloudInitialization } from "@/lib/cloud-sync";
+import { clearClinicalCloudCache, initializeClinicalCloud } from "@/lib/cloud-sync";
 
 /** Pages reachable without signing in. */
 export function isPublicPath(pathname: string) {
@@ -156,13 +156,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           <p className="mt-2 text-xs text-muted-foreground">لم نعرض بيانات محلية قديمة على أنها محدثة من السحابة، ولم نؤكد أي حفظ لم يصل إلى الخادم.</p>
           <button
             type="button"
-            onClick={() => {
-              setState("loading");
-              void retryClinicalCloudInitialization().then(() => setState("in")).catch((error) => {
-                setCloudError(error instanceof Error ? error.message : "تعذر الاتصال بالسحابة.");
-                setState("cloud-error");
-              });
-            }}
+            onClick={() => window.location.reload()}
             className="mt-5 h-10 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
             إعادة الاتصال والمحاولة
