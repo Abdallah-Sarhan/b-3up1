@@ -4,6 +4,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Printer, Save } from "lucide-react";
 import { db } from "@/lib/db";
+import { createClinicalRecordCloudFirst, updateClinicalRecordCloudFirst } from "@/lib/clinical-cloud";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, CardHeader, Field, Input, Textarea } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
@@ -57,12 +58,16 @@ function RoundsPage() {
   async function saveNote(patientId: number) {
     const note = notes[patientId] ?? "";
     const existing = (entries ?? []).find((e) => e.patientId === patientId);
-    if (existing?.id != null) {
-      await db.rounds.update(existing.id, { findings: note });
-    } else {
-      await db.rounds.add({ patientId, date, doctor: "", findings: note, orders: "", nurse: "" });
+    try {
+      if (existing?.id != null) {
+        await updateClinicalRecordCloudFirst("rounds", existing.id, { findings: note });
+      } else {
+        await createClinicalRecordCloudFirst("rounds", { patientId, date, doctor: "", findings: note, orders: "", nurse: "" });
+      }
+      toast.success(t("savedOk"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ ملاحظة الراوند في السحابة.");
     }
-    toast.success(t("savedOk"));
   }
 
   return (
