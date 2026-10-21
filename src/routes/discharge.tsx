@@ -50,13 +50,21 @@ function DischargePage() {
     const id = pendingId;
     setPendingId(null);
     if (id == null) return;
-    await dischargePatient(id, note);
-    toast.success(t("dischargeDone"));
+    try {
+      await dischargePatient(id, note);
+      toast.success(t("dischargeDone"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ خروج المريض في السحابة.");
+    }
   }
 
   async function readmit(id: number) {
-    await readmitPatient(id);
-    toast.success(t("readmittedOk"));
+    try {
+      await readmitPatient(id);
+      toast.success(t("readmittedOk"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ إعادة الدخول في السحابة.");
+    }
   }
 
 
