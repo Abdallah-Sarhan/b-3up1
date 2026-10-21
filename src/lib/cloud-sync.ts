@@ -8,6 +8,7 @@ import {
   getCloudId,
   getLocalId,
   linkIds,
+  setCloudVersion,
   remoteTableName,
   saveSharedSetting,
   type ClinicalTable,
@@ -183,6 +184,7 @@ async function pullPatients(): Promise<void> {
     if (existing?.["id"] != null) {
       await withCloudCacheMutation(() => wardDB.patients.update(existing["id"]!, value));
       linkIds("patients", existing.id, row.id);
+      setCloudVersion("patients", existing.id, Number(row.version ?? 0));
       existing.fileNo = value.fileNo;
       existing.name = value.name;
       existing.nationality = value.nationality;
@@ -205,6 +207,7 @@ async function pullPatients(): Promise<void> {
     } else {
       const newId = await withCloudCacheMutation(() => wardDB.patients.add(value));
       linkIds("patients", Number(newId), row.id);
+      setCloudVersion("patients", Number(newId), Number(row.version ?? 0));
       const added = { ...value, id: Number(newId) };
       local.push(added);
     }
@@ -269,10 +272,12 @@ async function pullClinicalTable(table: ClinicalTable): Promise<void> {
     if (existing?.["id"] != null) {
       await withCloudCacheMutation(() => wardDB.table(table).update(existing["id"] as number, value as never));
       linkIds(table, existing["id"] as number, row.id);
+      setCloudVersion(table, existing["id"] as number, Number(row.version ?? 0));
       Object.assign(existing, value);
     } else {
       const localId = await withCloudCacheMutation(() => wardDB.table(table).add(value as never));
       linkIds(table, Number(localId), row.id);
+      setCloudVersion(table, Number(localId), Number(row.version ?? 0));
       localRows.push({ ...value, id: Number(localId) });
     }
   }
@@ -284,6 +289,7 @@ async function pullSharedSettings(): Promise<void> {
     if (row.deleted_at || !row.data || typeof row.data["key"] !== "string" || typeof row.data["value"] !== "string") continue;
     await wardDB.meta.put({ key: row.data["key"], value: row.data["value"] });
     linkIds("ward_shift_settings", row.data["key"], row.id);
+    setCloudVersion("ward_shift_settings", row.data["key"], Number(row.version ?? 0));
   }
 }
 
