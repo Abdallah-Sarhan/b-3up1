@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import { db, type Patient } from "@/lib/db";
+import { createClinicalRecordCloudFirst, createPatientCloudFirst, type ClinicalTable } from "@/lib/clinical-cloud";
 
 const HEADERS: Array<{ key: keyof Patient; label: string }> = [
   { key: "fileNo", label: "FILE NO" },
@@ -96,7 +97,7 @@ export async function importPatientsFromExcel(file: File): Promise<number> {
     });
     added++;
   }
-  if (toAdd.length > 0) await db.patients.bulkAdd(toAdd);
+  for (const patient of toAdd) await createPatientCloudFirst(patient);
   return added;
 }
 
