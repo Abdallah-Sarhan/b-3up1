@@ -389,7 +389,7 @@ function NCPF({
       style={{
         whiteSpace: "pre-wrap",
         overflowWrap: "anywhere",
-        ...customStyle,
+        ...(customStyle ?? {}),
         ...(mergeCell && templateMode === "white" ? { backgroundColor: "#fff" } : {}),
       }}
       draggable={draggable}
