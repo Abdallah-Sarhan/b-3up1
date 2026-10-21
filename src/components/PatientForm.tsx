@@ -20,6 +20,7 @@ export function PatientForm({ patient }: { patient?: Patient }) {
   );
   // When adding: id of an already-registered patient matched by file no / civil id
   const [matchedId, setMatchedId] = useState<number | null>(null);
+  const [matchedVersion, setMatchedVersion] = useState<number | null>(null);
   const [fileNoSugs, setFileNoSugs] = useState<string[]>([]);
   const [cidSugs, setCidSugs] = useState<string[]>([]);
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
