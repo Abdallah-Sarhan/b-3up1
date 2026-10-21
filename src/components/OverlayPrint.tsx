@@ -10,7 +10,6 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, type Patient } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
-import { usePrintCalibration } from "@/lib/print-calibration";
 
 export const PrintActiveFormKey = createContext<string>("notes");
 export const PrintTemplateMode = createContext<"white" | "form">("white");

@@ -4,7 +4,7 @@ import { ClipboardList, FileText, HeartPulse, NotebookPen, Printer } from "lucid
 import { useLang } from "@/lib/i18n";
 import { Card, CardHeader, Field } from "@/components/ui-kit";
 import { PatientPicker, useActivePatients } from "@/components/PatientPicker";
-import { PRINT_FORMS } from "@/components/print-content";
+import { PRINT_FORM_MENU } from "@/lib/print-form-menu";
 
 export const Route = createFileRoute("/paper-forms")({
   head: () => ({
@@ -74,7 +74,7 @@ function PaperFormsPage() {
       <Card>
         <CardHeader title={t("batchPrint")} subtitle={String(patients?.length ?? 0)} />
         <div className="flex flex-wrap gap-2 px-5 py-4">
-          {PRINT_FORMS.map((f) => (
+          {PRINT_FORM_MENU.map((f) => (
             <Link
               key={f.key}
               to="/print/all/$form"
