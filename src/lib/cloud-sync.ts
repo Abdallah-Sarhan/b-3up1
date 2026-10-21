@@ -426,6 +426,29 @@ export function getClinicalCloudStatus(): { online: boolean; warning: string | n
   };
 }
 
+/** Stop subscriptions and remove the local clinical view cache without deleting cloud data. */
+export async function stopClinicalCloudSync(): Promise<void> {
+  stopLiveSync();
+  initialization = null;
+}
+
+export async function clearClinicalCloudCache(): Promise<void> {
+  stopLiveSync();
+  await withCloudCacheMutation(async () => {
+    for (const table of wardDB.tables) await table.clear();
+  });
+  await clearClinicalMappings();
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(LEGACY_MARKER + ":")) localStorage.removeItem(key);
+    }
+  } catch {
+    // This is only local-cache cleanup; cloud data remains unchanged.
+  }
+  initialization = null;
+}
+
 /** Explicitly clear only device-side ID mappings; no cloud clinical data is deleted. */
 export async function resetClinicalCloudMappings(): Promise<void> {
   await clearClinicalMappings();
