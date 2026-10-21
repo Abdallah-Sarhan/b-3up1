@@ -165,7 +165,7 @@ export function PatientForm({ patient }: { patient?: Patient }) {
           ...data,
           dischargedAt: undefined,
           dischargeNote: undefined,
-        }, getCloudVersion("patients", existingId));
+        }, matchedId === existingId ? matchedVersion : getCloudVersion("patients", existingId));
         if (wasDischarged) await readmitPatientCloudFirst(existingId, data.doa);
         toast.success(wasDischarged ? t("readmittedOk") : t("patientAlreadyActive"));
         navigate({ to: "/patients/$patientId", params: { patientId: String(existingId) } });
