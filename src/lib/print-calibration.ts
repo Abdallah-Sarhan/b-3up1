@@ -90,6 +90,7 @@ export type PrintFieldPosition = { left: number; top: number };
 type StoredFieldPositions = Record<string, Record<string, PrintFieldPosition>>;
 const FIELD_POSITION_STORAGE_KEY = "ward39.print-field-positions.v1";
 const FIELD_POSITION_RESET_EVENT = "ward39:print-field-positions-reset";
+const FIELD_POSITION_CHANGE_EVENT = "ward39:print-field-position-changed";
 
 function readFieldPositions(): StoredFieldPositions {
   try {
@@ -135,9 +136,23 @@ export function usePrintFieldPosition(
       if (!(event instanceof CustomEvent) || event.detail !== formKey) return;
       setPositionState({ left: defaultLeft, top: defaultTop });
     };
+    const handlePositionChange = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      const detail = event.detail as {
+        formKey?: string;
+        fieldKey?: string;
+        position?: PrintFieldPosition;
+      };
+      if (detail.formKey !== formKey || detail.fieldKey !== fieldKey || !detail.position) return;
+      setPositionState(detail.position);
+    };
     window.addEventListener(FIELD_POSITION_RESET_EVENT, handleReset);
-    return () => window.removeEventListener(FIELD_POSITION_RESET_EVENT, handleReset);
-  }, [formKey, defaultLeft, defaultTop]);
+    window.addEventListener(FIELD_POSITION_CHANGE_EVENT, handlePositionChange);
+    return () => {
+      window.removeEventListener(FIELD_POSITION_RESET_EVENT, handleReset);
+      window.removeEventListener(FIELD_POSITION_CHANGE_EVENT, handlePositionChange);
+    };
+  }, [formKey, fieldKey, defaultLeft, defaultTop]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -153,7 +168,17 @@ export function usePrintFieldPosition(
 
   const setPosition = (left: number, top: number) => {
     if (!Number.isFinite(left) || !Number.isFinite(top)) return;
-    setPositionState({ left, top });
+    const nextPosition = { left, top };
+    setPositionState(nextPosition);
+    try {
+      window.dispatchEvent(
+        new CustomEvent(FIELD_POSITION_CHANGE_EVENT, {
+          detail: { formKey, fieldKey, position: nextPosition },
+        }),
+      );
+    } catch {
+      // Some non-browser rendering environments don't support custom events.
+    }
   };
 
   return { position, setPosition };
