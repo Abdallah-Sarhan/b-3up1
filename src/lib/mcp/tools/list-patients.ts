@@ -23,6 +23,7 @@ export default defineTool({
     let query = supabaseForUser(ctx)
       .from("patients")
       .select(PATIENT_COLUMNS)
+      .is("deleted_at", null)
       .order("folder_no", { ascending: true })
       .limit(max);
     if (!include_discharged) query = query.is("discharged_at", null);
