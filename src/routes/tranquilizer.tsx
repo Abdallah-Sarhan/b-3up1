@@ -4,6 +4,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Plus, Printer, Trash2 } from "lucide-react";
 import { db, type MedCategory, type MedEntry } from "@/lib/db";
+import { createClinicalRecordCloudFirst, deleteClinicalRecordCloudFirst, updateClinicalRecordCloudFirst } from "@/lib/clinical-cloud";
 import { Button, Card, CardHeader, Field, Input } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
 
@@ -70,17 +71,21 @@ function MedsPage() {
 
   async function addDrug() {
     if (!form.drug.trim()) return;
-    await db.meds.add({
-      category,
-      drug: form.drug.trim(),
-      dose: form.dose.trim(),
-      rxNo: "",
-      patient: "",
-      duration: "",
-      createdAt: Date.now(),
-    });
-    setForm({ drug: "", dose: "" });
-    toast.success("تمت إضافة الدواء");
+    try {
+      await createClinicalRecordCloudFirst("meds", {
+        category,
+        drug: form.drug.trim(),
+        dose: form.dose.trim(),
+        rxNo: "",
+        patient: "",
+        duration: "",
+        createdAt: Date.now(),
+      });
+      setForm({ drug: "", dose: "" });
+      toast.success("تم حفظ الدواء في السحابة");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ الدواء في السحابة.");
+    }
   }
 
   async function updateGroup(g: Group, drug: string, dose: string) {
@@ -90,15 +95,16 @@ function MedsPage() {
     // The empty-patient row is the drug definition; its dose is the concentration.
     // Patient rows store their own frequency in dose and must keep it.
     const header = entries.find((e) => !e.patient.trim());
-    await Promise.all(
-      entries.map((e) => {
+    try {
+      for (const e of entries) {
         const patch: Partial<MedEntry> = { drug: drug.trim() };
-        if (header && e.id === header.id) {
-          patch.dose = dose.trim();
-        }
-        return db.meds.update(e.id!, patch);
-      }),
-    );
+        if (header && e.id === header.id) patch.dose = dose.trim();
+        await updateClinicalRecordCloudFirst("meds", e.id!, patch as Record<string, unknown>);
+      }
+      toast.success("تم حفظ بيانات الدواء في السحابة");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر تحديث الدواء في السحابة.");
+    }
   }
 
   async function deleteGroup(g: Group) {
@@ -109,24 +115,36 @@ function MedsPage() {
       )
       .map((e) => e.id!)
       .filter(Boolean);
-    await Promise.all(ids.map((id) => db.meds.delete(id)));
+    try {
+      for (const id of ids) await deleteClinicalRecordCloudFirst("meds", id);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حذف الدواء من السحابة.");
+      return;
+    }
     toast.success("تم حذف الدواء");
   }
 
   async function addPatientTo(g: Group) {
-    await db.meds.add({
-      category,
-      drug: g.drug,
-      dose: "",
-      rxNo: g.rxNo,
-      patient: "",
-      duration: "",
-      createdAt: Date.now(),
-    });
-    toast.success("تمت إضافة صف مريض");
+    try {
+      await createClinicalRecordCloudFirst("meds", {
+        category,
+        drug: g.drug,
+        dose: "",
+        rxNo: g.rxNo,
+        patient: "",
+        duration: "",
+        createdAt: Date.now(),
+      });
+      toast.success("تمت إضافة صف المريض إلى السحابة");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر إضافة صف المريض في السحابة.");
+    }
   }
 
-  const upd = (id: number, patch: Partial<MedEntry>) => db.meds.update(id, patch);
+  const upd = async (id: number, patch: Partial<MedEntry>) => {
+    try { await updateClinicalRecordCloudFirst("meds", id, patch as Record<string, unknown>); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "تعذر حفظ تعديل الدواء في السحابة."); }
+  };
 
   return (
     <div className="space-y-4">
@@ -238,7 +256,7 @@ function MedsPage() {
                       defaultValue={r.duration}
                       onBlur={(e) => r.id && upd(r.id, { duration: e.target.value })}
                     />
-                    <Button variant="ghost" size="sm" onClick={() => r.id && db.meds.delete(r.id)}>
+                    <Button variant="ghost" size="sm" onClick={() => r.id && void deleteClinicalRecordCloudFirst("meds", r.id).then(() => toast.success("تم حذف السجل")).catch((error) => toast.error(error instanceof Error ? error.message : "تعذر حذف السجل في السحابة."))}>
                       <Trash2 />
                     </Button>
                   </div>
