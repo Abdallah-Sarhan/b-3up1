@@ -520,7 +520,7 @@ export async function saveSharedSetting(key: string, value: string): Promise<voi
   const found = ((data ?? []) as RemoteRow[]).find((row) => row.data?.["key"] === key && !row.deleted_at);
   const cloudId = found?.id ?? getCloudId("ward_shift_settings", key) ?? newUuid();
   const baseVersion = found ? Number(found.version ?? 0) : 0;
-  await applyEdit({
+  const saved = await applyEdit({
     table: "ward_shift_settings",
     id: cloudId,
     op: "upsert",
@@ -528,6 +528,7 @@ export async function saveSharedSetting(key: string, value: string): Promise<voi
     fields: { key, value },
   });
   linkIds("ward_shift_settings", key, cloudId);
+  if (saved?.version != null) setCloudVersion("ward_shift_settings", key, Number(saved.version));
   await withCloudCacheMutation(() => db.meta.put({ key, value }));
 }
 
