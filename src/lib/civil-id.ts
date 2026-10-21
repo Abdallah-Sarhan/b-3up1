@@ -103,12 +103,17 @@ export async function removeSide(fileNo: string, side: Side) {
   const old = await getDocs(fn);
   const col = side === "front" ? "front_path" : "back_path";
   const prev = old?.[col];
+  // Remove the reference first. If object deletion later fails, the app will no
+  // longer present a broken link to a missing/private image.
+  const { error } = await supabase
+    .from("patient_documents")
+    .update(side === "front" ? { front_path: null } : { back_path: null })
+    .eq("file_no", fn);
+  if (error) throw friendly(error);
   if (prev) {
     const { error: removeError } = await supabase.storage.from(BUCKET).remove([prev]);
-    if (removeError) throw friendly(removeError);
+    if (removeError) throw new Error("تم فصل الصورة عن ملف المريض، لكن تعذّر حذف ملف التخزين القديم. أبلغ المشرف لإكمال التنظيف الآمن.");
   }
-  const { error } = await supabase.from("patient_documents").update(side === "front" ? { front_path: null } : { back_path: null }).eq("file_no", fn);
-  if (error) throw friendly(error);
 }
 
 /** Delete cloud-only Civil ID images and their metadata; failures must be visible. */
