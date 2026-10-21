@@ -69,16 +69,7 @@ function Sheet({
         ) : null}
         <div className="absolute inset-0" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
           <PrintFontScale.Provider value={fontScale}>
-            <div
-        style={{
-          transform: `translate(${dx}mm, ${dy}mm) scale(${fontScale})`,
-          transformOrigin: "top left",
-        }}
-      >
-        <PrintFontScale.Provider value={fontScale}>
-          <form.Content patient={patient} id={patient.id!} />
-        </PrintFontScale.Provider>
-      </div>
+            <form.Content patient={patient} id={patient.id!} />
           </PrintFontScale.Provider>
         </div>
       </div>
@@ -97,7 +88,16 @@ function Sheet({
         ...(breakStyle ?? {}),
       }}
     >
-      <form.Content patient={patient} id={patient.id!} />
+      <div
+        style={{
+          transform: `translate(${dx}mm, ${dy}mm) scale(${fontScale})`,
+          transformOrigin: "top left",
+        }}
+      >
+        <PrintFontScale.Provider value={fontScale}>
+          <form.Content patient={patient} id={patient.id!} />
+        </PrintFontScale.Provider>
+      </div>
     </div>
   );
 }
