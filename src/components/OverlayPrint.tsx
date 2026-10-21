@@ -2,7 +2,9 @@ import { createContext, useContext, useState, type CSSProperties, type PointerEv
 
 /** Multiplies every printed field's font size (overlay forms). */
 export const PrintFontScale = createContext(1);
-export const usePrintFontScale = () => useContext(PrintFontScale);\nexport const PrintTemplateMode = createContext<"white" | "form">("white");\nexport const usePrintTemplateMode = () => useContext(PrintTemplateMode);
+export const usePrintFontScale = () => useContext(PrintFontScale);
+export const PrintTemplateMode = createContext<"white" | "form">("white");
+export const usePrintTemplateMode = () => useContext(PrintTemplateMode);
 import { Link, useParams } from "@tanstack/react-router";
 import { ArrowRight, Printer } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -55,6 +57,7 @@ export function makeField(iw: number, ih: number) {
     onPointerMove,
     onPointerUp,
     onPointerCancel,
+    style: customStyle,
   }: {
     left: number;
     top: number;
@@ -70,11 +73,16 @@ export function makeField(iw: number, ih: number) {
     onPointerMove?: PointerEventHandler<HTMLDivElement>;
     onPointerUp?: PointerEventHandler<HTMLDivElement>;
     onPointerCancel?: PointerEventHandler<HTMLDivElement>;
+    style?: CSSProperties;
   }) {
     const scale = usePrintFontScale();
     return (
       <div
-        className={`absolute overflow-hidden leading-tight ${draggable ? "cursor-grab active:cursor-grabbing select-none touch-none" : ""}`}\n        onPointerDown={onPointerDown}\n        onPointerMove={onPointerMove}\n        onPointerUp={onPointerUp}\n        onPointerCancel={onPointerCancel}
+        className={`absolute overflow-hidden leading-tight ${draggable ? "cursor-grab active:cursor-grabbing select-none touch-none" : ""}`}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
         style={{
           left: `${(left / iw) * 100}%`,
           top: `${(top / ih) * 100}%`,
