@@ -160,10 +160,12 @@ export function OverlayPrintPage({
               {t("back")}
             </Button>
           </Link>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={guide} onChange={(e) => setGuide(e.target.checked)} />
-            {lang === "ar" ? "عرض النموذج كخلفية (لا يُطبع)" : "Show form as background (not printed)"}
-          </label>
+          {printMode === "form" ? (
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={guide} onChange={(e) => setGuide(e.target.checked)} />
+              {lang === "ar" ? "عرض النموذج كخلفية (لا يُطبع)" : "Show form as background (not printed)"}
+            </label>
+          ) : null}
           <fieldset className="flex flex-wrap items-center gap-3 rounded-md border border-input px-3 py-2 text-sm">
             <legend className="px-1 font-medium">Print option</legend>
             <label className="flex items-center gap-2">
