@@ -472,6 +472,7 @@ export async function initializeClinicalCloud(db: Dexie = wardDB): Promise<void>
     } catch (error) {
       initialization = null;
       initializationUserId = null;
+      cloudUnavailable = true;
       stopLiveSync();
       throw safeError(error);
     }
