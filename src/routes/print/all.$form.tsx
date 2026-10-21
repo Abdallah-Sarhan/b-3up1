@@ -6,7 +6,7 @@ import { Button } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
 import { PRINT_FORMS, getPrintForm, type PrintFormDef } from "@/components/print-content";
 import { PrintFontScale } from "@/components/OverlayPrint";
-import { usePrintCalibration } from "@/lib/print-calibration";
+import { resetPrintFieldPositions, usePrintCalibration } from "@/lib/print-calibration";
 import type { Patient } from "@/lib/db";
 
 export const Route = createFileRoute("/print/all/$form")({
@@ -233,6 +233,16 @@ function BatchPrintPage() {
               <Button variant="outline" size="sm" onClick={resetCalibration}>
                 {lang === "ar" ? "إعادة ضبط المحاذاة" : "Reset alignment"}
               </Button>
+              {form.key === "careplan" ? (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => resetPrintFieldPositions("careplan")}>
+                    {lang === "ar" ? "إعادة ضبط مواضع الحقول" : "Reset field positions"}
+                  </Button>
+                  <span className="basis-full text-xs text-muted-foreground">
+                    {lang === "ar" ? "اسحب أي خانة بالماوس لتغيير موضعها؛ يتم حفظ مكانها تلقائيًا." : "Drag any field with the mouse; its position is saved automatically."}
+                  </span>
+                </>
+              ) : null}
             </>
           ) : null}
           <label className="flex items-center gap-1 text-sm">
