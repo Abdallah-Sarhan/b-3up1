@@ -377,6 +377,7 @@ export async function createPatientCloudFirst(value: Omit<Patient, "id">): Promi
   try {
     const localId = await withCloudCacheMutation(() => db.patients.add(clean));
     linkIds("patients", Number(localId), cloudId);
+    setCloudVersion("patients", Number(localId), 1);
     return Number(localId);
   } catch (error) {
     // The cloud remains authoritative; startup/realtime reconciliation restores the cache.
@@ -426,6 +427,7 @@ export async function createClinicalRecordCloudFirst<T extends object>(
   try {
     const localId = await withCloudCacheMutation(() => db.table(table).add(clean as never));
     linkIds(table, Number(localId), cloudId);
+    setCloudVersion(table, Number(localId), 1);
     return Number(localId);
   } catch {
     throw new Error("تم تأكيد الحفظ السحابي، لكن تعذر تحديث عرض هذا الجهاز. حدّث الصفحة لاسترجاع السجل.");
