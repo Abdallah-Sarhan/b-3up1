@@ -311,7 +311,7 @@ export function CarePlanContent({ patient, id }: { patient: Patient; id: number 
 }
 
 /** Static URL for the uploaded MOH NURS. 6B paper form. */
-export const NURSING_CARE_PLAN_TEMPLATE = "/nursing-care-plan-template.jpg";
+export const NURSING_CARE_PLAN_TEMPLATE = "/nursing-care-plan-template.png";
 
 const NCP_TEMPLATE_W = 1472;
 const NCP_TEMPLATE_H = 1044;
