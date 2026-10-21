@@ -5,7 +5,7 @@ import { useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
 import { PRINT_FORMS, getPrintForm, type PrintFormDef } from "@/components/print-content";
-import { PrintFontScale } from "@/components/OverlayPrint";
+import { PrintFontScale, PrintTemplateMode } from "@/components/OverlayPrint";
 import { resetPrintFieldPositions, usePrintCalibration } from "@/lib/print-calibration";
 import type { Patient } from "@/lib/db";
 
