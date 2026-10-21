@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { getClinicalCloudStatus } from "@/lib/cloud-sync";
-import { isPublicPath, signOutEverywhere, useAuthProfile } from "@/components/AuthGate";
+import { signOutEverywhere, useAuthProfile } from "@/components/AuthGate";
 
 // In-app navigation trail so the back button retraces the exact path the
 // user took inside the app, step by step, until the home page.
