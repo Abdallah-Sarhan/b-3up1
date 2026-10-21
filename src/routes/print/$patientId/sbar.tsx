@@ -33,7 +33,7 @@ function SbarPrint() {
   const byShift = (shift: string): SbarEntry | undefined => entries.find((e) => e.shift === shift);
 
   return (
-    <PrintShell title="Hand Over Sheet (SBAR)" patient={patient} landscape>
+    <PrintShell title="Hand Over Sheet (SBAR)" patient={patient} landscape formKey="sbar">
       {patient && (
         <>
           <div className="mx-auto mb-4 flex max-w-xs items-center gap-2 print:hidden">
