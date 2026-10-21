@@ -118,7 +118,9 @@ async function fetchAllRows(table: string): Promise<RemoteRow[]> {
   }
 }
 
-function cloudPatient(row: RemoteRow): Omit<Patient, "id"> {
+type CloudPatientView = Omit<Patient, "id" | "dischargedAt" | "dischargeNote"> & { dischargedAt: string; dischargeNote: string };
+
+function cloudPatient(row: RemoteRow): CloudPatientView {
   const out: Record<string, unknown> = {
     fileNo: typeof row.file_no === "string" && row.file_no.startsWith("~") ? "" : (row.file_no ?? ""),
     name: row.name ?? "",
