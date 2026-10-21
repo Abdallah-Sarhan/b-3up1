@@ -157,7 +157,29 @@ function BatchPrintPage() {
               {lang === "ar" ? "ورقة أفقية (Landscape)" : "Landscape page"}
             </label>
           )}
-          {form.template ? <fieldset className="flex flex-wrap items-center gap-3 rounded-md border border-input px-3 py-2 text-sm"><legend className="px-1 font-medium">Print option</legend><label className="flex items-center gap-2"><input type="radio" name="batch-print-mode" checked={printMode === "white"} onChange={() => setPrintMode("white")} />Print on White Paper</label><label className="flex items-center gap-2"><input type="radio" name="batch-print-mode" checked={printMode === "form"} onChange={() => setPrintMode("form")} />Print on Form</label></fieldset> : null}
+          {form.template ? (
+            <fieldset className="flex flex-wrap items-center gap-3 rounded-md border border-input px-3 py-2 text-sm">
+              <legend className="px-1 font-medium">Print option</legend>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="batch-print-mode"
+                  checked={printMode === "white"}
+                  onChange={() => setPrintMode("white")}
+                />
+                Print on White Paper
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="batch-print-mode"
+                  checked={printMode === "form"}
+                  onChange={() => setPrintMode("form")}
+                />
+                Print on Form
+              </label>
+            </fieldset>
+          ) : null}
           {form.template ? (
             <>
               <label className="flex items-center gap-2 text-sm">
@@ -178,7 +200,7 @@ function BatchPrintPage() {
                 {lang === "ar" ? "إزاحة رأسي (mm)" : "Offset Y (mm)"}
                 <input
                   type="number"
-                  step="0.5"
+                  step="0.1"
                   value={dy}
                   onChange={(e) => setDy(Number(e.target.value))}
                   className="h-8 w-16 rounded-md border border-input px-1"
