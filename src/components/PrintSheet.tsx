@@ -5,8 +5,8 @@ import { ArrowRight, Printer } from "lucide-react";
 import { db, type Patient } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
-import { PrintFontScale } from "@/components/OverlayPrint";
-import { usePrintCalibration } from "@/lib/print-calibration";
+import { PrintFontScale, PrintTemplateMode } from "@/components/OverlayPrint";
+import { resetPrintFieldPositions, usePrintCalibration } from "@/lib/print-calibration";
 
 export function usePrintPatient() {
   const { patientId } = useParams({ strict: false }) as { patientId: string };
@@ -136,6 +136,16 @@ export function PrintShell({
             <Button variant="outline" size="sm" onClick={resetCalibration}>
               {lang === "ar" ? "إعادة ضبط المحاذاة" : "Reset alignment"}
             </Button>
+            {formKey === "careplan" ? (
+              <>
+                <Button variant="outline" size="sm" onClick={() => resetPrintFieldPositions("careplan")}>
+                  {lang === "ar" ? "إعادة ضبط مواضع الحقول" : "Reset field positions"}
+                </Button>
+                <span className="basis-full text-xs text-muted-foreground">
+                  {lang === "ar" ? "اسحب أي خانة بالماوس لتغيير موضعها؛ يتم حفظ مكانها تلقائيًا." : "Drag any field with the mouse; its position is saved automatically."}
+                </span>
+              </>
+            ) : null}
           </>
         ) : null}
         <Button size="sm" onClick={() => window.print()}>
@@ -169,7 +179,7 @@ export function PrintShell({
             transformOrigin: "top left",
           }}
         >
-          <PrintFontScale.Provider value={fontScale}>{children}</PrintFontScale.Provider>
+          <PrintTemplateMode.Provider value={printMode}>\n            <PrintFontScale.Provider value={fontScale}>{children}</PrintFontScale.Provider>\n          </PrintTemplateMode.Provider>
         </div>
       </div>
     </div>

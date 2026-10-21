@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type CSSProperties, type PointerEventHandler, type ReactNode } from "react";
 
 /** Multiplies every printed field's font size (overlay forms). */
 export const PrintFontScale = createContext(1);
@@ -10,6 +10,9 @@ import { db, type Patient } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
 import { usePrintCalibration } from "@/lib/print-calibration";
+
+export const PrintTemplateMode = createContext<"white" | "form">("white");
+export const usePrintTemplateMode = () => useContext(PrintTemplateMode);
 
 export type OverlayFormKey =
   | "notes"
@@ -50,6 +53,12 @@ export function makeField(iw: number, ih: number) {
     size = 13,
     spacing,
     bold,
+    draggable = false,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onPointerCancel,
+    style: customStyle,
   }: {
     left: number;
     top: number;
@@ -60,11 +69,21 @@ export function makeField(iw: number, ih: number) {
     size?: number;
     spacing?: number;
     bold?: boolean;
+    draggable?: boolean;
+    onPointerDown?: PointerEventHandler<HTMLDivElement>;
+    onPointerMove?: PointerEventHandler<HTMLDivElement>;
+    onPointerUp?: PointerEventHandler<HTMLDivElement>;
+    onPointerCancel?: PointerEventHandler<HTMLDivElement>;
+    style?: CSSProperties;
   }) {
     const scale = usePrintFontScale();
     return (
       <div
-        className="absolute overflow-hidden leading-tight"
+        className={`absolute overflow-hidden leading-tight ${draggable ? "cursor-grab active:cursor-grabbing select-none touch-none" : ""}`}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
         style={{
           left: `${(left / iw) * 100}%`,
           top: `${(top / ih) * 100}%`,
@@ -74,6 +93,7 @@ export function makeField(iw: number, ih: number) {
           fontSize: `${size * scale}px`,
           fontWeight: bold ? 700 : 400,
           letterSpacing: spacing ? `${spacing}px` : "0.2px",
+          ...(customStyle ?? {}),
         }}
       >
         {children}
