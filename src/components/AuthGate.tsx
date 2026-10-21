@@ -48,13 +48,8 @@ async function loadProfile(userId: string): Promise<AuthProfile | null> {
     localStorage.setItem(CACHE_KEY, JSON.stringify(p));
     return p;
   } catch {
-    // Offline (desktop app): fall back to the last known profile of this user.
-    try {
-      const cached = JSON.parse(localStorage.getItem(CACHE_KEY) ?? "null") as AuthProfile | null;
-      return cached?.id === userId ? cached : null;
-    } catch {
-      return null;
-    }
+    // Online-only: never authorize access using a cached profile when cloud validation fails.
+    return null;
   }
 }
 
