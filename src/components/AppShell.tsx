@@ -3,6 +3,7 @@ import { Activity, ArrowRight, Bot, FileWarning, Languages, Lock, LogOut, Shield
 import { useEffect, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
+import { getClinicalCloudStatus } from "@/lib/cloud-sync";
 import { isPublicPath, signOutEverywhere, useAuthProfile } from "@/components/AuthGate";
 
 // In-app navigation trail so the back button retraces the exact path the
@@ -15,7 +16,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const href = useRouterState({ select: (s) => s.location.href });
-  const isPrint = isPublicPath(pathname);
+  const isPrint = pathname.startsWith("/print");
   const profile = useAuthProfile();
   const isHome = pathname === "/";
   const [isDesktop, setIsDesktop] = useState(false);
@@ -24,6 +25,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [newPass, setNewPass] = useState("");
   const [passMsg, setPassMsg] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
+  const [cloudStatus, setCloudStatus] = useState(getClinicalCloudStatus());
+
+  useEffect(() => {
+    const updateStatus = () => setCloudStatus(getClinicalCloudStatus());
+    updateStatus();
+    const timer = window.setInterval(updateStatus, 3000);
+    window.addEventListener("online", updateStatus);
+    window.addEventListener("offline", updateStatus);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("online", updateStatus);
+      window.removeEventListener("offline", updateStatus);
+    };
+  }, []);
 
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,9 +212,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </header>
+      {!cloudStatus.online || cloudStatus.warning ? (
+        <div role="status" className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-sm text-foreground print:hidden">
+          {!cloudStatus.online
+            ? "انقطع الاتصال بالإنترنت. الحفظ السريري متوقف حتى استعادة الاتصال بسحابة Lovable Cloud."
+            : cloudStatus.warning}
+        </div>
+      ) : null}
       <main className="mx-auto max-w-6xl px-4 py-6 print:max-w-none print:p-0">{children}</main>
       <footer className="border-t border-border py-4 text-center text-xs text-muted-foreground print:hidden">
-        {t("offlineReady")}
+        {cloudStatus.online && !cloudStatus.warning
+          ? "متصل بسحابة Lovable Cloud — الحفظ السريري لا يُعتمد إلا بعد تأكيد الخادم."
+          : "حالة السحابة غير مستقرة — لا تعتمد على حفظ سريري حتى تظهر حالة الاتصال المستقر."}
       </footer>
     </div>
   );
