@@ -47,8 +47,15 @@ function PatientFilePage() {
       // The cloud RPC tombstones the patient; the database trigger hides linked
       // clinical records atomically before this device cache is cleared.
       await deletePatientCloudFirst(id);
-      await removeAllForFileNo(patient!.fileNo ?? "");
-      toast.success(t("deletedOk"));
+      // The clinical record is already safely removed from active cloud views.
+      // Civil ID cleanup is a separate storage operation, so report it clearly
+      // instead of implying that the patient deletion failed.
+      try {
+        await removeAllForFileNo(patient!.fileNo ?? "");
+        toast.success(t("deletedOk"));
+      } catch {
+        toast.error("تم حذف سجل المريض، لكن تعذر حذف صور البطاقة المدنية. أبلغ المشرف لإكمال حذف الصور الخاصة.");
+      }
       navigate({ to: "/patients" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر حذف المريض من السحابة.");
