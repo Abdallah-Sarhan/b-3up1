@@ -486,8 +486,10 @@ export async function retryClinicalCloudInitialization(): Promise<void> {
 }
 
 export function getClinicalCloudStatus(): { online: boolean; available: boolean; warning: string | null } {
+  const online = typeof navigator === "undefined" ? true : navigator.onLine;
   return {
-    online: typeof navigator === "undefined" ? true : navigator.onLine,
+    online,
+    available: online && !cloudUnavailable,
     warning: lastErrorMessage,
   };
 }
