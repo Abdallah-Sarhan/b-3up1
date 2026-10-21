@@ -1,7 +1,7 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, type Patient, type SbarEntry, type VitalEntry } from "@/lib/db";
-import { BoxedDigits, makeField } from "@/components/OverlayPrint";
+import { BoxedDigits, makeField, usePrintFontScale } from "@/components/OverlayPrint";
 import { usePrintFieldPosition } from "@/lib/print-calibration";
 import { KcmhHeader, PatientHeaderGrid, PrintTitle } from "@/components/PrintSheet";
 import logoKcmh from "@/assets/logo-kcmh.png.asset.json";
@@ -397,6 +397,96 @@ function NCPF({
     </NCPFieldBase>
   );
 }
+type NCPBoxedDigitsProps = {
+  value: string;
+  cells: number;
+  left: number;
+  width: number;
+  top: number;
+  size: number;
+  fieldKey: string;
+  height?: number;
+};
+
+/** A boxed identifier that moves as one field when dragged with the mouse. */
+function NCPBoxedDigits({
+  value,
+  cells,
+  left,
+  width,
+  top,
+  size,
+  fieldKey,
+  height = 28,
+}: NCPBoxedDigitsProps) {
+  const { position, setPosition } = usePrintFieldPosition("careplan", fieldKey, left, top);
+  const scale = usePrintFontScale();
+  const dragStart = useRef<{
+    pointerId: number; x: number; y: number; left: number; top: number;
+    parentWidth: number; parentHeight: number;
+  } | null>(null);
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    const parent = event.currentTarget.offsetParent as HTMLElement | null;
+    const rect = parent?.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragStart.current = {
+      pointerId: event.pointerId, x: event.clientX, y: event.clientY,
+      left: position.left, top: position.top,
+      parentWidth: rect.width, parentHeight: rect.height,
+    };
+  };
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = dragStart.current;
+    if (!start || start.pointerId !== event.pointerId) return;
+    const nextLeft = start.left + ((event.clientX - start.x) * NCP_TEMPLATE_W) / start.parentWidth;
+    const nextTop = start.top + ((event.clientY - start.y) * NCP_TEMPLATE_H) / start.parentHeight;
+    setPosition(
+      Math.min(NCP_TEMPLATE_W - width, Math.max(0, nextLeft)),
+      Math.min(NCP_TEMPLATE_H - height, Math.max(0, nextTop)),
+    );
+  };
+  const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragStart.current?.pointerId === event.pointerId) dragStart.current = null;
+  };
+  const digits = (value || "").replace(/\D/g, "").slice(-cells).padStart(cells, " ").split("");
+
+  return (
+    <div
+      className="absolute cursor-grab active:cursor-grabbing select-none touch-none"
+      style={{
+        left: `${(position.left / NCP_TEMPLATE_W) * 100}%`,
+        top: `${(position.top / NCP_TEMPLATE_H) * 100}%`,
+        width: `${(width / NCP_TEMPLATE_W) * 100}%`,
+        height: `${(height / NCP_TEMPLATE_H) * 100}%`,
+      }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      data-print-field={fieldKey}
+      title="Drag to reposition"
+    >
+      {digits.map((digit, i) => (
+        <span
+          key={i}
+          className="absolute top-0 flex h-full items-start justify-center leading-none"
+          style={{
+            left: `${(i / cells) * 100}%`,
+            width: `${100 / cells}%`,
+            fontSize: `${size * scale}px`,
+            fontWeight: 700,
+          }}
+        >
+          {digit.trim()}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 const NCP_ROW_TOP = 318;
 const NCP_ROW_HEIGHT = 39.5;
 const NCP_MAX_ROWS = 10;
@@ -450,9 +540,9 @@ export function NursingCarePlanTemplateContent({ patient, id }: { patient: Patie
 
   return (
     <>
-      <BoxedDigits value={fileNo} cells={6} left={1023} width={250} top={87} iw={NCP_TEMPLATE_W} ih={NCP_TEMPLATE_H} size={9} bold />
+      <NCPBoxedDigits value={fileNo} cells={6} left={1023} width={250} top={87} size={9} fieldKey="header.fileNo" />
       <NCPF left={1027} top={130} width={347} height={19} size={9} fieldKey="header.patientName">{patient.name}</NCPF>
-      <BoxedDigits value={cid} cells={12} left={1022} width={358} top={151} iw={NCP_TEMPLATE_W} ih={NCP_TEMPLATE_H} size={8} bold />
+      <NCPBoxedDigits value={cid} cells={12} left={1022} width={358} top={151} size={8} fieldKey="header.cid" />
       <NCPF left={1005} top={197} width={112} height={18} size={8} fieldKey="header.age">{patient.age}</NCPF>
       {sex.startsWith("M") ? (
         <NCPF left={1134} top={196} width={25} height={20} align="center" size={9} bold fieldKey="header.sexM">✓</NCPF>
