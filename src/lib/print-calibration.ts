@@ -85,3 +85,87 @@ export function usePrintCalibration(formKey: string) {
 
   return { ...calibration, setDx, setDy, setFontScale, resetCalibration };
 }
+
+export type PrintFieldPosition = { left: number; top: number };
+type StoredFieldPositions = Record<string, Record<string, PrintFieldPosition>>;
+const FIELD_POSITION_STORAGE_KEY = "ward39.print-field-positions.v1";
+const FIELD_POSITION_RESET_EVENT = "ward39:print-field-positions-reset";
+
+function readFieldPositions(): StoredFieldPositions {
+  try {
+    const raw = window.localStorage.getItem(FIELD_POSITION_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as StoredFieldPositions)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Stores freely draggable field coordinates per paper form in the coordinate
+ * system of the scanned template. Positions are shared by individual/batch
+ * printing in the same browser and can be reset from either page.
+ */
+export function usePrintFieldPosition(
+  formKey: string,
+  fieldKey: string,
+  defaultLeft: number,
+  defaultTop: number,
+) {
+  const [position, setPositionState] = useState<PrintFieldPosition>({
+    left: defaultLeft,
+    top: defaultTop,
+  });
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const saved = readFieldPositions()[formKey]?.[fieldKey];
+    setPositionState({
+      left: typeof saved?.left === "number" && Number.isFinite(saved.left) ? saved.left : defaultLeft,
+      top: typeof saved?.top === "number" && Number.isFinite(saved.top) ? saved.top : defaultTop,
+    });
+    setLoaded(true);
+  }, [formKey, fieldKey, defaultLeft, defaultTop]);
+
+  useEffect(() => {
+    const handleReset = (event: Event) => {
+      if (!(event instanceof CustomEvent) || event.detail !== formKey) return;
+      setPositionState({ left: defaultLeft, top: defaultTop });
+    };
+    window.addEventListener(FIELD_POSITION_RESET_EVENT, handleReset);
+    return () => window.removeEventListener(FIELD_POSITION_RESET_EVENT, handleReset);
+  }, [formKey, defaultLeft, defaultTop]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    try {
+      const stored = readFieldPositions();
+      stored[formKey] ??= {};
+      stored[formKey][fieldKey] = position;
+      window.localStorage.setItem(FIELD_POSITION_STORAGE_KEY, JSON.stringify(stored));
+    } catch {
+      // Position saving is optional; printing remains available if storage fails.
+    }
+  }, [formKey, fieldKey, position, loaded]);
+
+  const setPosition = (left: number, top: number) => {
+    if (!Number.isFinite(left) || !Number.isFinite(top)) return;
+    setPositionState({ left, top });
+  };
+
+  return { position, setPosition };
+}
+
+export function resetPrintFieldPositions(formKey: string) {
+  try {
+    const stored = readFieldPositions();
+    delete stored[formKey];
+    window.localStorage.setItem(FIELD_POSITION_STORAGE_KEY, JSON.stringify(stored));
+    window.dispatchEvent(new CustomEvent(FIELD_POSITION_RESET_EVENT, { detail: formKey }));
+  } catch {
+    // Reset is optional if browser storage is unavailable.
+  }
+}
