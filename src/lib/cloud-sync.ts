@@ -74,6 +74,7 @@ let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let lastErrorMessage: string | null = null;
+let cacheClearPromise: Promise<void> | null = null;
 
 function assertOnline() {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -459,21 +460,39 @@ export async function stopClinicalCloudSync(): Promise<void> {
 }
 
 export async function clearClinicalCloudCache(): Promise<void> {
-  stopLiveSync();
-  await withCloudCacheMutation(async () => {
-    for (const table of wardDB.tables) await table.clear();
-  });
-  await clearClinicalMappings();
-  try {
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (key?.startsWith(LEGACY_MARKER + ":") || key === ACTIVE_USER_MARKER) localStorage.removeItem(key);
+  if (cacheClearPromise) return cacheClearPromise;
+  cacheClearPromise = (async () => {
+    stopLiveSync();
+    // Never erase the only copy of data after an incomplete/failed migration.
+    let safelyMigrated = false;
+    try {
+      const activeUser = localStorage.getItem(ACTIVE_USER_MARKER);
+      safelyMigrated = Boolean(activeUser && localStorage.getItem(LEGACY_MARKER + ":" + activeUser) === "done");
+    } catch {
+      safelyMigrated = false;
     }
-  } catch {
-    // This is only local-cache cleanup; cloud data remains unchanged.
-  }
-  initialization = null;
-  initializationUserId = null;
+
+    if (safelyMigrated) {
+      await withCloudCacheMutation(async () => {
+        for (const table of wardDB.tables) await table.clear();
+      });
+      await clearClinicalMappings();
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key?.startsWith(LEGACY_MARKER + ":") || key === ACTIVE_USER_MARKER) localStorage.removeItem(key);
+        }
+      } catch {
+        // Cloud data remains authoritative even if device-side cleanup fails.
+      }
+    }
+
+    initialization = null;
+    initializationUserId = null;
+  })().finally(() => {
+    cacheClearPromise = null;
+  });
+  return cacheClearPromise;
 }
 
 /** Explicitly clear only device-side ID mappings; no cloud clinical data is deleted. */
