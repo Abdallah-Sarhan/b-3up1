@@ -64,7 +64,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isPublic = isPublicPath(pathname);
-  const [state, setState] = useState<"loading" | "out" | "pending" | "in">("loading");
+  const [state, setState] = useState<"loading" | "out" | "pending" | "cloud-error" | "in">("loading");
+  const [cloudError, setCloudError] = useState("تعذر الاتصال بالسحابة.");
 
   useEffect(() => {
     // Remove the old local device lock data.
@@ -84,9 +85,21 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         if (alive) setState("out");
         return;
       }
-      const p = await loadProfile(userId);
-      publish(p);
-      if (alive) setState(p?.approved ? "in" : "pending");
+      try {
+        const p = await loadProfile(userId);
+        publish(p);
+        if (!p?.approved) {
+          if (alive) setState("pending");
+          return;
+        }
+        await initializeClinicalCloud();
+        if (alive) setState("in");
+      } catch (error) {
+        if (alive) {
+          setCloudError(error instanceof Error ? error.message : "تعذر فتح البيانات السحابية.");
+          setState("cloud-error");
+        }
+      }
     };
     void supabase.auth.getSession().then(({ data }) => check(data.session?.user.id));
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
