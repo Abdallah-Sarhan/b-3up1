@@ -180,8 +180,8 @@ async function pullPatients(): Promise<void> {
       continue;
     }
     const value = cloudPatient(row);
-    if (existing?.id != null) {
-      await withCloudCacheMutation(() => wardDB.patients.update(existing.id!, value));
+    if (existing?.["id"] != null) {
+      await withCloudCacheMutation(() => wardDB.patients.update(existing["id"]!, value));
       linkIds("patients", existing.id, row.id);
       existing.fileNo = value.fileNo;
       existing.name = value.name;
@@ -230,11 +230,11 @@ function localChildMatch(
   parentLocalId: number | null,
 ): Record<string, unknown> | undefined {
   const mapped = getLocalId(table, remote.id);
-  if (typeof mapped === "number") return localRows.find((r) => r.id === mapped);
+  if (typeof mapped === "number") return localRows.find((r) => r["id"] === mapped);
   if (remote.patient_id && parentLocalId == null) return undefined;
   const data = remote.data ?? {};
   return localRows.find((row) => {
-    if (parentLocalId != null && Number(row.patientId) !== parentLocalId) return false;
+    if (parentLocalId != null && Number(row["patientId"]) !== parentLocalId) return false;
     const { id: _id, patientId: _patientId, ...rest } = row;
     if (stable(rest) === stable(data)) return true;
     return LOCAL_IDENTITY_FIELDS[table].every((key) =>
@@ -254,8 +254,8 @@ async function pullClinicalTable(table: ClinicalTable): Promise<void> {
     const parentLocalId = typeof parentLocal === "number" ? parentLocal : null;
     const existing = localChildMatch(localRows, table, row, parentLocalId);
     if (row.deleted_at) {
-      if (existing?.id != null) {
-        await withCloudCacheMutation(() => wardDB.table(table).delete(existing.id as number));
+      if (existing?.["id"] != null) {
+        await withCloudCacheMutation(() => wardDB.table(table).delete(existing["id"] as number));
       }
       continue;
     }
@@ -266,9 +266,9 @@ async function pullClinicalTable(table: ClinicalTable): Promise<void> {
     }
     const fields = { ...(row.data ?? {}) } as Record<string, unknown>;
     const value = { ...fields, ...(parentLocalId != null ? { patientId: parentLocalId } : {}) };
-    if (existing?.id != null) {
-      await withCloudCacheMutation(() => wardDB.table(table).update(existing.id as number, value as never));
-      linkIds(table, existing.id as number, row.id);
+    if (existing?.["id"] != null) {
+      await withCloudCacheMutation(() => wardDB.table(table).update(existing["id"] as number, value as never));
+      linkIds(table, existing["id"] as number, row.id);
       Object.assign(existing, value);
     } else {
       const localId = await withCloudCacheMutation(() => wardDB.table(table).add(value as never));
@@ -281,9 +281,9 @@ async function pullClinicalTable(table: ClinicalTable): Promise<void> {
 async function pullSharedSettings(): Promise<void> {
   const rows = await fetchAllRows("ward_shift_settings");
   for (const row of rows) {
-    if (row.deleted_at || !row.data || typeof row.data.key !== "string" || typeof row.data.value !== "string") continue;
-    await wardDB.meta.put({ key: row.data.key, value: row.data.value });
-    linkIds("ward_shift_settings", row.data.key, row.id);
+    if (row.deleted_at || !row.data || typeof row.data["key"] !== "string" || typeof row.data["value"] !== "string") continue;
+    await wardDB.meta.put({ key: row.data["key"], value: row.data["value"] });
+    linkIds("ward_shift_settings", row.data["key"], row.id);
   }
 }
 
@@ -301,8 +301,8 @@ async function migrateUnlinkedLegacyCache(db: Dexie): Promise<void> {
   for (const table of CLINICAL_TABLES) {
     const entries = (await db.table(table).toArray()) as Record<string, unknown>[];
     for (const entry of entries) {
-      if (typeof entry.id !== "number" || getCloudId(table, entry.id)) continue;
-      await adoptLegacyClinicalRecord(table, entry.id, entry);
+      if (typeof entry["id"] !== "number" || getCloudId(table, entry["id"])) continue;
+      await adoptLegacyClinicalRecord(table, entry["id"], entry);
     }
   }
 
