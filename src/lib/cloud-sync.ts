@@ -6,6 +6,7 @@ import {
   adoptLegacyPatient,
   clearClinicalMappings,
   getCloudId,
+  getCloudVersion,
   getLocalId,
   linkIds,
   setCloudVersion,
