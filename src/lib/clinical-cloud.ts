@@ -438,19 +438,24 @@ export async function updateClinicalRecordCloudFirst(
   table: ClinicalTable,
   localId: number,
   patch: Record<string, unknown>,
+  expectedVersion?: number | null,
 ): Promise<void> {
   const current = (await db.table(table).get(localId)) as Record<string, unknown> | undefined;
   if (!current) throw new Error("تعذر العثور على السجل. حدّث الصفحة ثم أعد المحاولة.");
   const cloudId = await uploadChildRemote(table, current, localId, { migration: true });
   const fields = childPayload(patch);
   const remote = remoteTableName(table);
-  const baseVersion = await versionFor(remote, cloudId);
-  const parentCloudId = typeof current["patientId"] === "number" ? await cloudPatientId(current["patientId"]) : null;
-  await applyEdit({ table: remote, id: cloudId, op: "upsert", baseVersion, fields, patientId: parentCloudId });
+  const baseVersion = expectedVersion === undefined ? getCloudVersion(table, localId) : expectedVersion;
+  if (baseVersion == null) {
+    throw new Error("إصدار السجل السحابي غير معروف على هذا الجهاز. حدّث الصفحة قبل تعديل هذا السجل.");
+  }
+  const parentCloudId = typeof current["patientId"] === "number" ? await cloudPatientId(current["patientId"] as number) : null;
+  const saved = await applyEdit({ table: remote, id: cloudId, op: "upsert", baseVersion, fields, patientId: parentCloudId });
   try {
+    if (saved?.version != null) setCloudVersion(table, localId, Number(saved.version));
     await withCloudCacheMutation(() => db.table(table).update(localId, patch as never));
   } catch {
-    throw new Error("تم تأكيد الحفظ السحابي، لكن تعذر تحديث عرض هذا الجهاز. حدّث الصفحة لاسترجاع السجل.");
+    throw new Error("تم تأكيد الحفظ السحابي، لكن تعذر تحديث عرض هذا الجهاز. حدّث الصفحة لاسترجاع البيانات.");
   }
 }
 
