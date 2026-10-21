@@ -390,7 +390,7 @@ function NCPF({
         whiteSpace: "pre-wrap",
         overflowWrap: "anywhere",
         ...(customStyle ?? {}),
-        ...(mergeCell && templateMode === "white" ? { backgroundColor: "#fff" } : {}),
+        ...(mergeCell && templateMode === "white" ? { backgroundColor: "#fff", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" } : {}),
       }}
       draggable={draggable}
       onPointerDown={onDragStart}
