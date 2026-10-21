@@ -68,9 +68,11 @@ function Sheet({
           />
         ) : null}
         <div className="absolute inset-0" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
-          <PrintFontScale.Provider value={fontScale}>
-            <form.Content patient={patient} id={patient.id!} />
-          </PrintFontScale.Provider>
+          <PrintTemplateMode.Provider value={printMode}>
+            <PrintFontScale.Provider value={fontScale}>
+              <form.Content patient={patient} id={patient.id!} />
+            </PrintFontScale.Provider>
+          </PrintTemplateMode.Provider>
         </div>
       </div>
     );
@@ -94,9 +96,11 @@ function Sheet({
           transformOrigin: "top left",
         }}
       >
-        <PrintFontScale.Provider value={fontScale}>
-          <form.Content patient={patient} id={patient.id!} />
-        </PrintFontScale.Provider>
+        <PrintTemplateMode.Provider value={printMode}>
+          <PrintFontScale.Provider value={fontScale}>
+            <form.Content patient={patient} id={patient.id!} />
+          </PrintFontScale.Provider>
+        </PrintTemplateMode.Provider>
       </div>
     </div>
   );
