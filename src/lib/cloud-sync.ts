@@ -42,27 +42,6 @@ type RemoteRow = {
   sync_seq?: number | null;
 };
 
-const CLOUD_TO_LOCAL: Record<string, keyof Omit<Patient, "id">> = {
-  file_no: "fileNo",
-  name: "name",
-  nationality: "nationality",
-  diagnosis: "diagnosis",
-  folder_no: "folderNo",
-  age: "age",
-  doctor: "doctor",
-  cid: "cid",
-  doa: "doa",
-  dob: "dob",
-  sex: "sex",
-  room: "room",
-  bed: "bed",
-  marital_status: "maritalStatus",
-  notes: "notes",
-  discharged_at: "dischargedAt",
-  discharge_note: "dischargeNote",
-  updated_at: "updatedAt",
-  created_at: "createdAt",
-};
 
 const CLINICAL_TABLES: ClinicalTable[] = [
   "vitals", "notes", "sbar", "careplan", "rounds",
@@ -166,6 +145,12 @@ function localPatientMatch(rows: Patient[], row: RemoteRow): Patient | undefined
   if (mapped != null && typeof mapped === "number") return rows.find((p) => p.id === mapped);
   const fileNo = typeof row.file_no === "string" && !row.file_no.startsWith("~") ? row.file_no.trim() : "";
   if (fileNo) return rows.find((p) => p.fileNo.trim() === fileNo);
+  const cid = String(row.cid ?? "").trim();
+  if (cid) return rows.find((p) => p.cid.trim() === cid && p.name === (row.name ?? ""));
+  const name = String(row.name ?? "").trim();
+  if (name && Number(row.created_at ?? 0) > 0) {
+    return rows.find((p) => p.name.trim() === name && p.createdAt === Number(row.created_at));
+  }
   return undefined;
 }
 
@@ -181,13 +166,11 @@ async function removeLocalPatient(patient: Patient): Promise<void> {
 async function pullPatients(): Promise<void> {
   const remote = await fetchAllRows("patients");
   const local = (await wardDB.patients.toArray()) as Patient[];
-  const localById = new Map(local.filter((p) => p.id != null).map((p) => [p.id!, p]));
   for (const row of remote) {
     const existing = localPatientMatch(local, row);
     if (row.deleted_at) {
       if (existing) {
         await removeLocalPatient(existing);
-        if (existing.id != null) localById.delete(existing.id);
       }
       continue;
     }
@@ -219,7 +202,6 @@ async function pullPatients(): Promise<void> {
       linkIds("patients", Number(newId), row.id);
       const added = { ...value, id: Number(newId) };
       local.push(added);
-      localById.set(Number(newId), added);
     }
   }
 }
