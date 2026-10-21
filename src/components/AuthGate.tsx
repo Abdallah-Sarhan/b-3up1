@@ -1,6 +1,7 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { initializeClinicalCloud, retryClinicalCloudInitialization } from "@/lib/cloud-sync";
 
 /** Pages reachable without signing in. */
 export function isPublicPath(pathname: string) {
