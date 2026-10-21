@@ -182,7 +182,9 @@ async function pullPatients(): Promise<void> {
     }
     const value = cloudPatient(row);
     if (existing?.["id"] != null) {
-      await withCloudCacheMutation(() => wardDB.patients.update(existing["id"]!, value));
+      if (getCloudVersion("patients", existing["id"]!) !== Number(row.version ?? 0)) {
+        await withCloudCacheMutation(() => wardDB.patients.update(existing["id"]!, value));
+      }
       linkIds("patients", existing.id, row.id);
       setCloudVersion("patients", existing.id, Number(row.version ?? 0));
       existing.fileNo = value.fileNo;
