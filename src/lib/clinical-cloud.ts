@@ -319,7 +319,7 @@ async function uploadChildRemote(
   const remote = remoteTableName(table);
   let cloudId = localId == null ? null : getCloudId(table, localId);
   let baseVersion = 0;
-  const patientLocalId = typeof record.patientId === "number" ? record.patientId : null;
+  const patientLocalId = typeof record["patientId"] === "number" ? record["patientId"] as number : null;
   const parentCloudId = patientLocalId == null ? null : await cloudPatientId(patientLocalId);
   const fields = childPayload(record);
 
