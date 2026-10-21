@@ -98,7 +98,7 @@ function BatchPrintPage() {
   const { form: formKey } = useParams({ from: "/print/all/$form" });
   const form = getPrintForm(formKey);
   const patients = useActivePatients();
-  const [guide, setGuide] = useState(false);
+  const [guide, setGuide] = useState(true);
   const [printMode, setPrintMode] = useState<"white" | "form">("white");
   const [copies, setCopies] = useState(1);
   const { dx, dy, fontScale, setDx, setDy, setFontScale, resetCalibration } = usePrintCalibration(formKey);
