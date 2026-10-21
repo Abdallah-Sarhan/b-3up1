@@ -1,10 +1,10 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Plus, Printer, Trash2 } from "lucide-react";
 import { db, type MedCategory, type MedEntry } from "@/lib/db";
-import { createClinicalRecordCloudFirst, deleteClinicalRecordCloudFirst, updateClinicalRecordCloudFirst } from "@/lib/clinical-cloud";
+import { createClinicalRecordCloudFirst, deleteClinicalRecordCloudFirst, getCloudVersion, updateClinicalRecordCloudFirst } from "@/lib/clinical-cloud";
 import { Button, Card, CardHeader, Field, Input } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
 
@@ -60,6 +60,20 @@ function MedsPage() {
   const [category, setCategory] = useState<MedCategory>("major");
   const patients = useActivePatients();
   const [form, setForm] = useState({ drug: "", dose: "" });
+  const editVersions = useRef<Record<number, number | null>>({});
+  const rememberVersion = (id: number) => {
+    editVersions.current[id] = getCloudVersion("meds", id);
+  };
+  const expectedVersionForEdit = (id: number) =>
+    Object.prototype.hasOwnProperty.call(editVersions.current, id)
+      ? editVersions.current[id]
+      : getCloudVersion("meds", id);
+  const rememberGroupVersions = (g: Group) => {
+    const matched = (list ?? []).filter((entry) =>
+      entry.drug.trim().toUpperCase() === g.drug.toUpperCase()
+    );
+    for (const entry of matched) if (entry.id != null) rememberVersion(entry.id);
+  };
   const [fontSize, setFontSize] = useState(9);
 
   const list = useLiveQuery(
