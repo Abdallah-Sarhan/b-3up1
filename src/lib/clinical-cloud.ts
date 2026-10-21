@@ -149,13 +149,25 @@ function stableJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
-async function findPatientByFileNo(fileNo: string): Promise<RemoteRow | null> {
-  if (!fileNo.trim()) return null;
-  const { data, error } = await supabase
-    .from("patients")
-    .select("id,version,deleted_at")
-    .eq("file_no", fileNo.trim())
-    .maybeSingle();
+async function findMatchingRemotePatient(patient: Record<string, unknown>): Promise<RemoteRow | null> {
+  const fileNo = String(patient.fileNo ?? "").trim();
+  const cid = String(patient.cid ?? "").trim();
+  const name = String(patient.name ?? "").trim();
+  let query = supabase.from("patients").select("id,version,deleted_at,file_no,cid,name,dob,doa,created_at");
+
+  if (fileNo) {
+    query = query.eq("file_no", fileNo) as typeof query;
+  } else if (cid) {
+    query = query.eq("cid", cid).eq("name", name) as typeof query;
+  } else if (name && String(patient.dob ?? "").trim()) {
+    query = query.eq("name", name).eq("dob", String(patient.dob)) as typeof query;
+  } else if (name && Number(patient.createdAt ?? 0) > 0) {
+    query = query.eq("name", name).eq("created_at", Number(patient.createdAt)) as typeof query;
+  } else {
+    return null;
+  }
+
+  const { data, error } = await query.limit(1).maybeSingle();
   if (error) throw cleanError(error);
   return (data as unknown as RemoteRow | null) ?? null;
 }
@@ -215,8 +227,8 @@ async function uploadPatientRemote(
     return cloudId;
   } else if (cloudId) {
     currentVersion = await versionFor("patients", cloudId);
-  } else if (currentFileNo) {
-    const existing = await findPatientByFileNo(currentFileNo);
+  } else if (currentFileNo || options.migration || String((patient as Record<string, unknown>).cid ?? "").trim()) {
+    const existing = await findMatchingRemotePatient(patient as Record<string, unknown>);
     if (existing && existing.deleted_at) {
       throw new Error("يوجد سجل محذوف بهذا الرقم في السحابة. راجع المشرف قبل إعادة استخدام رقم الملف.");
     }
