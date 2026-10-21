@@ -387,14 +387,22 @@ export async function createPatientCloudFirst(value: Omit<Patient, "id">): Promi
 /** Update selected fields in the cloud, then update the local display cache. */
 export type PatientCloudPatch = { [K in keyof Patient]?: Patient[K] | undefined };
 
-export async function updatePatientCloudFirst(localId: number, patch: PatientCloudPatch): Promise<void> {
+export async function updatePatientCloudFirst(
+  localId: number,
+  patch: PatientCloudPatch,
+  expectedVersion?: number | null,
+): Promise<void> {
   const current = await db.patients.get(localId);
   if (!current) throw new Error("تعذر العثور على المريض. حدّث الصفحة ثم أعد المحاولة.");
   const cloudId = await uploadPatientRemote(current, localId, { migration: true });
   const fields = patientPayload(patch);
-  const baseVersion = await versionFor("patients", cloudId);
-  await applyEdit({ table: "patients", id: cloudId, op: "upsert", baseVersion, fields });
+  const baseVersion = expectedVersion === undefined ? getCloudVersion("patients", localId) : expectedVersion;
+  if (baseVersion == null) {
+    throw new Error("إصدار السجل السحابي غير معروف على هذا الجهاز. حدّث الصفحة قبل تعديل بيانات المريض.");
+  }
+  const saved = await applyEdit({ table: "patients", id: cloudId, op: "upsert", baseVersion, fields });
   try {
+    if (saved?.version != null) setCloudVersion("patients", localId, Number(saved.version));
     await withCloudCacheMutation(() => db.patients.update(localId, (obj) => {
       const target = obj as unknown as Record<string, unknown>;
       for (const [key, value] of Object.entries(patch)) {
