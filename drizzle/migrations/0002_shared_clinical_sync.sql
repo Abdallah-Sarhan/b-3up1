@@ -96,6 +96,8 @@ BEGIN
   ELSIF p_op = 'delete' THEN
     IF v_cur IS NULL THEN
       v_result := jsonb_build_object('status','ok','row',NULL,'conflicts','[]'::jsonb);
+    ELSIF coalesce(p_base_version, 0) < coalesce((v_cur ->> 'version')::integer, 0) THEN
+      v_result := jsonb_build_object('status','conflict','row',v_cur,'conflicts',jsonb_build_array(jsonb_build_object('field','__delete__','kept','not_deleted','discarded','delete')));
     ELSE
       EXECUTE format('UPDATE public.%I t SET deleted_at = now(), version = t.version + 1, changed_at = $2, updated_by = $3 WHERE t.id = $1 RETURNING to_jsonb(t)', p_table)
         INTO v_row USING p_id, p_changed_at, v_uid;
