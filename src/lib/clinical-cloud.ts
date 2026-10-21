@@ -548,7 +548,7 @@ export async function clearClinicalMappings(): Promise<void> {
   try {
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
-      if (key && (key.startsWith(MAP_PREFIX + ":") || key.startsWith(REVERSE_PREFIX + ":"))) {
+      if (key && (key.startsWith(MAP_PREFIX + ":") || key.startsWith(REVERSE_PREFIX + ":") || key.startsWith(VERSION_PREFIX + ":"))) {
         localStorage.removeItem(key);
       }
     }
