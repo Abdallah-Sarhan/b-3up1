@@ -92,16 +92,17 @@ export async function removeSide(fileNo: string, side: Side) {
   if (error) throw friendly(error);
 }
 
-/** Best effort: called when a patient is deleted. Silently skipped offline. */
+/** Delete cloud-only Civil ID images and their metadata; failures must be visible. */
 export async function removeAllForFileNo(fileNo: string) {
+  ensureOnline();
   const fn = fileNo?.trim();
-  if (!fn || (typeof navigator !== "undefined" && !navigator.onLine)) return;
-  try {
-    const old = await getDocs(fn);
-    const paths = [old?.front_path, old?.back_path].filter(Boolean) as string[];
-    if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
-    await supabase.from("patient_documents").delete().eq("file_no", fn);
-  } catch {
-    /* ignore */
+  if (!fn) return;
+  const old = await getDocs(fn);
+  const paths = [old?.front_path, old?.back_path].filter(Boolean) as string[];
+  if (paths.length) {
+    const { error } = await supabase.storage.from(BUCKET).remove(paths);
+    if (error) throw friendly(error);
   }
+  const { error } = await supabase.from("patient_documents").delete().eq("file_no", fn);
+  if (error) throw friendly(error);
 }
