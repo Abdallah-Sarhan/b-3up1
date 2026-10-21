@@ -209,7 +209,11 @@ async function uploadPatientRemote(
   let cloudId = localId == null ? null : getCloudId("patients", localId);
   let currentVersion = 0;
 
-  if (cloudId) {
+  if (cloudId && options.migration) {
+    // A known cloud link is authoritative: never overwrite newer cloud values
+    // using an old local cache during startup.
+    return cloudId;
+  } else if (cloudId) {
     currentVersion = await versionFor("patients", cloudId);
   } else if (currentFileNo) {
     const existing = await findPatientByFileNo(currentFileNo);
@@ -282,7 +286,10 @@ async function uploadChildRemote(
   const parentCloudId = patientLocalId == null ? null : await cloudPatientId(patientLocalId);
   const fields = childPayload(record);
 
-  if (cloudId) {
+  if (cloudId && options.migration) {
+    // Existing mapping means this is an established cache row, not a new edit.
+    return cloudId;
+  } else if (cloudId) {
     baseVersion = await versionFor(remote, cloudId);
   } else if (options.migration) {
     const match = await findMatchingRemoteChild(table, record, parentCloudId);
@@ -339,11 +346,11 @@ export async function updatePatientCloudFirst(localId: number, patch: Partial<Pa
 }
 
 /** Create a clinical entry in the cloud first, then place its cache copy locally. */
-export async function createClinicalRecordCloudFirst<T extends Record<string, unknown>>(
+export async function createClinicalRecordCloudFirst<T extends object>(
   table: ClinicalTable,
   value: T,
 ): Promise<number> {
-  const clean = { ...value };
+  const clean = { ...(value as Record<string, unknown>) };
   delete clean.id;
   const cloudId = await uploadChildRemote(table, clean);
   try {
