@@ -222,10 +222,10 @@ export async function restoreFromJson(file: File): Promise<void> {
     for (const source of rows) {
       const { id: _sourceId, ...fields } = source;
       let candidate: Record<string, unknown>;
-      if (table === "meds" && source.patientId == null) {
+      if (table === "meds" && source["patientId"] == null) {
         candidate = fields;
       } else {
-        const sourcePatientId = Number(source.patientId);
+        const sourcePatientId = Number(source["patientId"]);
         const patientId = patientIdMap.get(sourcePatientId);
         if (patientId == null) continue;
         candidate = { ...fields, patientId };
