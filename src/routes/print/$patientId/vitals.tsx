@@ -31,7 +31,7 @@ function VitalsPrint() {
   const lastWeight = [...(entries ?? [])].reverse().find((e) => e.weight)?.weight ?? "";
 
   return (
-    <PrintShell title="Vital Signs" patient={patient}>
+    <PrintShell title="Vital Signs" patient={patient} landscape formKey="vitals">
       {patient && (
         <>
           <KcmhHeader right="VITAL SIGNS" />

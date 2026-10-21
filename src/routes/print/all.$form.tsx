@@ -52,8 +52,8 @@ function Sheet({
         dir="ltr"
         className="relative mx-auto mb-6 overflow-hidden bg-white text-black shadow-md print:mb-0 print:shadow-none"
         style={{
-          width: "210mm",
-          height: "296mm",
+          width: landscape ? "297mm" : "210mm",
+          height: landscape ? "210mm" : "296mm",
           breakInside: "avoid",
           fontFamily: "Arial, Helvetica, sans-serif",
           ...(breakStyle ?? {}),
@@ -88,7 +88,16 @@ function Sheet({
         ...(breakStyle ?? {}),
       }}
     >
-      <form.Content patient={patient} id={patient.id!} />
+      <div
+        style={{
+          transform: `translate(${dx}mm, ${dy}mm) scale(${fontScale})`,
+          transformOrigin: "top left",
+        }}
+      >
+        <PrintFontScale.Provider value={fontScale}>
+          <form.Content patient={patient} id={patient.id!} />
+        </PrintFontScale.Provider>
+      </div>
     </div>
   );
 }
@@ -105,7 +114,8 @@ function BatchPrintPage() {
   // Page orientation is user-switchable for non-overlay forms; overlay
   // templates stay portrait because their fields are calibrated to the scan.
   const [lsOverride, setLsOverride] = useState<boolean | null>(null);
-  const landscape = form?.template ? false : (lsOverride ?? !!form?.landscape);
+  const landscape = form?.template ? !!form.landscape : (lsOverride ?? !!form?.landscape);
+  const hasPrintModes = Boolean(form?.template) || form?.key === "sbar" || form?.key === "vitals";
 
   if (!form) {
     return (
@@ -131,10 +141,10 @@ function BatchPrintPage() {
     });
 
   return (
-    <div className={`min-h-screen bg-muted py-6 print:bg-white print:py-0 ${form.template && printMode === "form" ? "print-form-only" : ""}`}>
+    <div className={`min-h-screen bg-muted py-6 print:bg-white print:py-0 ${hasPrintModes && printMode === "form" ? "print-form-only" : ""}`}>
       <style>{`@media print { @page { size: A4 ${landscape ? "landscape" : "portrait"}; margin: ${
-        form.template ? "0" : "8mm"
-      }; } .print-form-only table, .print-form-only th, .print-form-only td { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }  }`}</style>
+        form.template || (hasPrintModes && printMode === "form") ? "0" : "8mm"
+      }; } .print-form-only table, .print-form-only th, .print-form-only td, .print-form-only .border-black { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }  }`}</style>
 
       <div className="mx-auto mb-4 max-w-[297mm] px-4 print:hidden">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -157,13 +167,13 @@ function BatchPrintPage() {
               {lang === "ar" ? "ورقة أفقية (Landscape)" : "Landscape page"}
             </label>
           )}
-          {form.template ? (
+          {hasPrintModes ? (
             <fieldset className="flex flex-wrap items-center gap-3 rounded-md border border-input px-3 py-2 text-sm">
               <legend className="px-1 font-medium">Print option</legend>
               <label className="flex items-center gap-2">
                 <input
                   type="radio"
-                  name="batch-print-mode"
+                  name={`batch-print-mode-${form.key}`}
                   checked={printMode === "white"}
                   onChange={() => setPrintMode("white")}
                 />
@@ -172,7 +182,7 @@ function BatchPrintPage() {
               <label className="flex items-center gap-2">
                 <input
                   type="radio"
-                  name="batch-print-mode"
+                  name={`batch-print-mode-${form.key}`}
                   checked={printMode === "form"}
                   onChange={() => setPrintMode("form")}
                 />
@@ -180,9 +190,9 @@ function BatchPrintPage() {
               </label>
             </fieldset>
           ) : null}
-          {form.template ? (
+          {hasPrintModes ? (
             <>
-              {printMode === "form" ? (
+              {form.template && printMode === "form" ? (
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={guide} onChange={(e) => setGuide(e.target.checked)} />
                   {lang === "ar" ? "عرض النموذج كخلفية (لا يُطبع)" : "Show form as background (not printed)"}

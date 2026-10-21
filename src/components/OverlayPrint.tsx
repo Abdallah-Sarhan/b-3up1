@@ -44,6 +44,7 @@ export function makeField(iw: number, ih: number) {
     left,
     top,
     width,
+    height,
     children,
     align = "left",
     size = 13,
@@ -53,6 +54,7 @@ export function makeField(iw: number, ih: number) {
     left: number;
     top: number;
     width: number;
+    height?: number;
     children: ReactNode;
     align?: "left" | "center";
     size?: number;
@@ -67,6 +69,7 @@ export function makeField(iw: number, ih: number) {
           left: `${(left / iw) * 100}%`,
           top: `${(top / ih) * 100}%`,
           width: `${(width / iw) * 100}%`,
+          height: height == null ? undefined : `${(height / ih) * 100}%`,
           textAlign: align,
           fontSize: `${size * scale}px`,
           fontWeight: bold ? 700 : 400,
