@@ -113,7 +113,8 @@ function MedsPage() {
       for (const e of entries) {
         const patch: Partial<MedEntry> = { drug: drug.trim() };
         if (header && e.id === header.id) patch.dose = dose.trim();
-        await updateClinicalRecordCloudFirst("meds", e.id!, patch as Record<string, unknown>);
+        await updateClinicalRecordCloudFirst("meds", e.id!, patch as Record<string, unknown>, expectedVersionForEdit(e.id!));
+        editVersions.current[e.id!] = getCloudVersion("meds", e.id!);
       }
       toast.success("تم حفظ بيانات الدواء في السحابة");
     } catch (error) {
@@ -155,9 +156,13 @@ function MedsPage() {
     }
   }
 
-  const upd = async (id: number, patch: Partial<MedEntry>) => {
-    try { await updateClinicalRecordCloudFirst("meds", id, patch as Record<string, unknown>); }
-    catch (error) { toast.error(error instanceof Error ? error.message : "تعذر حفظ تعديل الدواء في السحابة."); }
+  const upd = async (id: number, patch: Partial<MedEntry>, expectedVersion?: number | null) => {
+    try {
+      await updateClinicalRecordCloudFirst("meds", id, patch as Record<string, unknown>, expectedVersion);
+      editVersions.current[id] = getCloudVersion("meds", id);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ تعديل الدواء في السحابة.");
+    }
   };
 
   return (
