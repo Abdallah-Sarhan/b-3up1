@@ -522,21 +522,46 @@ export function NursingCarePlanTemplateContent({ patient, id }: { patient: Patie
     () => db.careplan.where("patientId").equals(id).sortBy("dateIdentified"),
     [id],
   );
+  const fontScale = usePrintFontScale();
+  const linesPerRow = Math.max(1, Math.floor((NCP_ROW_HEIGHT - 4) / (7 * fontScale * 1.25)));
 
-  const expandedRows = (entries ?? []).flatMap((entry, entryIndex) =>
-    splitCarePlanInterventions(entry.intervention).map((point, pointIndex) => ({
+  const planGroups = (entries ?? []).map((entry, entryIndex) => {
+    const points = splitCarePlanInterventions(entry.intervention);
+    const estimateLines = (value: string, width: number) =>
+      (value || "").split(/\r?\n/).reduce((total, line) => {
+        const charsPerLine = Math.max(1, Math.floor(width / (7 * fontScale * 0.56)));
+        return total + Math.max(1, Math.ceil(line.length / charsPerLine));
+      }, 0);
+    const contentLines = Math.max(
+      estimateLines(entry.problem, 160),
+      estimateLines(entry.objective, 179),
+    );
+    const rowsForLongText = Math.ceil(contentLines / linesPerRow);
+    return {
       entry,
-      point,
-      key: `${entry.id ?? entryIndex}-${pointIndex}`,
+      points,
+      rowCount: Math.max(1, points.length, rowsForLongText),
+      groupKey: String(entry.id ?? entryIndex),
+    };
+  });
+
+  // Reserve enough vertical space for the longest of the problem/objective
+  // columns; extra rows stay available for wrapped text and remain blank in
+  // the interventions column when there are fewer intervention points.
+  const expandedRows = planGroups.flatMap((group) =>
+    Array.from({ length: group.rowCount }, (_, rowIndex) => ({
+      entry: group.entry,
+      point: group.points[rowIndex] ?? "",
+      groupKey: group.groupKey,
+      key: `${group.groupKey}-${rowIndex}`,
     })),
   );
   const visibleRows = expandedRows.slice(-NCP_MAX_ROWS);
   const groupSpans = new Map<string, { start: number; count: number }>();
   visibleRows.forEach((row, index) => {
-    const groupKey = String(row.entry.id ?? row.key.slice(0, row.key.lastIndexOf("-")));
-    const span = groupSpans.get(groupKey);
+    const span = groupSpans.get(row.groupKey);
     if (span) span.count += 1;
-    else groupSpans.set(groupKey, { start: index, count: 1 });
+    else groupSpans.set(row.groupKey, { start: index, count: 1 });
   });
 
   const fileNo = (patient.fileNo || "").replace(/\D/g, "");
