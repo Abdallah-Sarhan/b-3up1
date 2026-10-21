@@ -277,7 +277,7 @@ const IDENTITY_FIELDS: Record<ClinicalTable, string[]> = {
   tranq: ["date", "time", "drug", "dose", "givenBy"],
   assignments: ["date", "shift"],
   admissions: ["admittedAt", "createdAt"],
-  meds: ["createdAt", "category"],
+  meds: ["createdAt", "category", "drug", "patient"],
 };
 
 function sameClinicalIdentity(table: ClinicalTable, local: Record<string, unknown>, remote: Record<string, unknown>): boolean {
