@@ -206,6 +206,18 @@ async function pullPatients(): Promise<void> {
   }
 }
 
+const LOCAL_IDENTITY_FIELDS: Record<ClinicalTable, string[]> = {
+  vitals: ["date", "time"],
+  notes: ["date", "time"],
+  sbar: ["date", "shift"],
+  careplan: ["dateIdentified", "problemNo", "problem"],
+  rounds: ["date"],
+  tranq: ["date", "time", "drug", "dose", "givenBy"],
+  assignments: ["date", "shift"],
+  admissions: ["admittedAt", "createdAt"],
+  meds: ["createdAt", "category", "drug", "patient"],
+};
+
 function localChildMatch(
   localRows: Record<string, unknown>[],
   table: ClinicalTable,
@@ -214,11 +226,17 @@ function localChildMatch(
 ): Record<string, unknown> | undefined {
   const mapped = getLocalId(table, remote.id);
   if (typeof mapped === "number") return localRows.find((r) => r.id === mapped);
+  if (remote.patient_id && parentLocalId == null) return undefined;
   const data = remote.data ?? {};
   return localRows.find((row) => {
     if (parentLocalId != null && Number(row.patientId) !== parentLocalId) return false;
     const { id: _id, patientId: _patientId, ...rest } = row;
-    return stable(rest) === stable(data);
+    if (stable(rest) === stable(data)) return true;
+    return LOCAL_IDENTITY_FIELDS[table].every((key) =>
+      rest[key] !== undefined && rest[key] !== null &&
+      data[key] !== undefined && data[key] !== null &&
+      String(rest[key]) === String(data[key])
+    );
   });
 }
 
