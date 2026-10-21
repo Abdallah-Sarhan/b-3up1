@@ -87,6 +87,7 @@ export async function searchPatients(
         `doctor.ilike.${pattern}`,
       ].join(","),
     )
+    .is("deleted_at", null)
     .limit(max);
 
   if (error) throw new Error(error.message);
@@ -98,6 +99,7 @@ export async function getPatient(supabase: SupabaseClient, fileNo: string) {
     .from("patients")
     .select(PATIENT_COLUMNS)
     .eq("file_no", fileNo)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return { patient: data ?? null };
