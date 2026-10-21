@@ -6,6 +6,7 @@ import { Button } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
 import { PRINT_FORMS, getPrintForm, type PrintFormDef } from "@/components/print-content";
 import { PrintFontScale } from "@/components/OverlayPrint";
+import { usePrintCalibration } from "@/lib/print-calibration";
 import type { Patient } from "@/lib/db";
 
 export const Route = createFileRoute("/print/all/$form")({
@@ -31,6 +32,7 @@ function Sheet({
   fontScale,
   landscape,
   last,
+  printMode,
 }: {
   form: PrintFormDef;
   patient: Patient;
@@ -40,6 +42,7 @@ function Sheet({
   fontScale: number;
   landscape: boolean;
   last: boolean;
+  printMode: "white" | "form";
 }) {
   const breakStyle = last ? undefined : ({ breakAfter: "page", pageBreakAfter: "always" } as const);
 
@@ -56,12 +59,12 @@ function Sheet({
           ...(breakStyle ?? {}),
         }}
       >
-        {guide ? (
+        {(printMode === "white" || (guide && printMode === "form")) ? (
           <img
             src={form.template}
             alt=""
             aria-hidden
-            className="absolute inset-0 h-full w-full object-fill opacity-30 print:hidden"
+            className={`absolute inset-0 h-full w-full object-fill ${printMode === "white" ? "opacity-100" : "opacity-30 print:hidden"}`}
           />
         ) : null}
         <div className="absolute inset-0" style={{ transform: `translate(${dx}mm, ${dy}mm)` }}>
@@ -96,10 +99,9 @@ function BatchPrintPage() {
   const form = getPrintForm(formKey);
   const patients = useActivePatients();
   const [guide, setGuide] = useState(false);
+  const [printMode, setPrintMode] = useState<"white" | "form">("white");
   const [copies, setCopies] = useState(1);
-  const [dx, setDx] = useState(0);
-  const [dy, setDy] = useState(0);
-  const [fontScale, setFontScale] = useState(1);
+  const { dx, dy, fontScale, setDx, setDy, setFontScale, resetCalibration } = usePrintCalibration(formKey);
   // Page orientation is user-switchable for non-overlay forms; overlay
   // templates stay portrait because their fields are calibrated to the scan.
   const [lsOverride, setLsOverride] = useState<boolean | null>(null);
@@ -129,10 +131,10 @@ function BatchPrintPage() {
     });
 
   return (
-    <div className="min-h-screen bg-muted py-6 print:bg-white print:py-0">
+    <div className={`min-h-screen bg-muted py-6 print:bg-white print:py-0 ${form.template && printMode === "form" ? "print-form-only" : ""}`}>
       <style>{`@media print { @page { size: A4 ${landscape ? "landscape" : "portrait"}; margin: ${
         form.template ? "0" : "8mm"
-      }; } }`}</style>
+      }; } .print-form-only table, .print-form-only th, .print-form-only td { border-color: transparent !important; background: transparent !important; box-shadow: none !important; }  }`}</style>
 
       <div className="mx-auto mb-4 max-w-[297mm] px-4 print:hidden">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -155,6 +157,7 @@ function BatchPrintPage() {
               {lang === "ar" ? "ورقة أفقية (Landscape)" : "Landscape page"}
             </label>
           )}
+          {form.template ? <fieldset className="flex flex-wrap items-center gap-3 rounded-md border border-input px-3 py-2 text-sm"><legend className="px-1 font-medium">Print option</legend><label className="flex items-center gap-2"><input type="radio" name="batch-print-mode" checked={printMode === "white"} onChange={() => setPrintMode("white")} />Print on White Paper</label><label className="flex items-center gap-2"><input type="radio" name="batch-print-mode" checked={printMode === "form"} onChange={() => setPrintMode("form")} />Print on Form</label></fieldset> : null}
           {form.template ? (
             <>
               <label className="flex items-center gap-2 text-sm">
@@ -165,7 +168,7 @@ function BatchPrintPage() {
                 {lang === "ar" ? "إزاحة أفقي (mm)" : "Offset X (mm)"}
                 <input
                   type="number"
-                  step="0.5"
+                  step="0.1"
                   value={dx}
                   onChange={(e) => setDx(Number(e.target.value))}
                   className="h-8 w-16 rounded-md border border-input px-1"
@@ -193,6 +196,9 @@ function BatchPrintPage() {
                   className="h-8 w-16 rounded-md border border-input px-1"
                 />
               </label>
+              <Button variant="outline" size="sm" onClick={resetCalibration}>
+                {lang === "ar" ? "إعادة ضبط المحاذاة" : "Reset alignment"}
+              </Button>
             </>
           ) : null}
           <label className="flex items-center gap-1 text-sm">
@@ -242,6 +248,7 @@ function BatchPrintPage() {
               form={form}
               patient={p}
               guide={guide}
+              printMode={printMode}
               dx={dx}
               dy={dy}
               fontScale={fontScale}
