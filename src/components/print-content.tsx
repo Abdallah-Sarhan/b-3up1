@@ -310,6 +310,70 @@ export function CarePlanContent({ patient, id }: { patient: Patient; id: number 
   );
 }
 
+/** Static URL for the uploaded MOH NURS. 6B paper form. */
+export const NURSING_CARE_PLAN_TEMPLATE = "/nursing-care-plan-template.jpg";
+
+const NCP_TEMPLATE_W = 1472;
+const NCP_TEMPLATE_H = 1044;
+const NCPF = makeField(NCP_TEMPLATE_W, NCP_TEMPLATE_H);
+const NCP_ROW_TOP = 318;
+const NCP_ROW_HEIGHT = 39.5;
+const NCP_MAX_ROWS = 10;
+
+/** Patient and care-plan values positioned over the scanned NURS. 6B sheet. */
+export function NursingCarePlanTemplateContent({ patient, id }: { patient: Patient; id: number }) {
+  const entries = useLiveQuery(
+    () => db.careplan.where("patientId").equals(id).sortBy("dateIdentified"),
+    [id],
+  );
+  // The pre-printed form has ten available rows; keep the most recent entries.
+  const list = (entries ?? []).slice(-NCP_MAX_ROWS);
+  const fileNo = (patient.fileNo || "").replace(/\D/g, "");
+  const cid = (patient.cid || "").replace(/\D/g, "");
+  const sex = (patient.sex || "").trim().toUpperCase();
+
+  return (
+    <>
+      <BoxedDigits value={fileNo} cells={6} left={1023} width={250} top={87} iw={NCP_TEMPLATE_W} ih={NCP_TEMPLATE_H} size={13} />
+      <NCPF left={1027} top={130} width={347} height={19} size={12}>{patient.name}</NCPF>
+      <BoxedDigits value={cid} cells={12} left={1022} width={358} top={151} iw={NCP_TEMPLATE_W} ih={NCP_TEMPLATE_H} size={11} />
+      <NCPF left={1005} top={197} width={112} height={18} size={11}>{patient.age}</NCPF>
+      {sex.startsWith("M") ? (
+        <NCPF left={1134} top={196} width={25} height={20} align="center" size={12} bold>✓</NCPF>
+      ) : sex.startsWith("F") ? (
+        <NCPF left={1185} top={196} width={25} height={20} align="center" size={12} bold>✓</NCPF>
+      ) : null}
+      <NCPF left={1060} top={224} width={320} height={18} size={11}>{patient.maritalStatus}</NCPF>
+
+      <NCPF left={155} top={132} width={52} height={29} align="center" size={11} bold>M</NCPF>
+      <NCPF left={225} top={132} width={52} height={29} align="center" size={11} bold>2</NCPF>
+      <NCPF left={294} top={132} width={52} height={29} align="center" size={11} bold>39</NCPF>
+      <NCPF left={363} top={132} width={52} height={29} align="center" size={11} bold>{patient.room}</NCPF>
+      <NCPF left={431} top={132} width={52} height={29} align="center" size={11} bold>{patient.bed}</NCPF>
+      <NCPF left={506} top={132} width={260} height={25} size={11}>{patient.diagnosis}</NCPF>
+
+      <NCPF left={151} top={208} width={192} height={23} size={10}>{patient.doctor}</NCPF>
+      <NCPF left={356} top={209} width={133} height={23} align="center" size={10}>{patient.doa}</NCPF>
+      <NCPF left={500} top={209} width={130} height={23} align="center" size={10}>{patient.dischargedAt ?? ""}</NCPF>
+
+      {list.map((entry, index) => {
+        const top = NCP_ROW_TOP + index * NCP_ROW_HEIGHT;
+        return (
+          <div key={entry.id ?? index}>
+            <NCPF left={151} top={top} width={88} height={35} align="center" size={9}>{entry.dateIdentified}</NCPF>
+            <NCPF left={245} top={top} width={52} height={35} align="center" size={9}>{entry.problemNo}</NCPF>
+            <NCPF left={306} top={top} width={160} height={35} size={9}>{entry.problem}</NCPF>
+            <NCPF left={475} top={top} width={179} height={35} size={9}>{entry.objective}</NCPF>
+            <NCPF left={665} top={top} width={560} height={35} size={9}>{entry.intervention}</NCPF>
+            <NCPF left={1235} top={top} width={52} height={35} align="center" size={8}>{entry.dateResolved}</NCPF>
+            <NCPF left={1295} top={top} width={98} height={35} size={9}>{entry.nurseSign}</NCPF>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 const SHIFT_ROWS: Array<{ key: string; label: string }> = [
   { key: "morning", label: "07:AM\nTO\n02:PM" },
   { key: "evening", label: "02:PM\nTO\n10:PM" },
@@ -655,8 +719,8 @@ export function NursingDbContent({ patient, id }: { patient: Patient; id: number
 export const PRINT_FORMS: PrintFormDef[] = [
   { key: "summary", ar: "بيانات المريض", en: "Patient Data Sheet", Content: SummaryContent },
   { key: "sbar", ar: "نموذج SBAR", en: "Hand Over Sheet (SBAR)", landscape: true, Content: SbarSheet },
-  { key: "vitals", ar: "العلامات الحيوية", en: "Vital Signs", Content: VitalsContent },
-  { key: "careplan", ar: "خطة الرعاية", en: "Nursing Care Plan", Content: CarePlanContent },
+  { key: "vitals", ar: "العلامات الحيوية", en: "Vital Signs", landscape: true, Content: VitalsContent },
+  { key: "careplan", ar: "خطة الرعاية", en: "Nursing Care Plan", landscape: true, template: NURSING_CARE_PLAN_TEMPLATE, Content: NursingCarePlanTemplateContent },
   { key: "notes", ar: "ملاحظات التمريض", en: "Nurses Notes", template: notesTemplate.url, Content: NotesContent },
   { key: "treatment", ar: "ورقة العلاج (MR 12)", en: "Treatment Sheet (MR 12)", template: treatmentTemplate.url, Content: TreatmentContent },
   { key: "consultation", ar: "تقرير استشاري (MR 9)", en: "Consultation Report (MR 9)", template: consultationTemplate.url, Content: ConsultationContent },
