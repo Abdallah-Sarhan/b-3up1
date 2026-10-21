@@ -86,6 +86,7 @@ const REALTIME_TABLES = [
 const PAGE_SIZE = 500;
 const POLL_INTERVAL_MS = 30_000;
 const LEGACY_MARKER = "ward39.cloud.initialized.v2";
+const ACTIVE_USER_MARKER = "ward39.cloud.active-user";
 
 let initialization: Promise<void> | null = null;
 let refreshInFlight: Promise<void> | null = null;
@@ -394,6 +395,15 @@ export async function initializeClinicalCloud(db: Dexie = wardDB): Promise<void>
   initialization = (async () => {
     try {
       const userId = await assertApprovedSession();
+      // Never reuse another account's browser cache or cloud-id mappings.
+      let previousUser: string | null = null;
+      try { previousUser = localStorage.getItem(ACTIVE_USER_MARKER); } catch { /* no local marker */ }
+      if (previousUser && previousUser !== userId) {
+        await withCloudCacheMutation(async () => {
+          for (const table of db.tables) await table.clear();
+        });
+        await clearClinicalMappings();
+      }
       const marker = (() => {
         try { return localStorage.getItem(`${LEGACY_MARKER}:${userId}`); } catch { return null; }
       })();
@@ -401,7 +411,10 @@ export async function initializeClinicalCloud(db: Dexie = wardDB): Promise<void>
         await migrateUnlinkedLegacyCache(db);
       }
       await pullAllCloudData();
-      try { localStorage.setItem(`${LEGACY_MARKER}:${userId}`, "done"); } catch { /* cloud mappings still work */ }
+      try {
+        localStorage.setItem(`${LEGACY_MARKER}:${userId}`, "done");
+        localStorage.setItem(ACTIVE_USER_MARKER, userId);
+      } catch { /* cloud mappings still work */ }
       lastErrorMessage = null;
       startLiveSync();
     } catch (error) {
@@ -441,7 +454,7 @@ export async function clearClinicalCloudCache(): Promise<void> {
   try {
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
-      if (key?.startsWith(LEGACY_MARKER + ":")) localStorage.removeItem(key);
+      if (key?.startsWith(LEGACY_MARKER + ":") || key === ACTIVE_USER_MARKER) localStorage.removeItem(key);
     }
   } catch {
     // This is only local-cache cleanup; cloud data remains unchanged.
