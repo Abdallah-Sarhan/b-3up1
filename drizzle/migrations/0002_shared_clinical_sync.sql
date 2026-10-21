@@ -104,8 +104,11 @@ BEGIN
       v_result := jsonb_build_object('status','ok','row',v_row,'conflicts','[]'::jsonb);
     END IF;
   ELSIF v_cur IS NULL THEN
-    BEGIN
-      IF p_table = 'patients' THEN
+    IF jsonb_array_length(v_conflicts) > 0 THEN
+      v_result := jsonb_build_object('status','conflict','row',v_cur,'conflicts',v_conflicts);
+    ELSE
+      BEGIN
+        IF p_table = 'patients' THEN
         INSERT INTO public.patients (id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,marital_status,notes,discharged_at,discharge_note,updated_at,created_at,version,changed_at,updated_by)
         SELECT p_id,coalesce(nullif(btrim(r.file_no),''),'~'||p_id::text),coalesce(r.name,''),coalesce(r.nationality,''),coalesce(r.diagnosis,''),coalesce(r.folder_no,''),coalesce(r.age,''),coalesce(r.doctor,''),coalesce(r.cid,''),coalesce(r.doa,''),coalesce(r.dob,''),coalesce(r.sex,''),coalesce(r.room,''),coalesce(r.bed,''),coalesce(r.marital_status,''),coalesce(r.notes,''),r.discharged_at,r.discharge_note,coalesce(r.updated_at,0),coalesce(r.created_at,0),1,p_changed_at,v_uid
         FROM jsonb_populate_record(NULL::public.patients, v_fields) r
@@ -131,12 +134,7 @@ BEGIN
          AND v_cur_fields ? v_key
          AND (v_cur_fields -> v_key) IS DISTINCT FROM v_val
          AND coalesce(v_cur_fields ->> v_key, '') IS DISTINCT FROM coalesce(v_val #>> '{}', '') THEN
-        IF v_local_wins THEN
-          v_merged := v_merged || jsonb_build_object(v_key, v_val);
-          v_conflicts := v_conflicts || jsonb_build_object('field', v_key, 'kept', v_val, 'discarded', v_cur_fields -> v_key);
-        ELSE
-          v_conflicts := v_conflicts || jsonb_build_object('field', v_key, 'kept', v_cur_fields -> v_key, 'discarded', v_val);
-        END IF;
+        v_conflicts := v_conflicts || jsonb_build_object('field', v_key, 'kept', v_cur_fields -> v_key, 'discarded', v_val);
       ELSE
         v_merged := v_merged || jsonb_build_object(v_key, v_val);
       END IF;
@@ -156,8 +154,9 @@ BEGIN
       v_result := jsonb_build_object('status','ok','row',v_row,'conflicts',v_conflicts);
     EXCEPTION WHEN unique_violation THEN
       v_result := jsonb_build_object('status','file_conflict','existing_id',NULL,'conflicts','[]'::jsonb);
-    END;
-    IF jsonb_array_length(v_conflicts) > 0 AND v_result ->> 'status' = 'ok' THEN
+      END;
+    END IF;
+    IF jsonb_array_length(v_conflicts) > 0 THEN
       INSERT INTO public.sync_history (table_name, record_id, op_id, user_id, field, kept, discarded)
       SELECT p_table, p_id, p_op_id, v_uid, c ->> 'field', c -> 'kept', c -> 'discarded'
       FROM jsonb_array_elements(v_conflicts) c;
