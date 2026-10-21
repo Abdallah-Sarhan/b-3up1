@@ -1,7 +1,7 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { initializeClinicalCloud, retryClinicalCloudInitialization } from "@/lib/cloud-sync";
+import { clearClinicalCloudCache, initializeClinicalCloud, retryClinicalCloudInitialization } from "@/lib/cloud-sync";
 
 /** Pages reachable without signing in. */
 export function isPublicPath(pathname: string) {
@@ -56,6 +56,11 @@ async function loadProfile(userId: string): Promise<AuthProfile | null> {
 export async function signOutEverywhere() {
   localStorage.removeItem(CACHE_KEY);
   publish(null);
+  try {
+    await clearClinicalCloudCache();
+  } catch {
+    // Always finish signing out; cloud records are never deleted by cache cleanup.
+  }
   await supabase.auth.signOut();
   window.location.replace("/login");
 }
@@ -110,6 +115,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         }
       });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") void clearClinicalCloudCache();
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED")
         void check(session?.user.id);
     });
