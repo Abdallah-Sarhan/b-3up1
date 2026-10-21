@@ -247,44 +247,14 @@ export function emptyPatient(): Omit<Patient, "id"> {
   };
 }
 
-/** Close the current admission and mark the patient as discharged. */
+/** Discharge a patient through the cloud-first clinical repository. */
 export async function dischargePatient(patientId: number, note: string) {
-  const today = new Date().toISOString().slice(0, 10);
-  const patient = await db.patients.get(patientId);
-  const open = (await db.admissions.where("patientId").equals(patientId).toArray()).find(
-    (a) => !a.dischargedAt,
-  );
-  if (open?.id != null) {
-    await db.admissions.update(open.id, { dischargedAt: today, dischargeNote: note });
-  } else {
-    await db.admissions.add({
-      patientId,
-      admittedAt: patient?.doa || today,
-      dischargedAt: today,
-      dischargeNote: note,
-      createdAt: Date.now(),
-    });
-  }
-  await db.patients.update(patientId, {
-    dischargedAt: today,
-    dischargeNote: note,
-    updatedAt: Date.now(),
-  });
+  const { dischargePatientCloudFirst } = await import("@/lib/clinical-cloud");
+  return dischargePatientCloudFirst(patientId, note);
 }
 
-/** Re-admit an archived patient; previous history is preserved. */
+/** Re-admit a patient while preserving their previous cloud admission history. */
 export async function readmitPatient(patientId: number, admittedAt?: string) {
-  const doa = admittedAt || new Date().toISOString().slice(0, 10);
-  const open = (await db.admissions.where("patientId").equals(patientId).toArray()).find(
-    (a) => !a.dischargedAt,
-  );
-  if (!open) {
-    await db.admissions.add({ patientId, admittedAt: doa, createdAt: Date.now() });
-  }
-  await db.patients.update(patientId, (obj) => {
-    obj.doa = doa;
-    obj.updatedAt = Date.now();
-    delete obj.dischargedAt;
-    delete obj.dischargeNote;
-  });
+  const { readmitPatientCloudFirst } = await import("@/lib/clinical-cloud");
+  return readmitPatientCloudFirst(patientId, admittedAt);
 }
