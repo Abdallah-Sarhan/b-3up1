@@ -131,7 +131,7 @@ BEGIN
          AND coalesce(v_cur_fields ->> v_key, '') IS DISTINCT FROM coalesce(v_val #>> '{}', '') THEN
         IF v_local_wins THEN
           v_merged := v_merged || jsonb_build_object(v_key, v_val);
-          v_conflicts := v_conflicts || jsonb_build_object('field', v_key, 'kept', v_val, 'discarded', v_cur_fields -> v_key);
+          v_conflicts := v_conflicts || jsonb_build_object('field', v_key, 'kept', v_cur_fields -> v_key, 'discarded', v_val);
         ELSE
           v_conflicts := v_conflicts || jsonb_build_object('field', v_key, 'kept', v_cur_fields -> v_key, 'discarded', v_val);
         END IF;
