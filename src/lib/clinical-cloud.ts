@@ -222,6 +222,9 @@ async function applyEdit(args: {
   const result = data as unknown as { status?: string; row?: RemoteRow | null; conflicts?: unknown[] };
   if (result?.status === "file_conflict") throw new Error("رقم الملف مستخدم بالفعل في السحابة. افتح سجل المريض الموجود بدل إنشاء سجل مكرر.");
   if (result?.status === "deleted") throw new Error("هذا السجل محذوف في السحابة ولا يمكن تعديله.");
+  if (result?.status === "conflict") {
+    throw new Error("تم اكتشاف تعديل أحدث على نفس السجل. لم يتم حفظ أي جزء من تعديلك؛ حدّث السجل وراجع الاختلافات ثم أعد المحاولة.");
+  }
   if (result?.status !== "ok") throw new Error("لم تؤكد السحابة حفظ التغيير؛ لم يتم حفظه محليًا.");
   if (result.conflicts?.length) {
     throw new Error("تم اكتشاف تعارض مع تعديل آخر. أعد تحميل السجل وراجع البيانات قبل المتابعة.");
