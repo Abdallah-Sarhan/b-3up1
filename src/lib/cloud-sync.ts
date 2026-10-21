@@ -139,10 +139,10 @@ function cloudPatient(row: RemoteRow): CloudPatientView {
     notes: row.notes ?? "",
     createdAt: Number(row.created_at ?? 0),
     updatedAt: Number(row.updated_at ?? 0),
+    dischargedAt: row.discharged_at ?? "",
+    dischargeNote: row.discharge_note ?? "",
   };
-  if (row.discharged_at != null) out["dischargedAt"] = row.discharged_at;
-  if (row.discharge_note != null) out["dischargeNote"] = row.discharge_note;
-  return out as Omit<Patient, "id">;
+  return out as CloudPatientView;
 }
 
 function localPatientMatch(rows: Patient[], row: RemoteRow): Patient | undefined {
