@@ -5,7 +5,7 @@ import { ArrowRight, Printer } from "lucide-react";
 import { db, type Patient } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
-import { PrintFontScale } from "@/components/OverlayPrint";
+import { PrintFontScale, PrintTemplateMode } from "@/components/OverlayPrint";
 import { resetPrintFieldPositions, usePrintCalibration } from "@/lib/print-calibration";
 
 export function usePrintPatient() {
@@ -179,7 +179,7 @@ export function PrintShell({
             transformOrigin: "top left",
           }}
         >
-          <PrintFontScale.Provider value={fontScale}>{children}</PrintFontScale.Provider>
+          <PrintTemplateMode.Provider value={printMode}>\n            <PrintFontScale.Provider value={fontScale}>{children}</PrintFontScale.Provider>\n          </PrintTemplateMode.Provider>
         </div>
       </div>
     </div>
