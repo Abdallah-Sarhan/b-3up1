@@ -160,9 +160,9 @@ async function findMatchingRemotePatient(patient: Record<string, unknown>): Prom
   } else if (cid) {
     query = query.eq("cid", cid).eq("name", name) as typeof query;
   } else if (name && String(patient["dob"] ?? "").trim()) {
-    query = query.eq("name", name).eq("dob", String(patient.dob)) as typeof query;
+    query = query.eq("name", name).eq("dob", String(patient["dob"])) as typeof query;
   } else if (name && Number(patient["createdAt"] ?? 0) > 0) {
-    query = query.eq("name", name).eq("created_at", Number(patient.createdAt)) as typeof query;
+    query = query.eq("name", name).eq("created_at", Number(patient["createdAt"])) as typeof query;
   } else {
     return null;
   }
