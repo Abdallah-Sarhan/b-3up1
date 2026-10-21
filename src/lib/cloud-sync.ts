@@ -104,7 +104,15 @@ export async function pullPatientsFromCloud(db: Dexie): Promise<void> {
   }
 }
 
-/** Send every local patient to the cloud and remove rows deleted locally. */
+/**
+ * LEGACY SAFETY MODE.
+ *
+ * This function is retained only until the online-only clinical repository is
+ * wired through every screen. Never infer cloud deletions from a device's local
+ * IndexedDB snapshot: a new/empty/stale device must not delete shared patients.
+ * All cloud deletes must go through the approved clinical edit RPC as explicit
+ * soft-deletes, not by comparing local and remote lists.
+ */
 export async function pushPatientsToCloud(db: Dexie): Promise<void> {
   const local = ((await db.table("patients").toArray()) as Patient[]).filter(
     (p) => p.fileNo?.trim(),
@@ -128,14 +136,9 @@ export async function pushPatientsToCloud(db: Dexie): Promise<void> {
       return;
     }
   }
-  const keep = rows.map((r) => r.file_no);
-  if (keep.length) {
-    const { data } = await supabase.from("patients").select("file_no");
-    const stale = ((data ?? []) as Array<{ file_no: string }>)
-      .map((r) => r.file_no)
-      .filter((f) => !keep.includes(f));
-    if (stale.length) await supabase.from("patients").delete().in("file_no", stale);
-  }
+  // Intentionally do not delete cloud rows absent from local IndexedDB.
+  // Local state is not authoritative; explicit deletes must use apply_clinical_edit.
+
 }
 
 let timer: ReturnType<typeof setTimeout> | undefined;
