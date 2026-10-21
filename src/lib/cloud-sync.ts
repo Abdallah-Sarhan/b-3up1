@@ -75,6 +75,8 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let lastErrorMessage: string | null = null;
 let cacheClearPromise: Promise<void> | null = null;
+let onlineHandler: (() => void) | null = null;
+let offlineHandler: (() => void) | null = null;
 
 function assertOnline() {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -358,6 +360,12 @@ function stopLiveSync(): void {
     void supabase.removeChannel(realtimeChannel);
     realtimeChannel = null;
   }
+  if (typeof window !== "undefined") {
+    if (onlineHandler) window.removeEventListener("online", onlineHandler);
+    if (offlineHandler) window.removeEventListener("offline", offlineHandler);
+  }
+  onlineHandler = null;
+  offlineHandler = null;
 }
 
 function startLiveSync(): void {
@@ -380,10 +388,12 @@ function startLiveSync(): void {
     });
   }, POLL_INTERVAL_MS);
   if (typeof window !== "undefined") {
-    window.addEventListener("online", scheduleRealtimeRefresh);
-    window.addEventListener("offline", () => {
+    onlineHandler = scheduleRealtimeRefresh;
+    offlineHandler = () => {
       lastErrorMessage = "انقطع الاتصال. الحفظ متوقف حتى استعادة اتصال السحابة.";
-    });
+    };
+    window.addEventListener("online", onlineHandler);
+    window.addEventListener("offline", offlineHandler);
   }
 }
 
