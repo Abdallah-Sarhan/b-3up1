@@ -26,6 +26,7 @@ const REMOTE_TABLE: Record<ClinicalTable, string> = {
 
 const MAP_PREFIX = "ward39.cloud-id";
 const REVERSE_PREFIX = "ward39.local-id";
+const VERSION_PREFIX = "ward39.cloud-version";
 const PATIENT_FIELDS: Record<string, string> = {
   fileNo: "file_no",
   name: "name",
