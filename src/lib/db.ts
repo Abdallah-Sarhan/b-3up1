@@ -186,11 +186,25 @@ function requestPersistence(): Promise<void> {
 // Runs only in the browser / Electron renderer (never during SSR).
 // Any failure here must still resolve, otherwise every screen stays stuck on
 // "loading" and the app looks frozen.
-// Online-only guard: reject clinical writes while the device has no network.
-// This prevents offline edits from being queued in IndexedDB for later sync.
-function requireOnlineWrite() {
+// IndexedDB is only a cache. Clinical mutations must first be confirmed by
+// Lovable Cloud, then use withCloudCacheMutation() to update this local view.
+let cloudCacheMutationDepth = 0;
+
+export async function withCloudCacheMutation<T>(operation: () => Promise<T> | T): Promise<T> {
+  cloudCacheMutationDepth += 1;
+  try {
+    return await operation();
+  } finally {
+    cloudCacheMutationDepth -= 1;
+  }
+}
+
+function requireCloudConfirmedMutation() {
   if (typeof navigator !== "undefined" && !navigator.onLine) {
-    throw new Error("لا يمكن حفظ التغييرات دون اتصال بالإنترنت. اتصل بالإنترنت ثم حاول مرة أخرى.");
+    throw new Error("لا يمكن حفظ التغييرات دون اتصال بالإنترنت. لم يتم حفظ البيانات؛ اتصل بالإنترنت ثم حاول مرة أخرى.");
+  }
+  if (cloudCacheMutationDepth < 1) {
+    throw new Error("يجب تأكيد الحفظ في Lovable Cloud قبل تعديل النسخة المحلية. أعد المحاولة من زر الحفظ.");
   }
 }
 
@@ -199,25 +213,14 @@ for (const tableName of [
   "tranq", "assignments", "admissions", "meds",
 ]) {
   const table = db.table(tableName);
-  table.hook("creating", () => requireOnlineWrite());
-  table.hook("updating", () => requireOnlineWrite());
-  table.hook("deleting", () => requireOnlineWrite());
+  table.hook("creating", () => requireCloudConfirmedMutation());
+  table.hook("updating", () => requireCloudConfirmedMutation());
+  table.hook("deleting", () => requireCloudConfirmedMutation());
 }
 
-// Keep local schema available for compatibility, but never seed fake patients,
-// restore a file backup, or run a hard-coded census migration at startup.
-export const dbReady: Promise<void> =
-  typeof window === "undefined"
-    ? Promise.resolve()
-    : (async () => {
-        try {
-          const { pullPatientsFromCloud, startCloudSync } = await import("@/lib/cloud-sync");
-          await pullPatientsFromCloud(db);
-          startCloudSync(db);
-        } catch (err) {
-          console.error("cloud connection unavailable", err);
-        }
-      })();
+// Database reads use the local view cache, but startup and screen rendering
+// are gated by AuthGate until initializeClinicalCloud() has fetched the cloud.
+export const dbReady: Promise<void> = Promise.resolve();
 
 
 
