@@ -1,0 +1,31 @@
+name: Ward39 cloud-first checks
+
+on:
+  push:
+    branches:
+      - feature/online-only-clinical-cloud
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  typecheck-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
