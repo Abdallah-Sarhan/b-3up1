@@ -467,6 +467,7 @@ export async function initializeClinicalCloud(db: Dexie = wardDB): Promise<void>
         localStorage.setItem(ACTIVE_USER_MARKER, userId);
       } catch { /* cloud mappings still work */ }
       lastErrorMessage = null;
+      cloudUnavailable = false;
       startLiveSync();
     } catch (error) {
       initialization = null;
