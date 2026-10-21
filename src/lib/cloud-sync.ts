@@ -291,7 +291,10 @@ async function pullSharedSettings(): Promise<void> {
   const rows = await fetchAllRows("ward_shift_settings");
   for (const row of rows) {
     if (row.deleted_at || !row.data || typeof row.data["key"] !== "string" || typeof row.data["value"] !== "string") continue;
-    await wardDB.meta.put({ key: row.data["key"], value: row.data["value"] });
+    const cachedSetting = await wardDB.meta.get(row.data["key"]);
+    if (cachedSetting?.value !== row.data["value"]) {
+      await wardDB.meta.put({ key: row.data["key"], value: row.data["value"] });
+    }
     linkIds("ward_shift_settings", row.data["key"], row.id);
     setCloudVersion("ward_shift_settings", row.data["key"], Number(row.version ?? 0));
   }
