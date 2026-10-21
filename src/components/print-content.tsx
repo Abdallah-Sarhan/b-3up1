@@ -1,7 +1,7 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, type Patient, type SbarEntry, type VitalEntry } from "@/lib/db";
-import { BoxedDigits, makeField, usePrintFontScale, usePrintTemplateMode } from "@/components/OverlayPrint";
+import { BoxedDigits, makeField, MovablePrintField, usePrintFontScale, usePrintTemplateMode } from "@/components/OverlayPrint";
 import { usePrintFieldPosition } from "@/lib/print-calibration";
 import { KcmhHeader, PatientHeaderGrid, PrintTitle } from "@/components/PrintSheet";
 import logoKcmh from "@/assets/logo-kcmh.png.asset.json";
@@ -42,11 +42,11 @@ export function SummaryContent({ patient }: { patient: Patient }) {
     <>
       <KcmhHeader right="PATIENT DATA SHEET" />
       <PrintTitle>Patient Information</PrintTitle>
-      <PatientHeaderGrid patient={patient} />
+      <MovablePrintField fieldKey="summary.patient-header"><PatientHeaderGrid patient={patient} /></MovablePrintField>
       {patient.notes ? (
         <div className="mb-6">
           <div className="text-sm font-bold">Notes:</div>
-          <div className="mt-1 min-h-16 whitespace-pre-wrap border border-black p-2 text-sm">{patient.notes}</div>
+          <MovablePrintField fieldKey="summary.notes"><div className="mt-1 min-h-16 whitespace-pre-wrap border border-black p-2 text-sm">{patient.notes}</div></MovablePrintField>
         </div>
       ) : null}
       <div className="mt-16 flex justify-between text-sm">
@@ -64,16 +64,15 @@ export function SummaryContent({ patient }: { patient: Patient }) {
 const VITAL_COLS = ["DATE", "TIME", "BP", "PULSE", "RESP", "TEMP", "SPO2"] as const;
 const ROWS_PER_BLOCK = 14;
 
-function VitalRow({ e }: { e: VitalEntry | undefined }) {
+function VitalRow({ e, rowIndex, block }: { e: VitalEntry | undefined; rowIndex: number; block: "left" | "right" }) {
+  const values = [e?.date ?? "", e?.time ?? "", e?.bp ?? "", e?.pulse ?? "", e?.resp ?? "", e?.temp ?? "", e?.spo2 ?? ""];
   return (
     <>
-      <td className="h-6 border border-black px-1 py-1">{e?.date ?? ""}</td>
-      <td className="border border-black px-1 py-1">{e?.time ?? ""}</td>
-      <td className="border border-black px-1 py-1">{e?.bp ?? ""}</td>
-      <td className="border border-black px-1 py-1">{e?.pulse ?? ""}</td>
-      <td className="border border-black px-1 py-1">{e?.resp ?? ""}</td>
-      <td className="border border-black px-1 py-1">{e?.temp ?? ""}</td>
-      <td className="border border-black px-1 py-1">{e?.spo2 ?? ""}</td>
+      {values.map((value, columnIndex) => (
+        <td key={columnIndex} className={`border border-black px-1 py-1 ${columnIndex === 0 ? "h-6" : ""}`}>
+          <MovablePrintField fieldKey={`vitals.${block}.row${rowIndex}.col${columnIndex}`}>{value}</MovablePrintField>
+        </td>
+      ))}
     </>
   );
 }
@@ -91,12 +90,12 @@ export function VitalsContent({ patient, id }: { patient: Patient; id: number })
       <table className="mb-2 w-full border-collapse text-sm">
         <tbody>
           <tr>
-            <td className="px-1 py-1"><b>PATIENT'S NAME:</b> {patient.name}</td>
-            <td className="px-1 py-1"><b>DOA:</b> {patient.doa || "—"}</td>
-            <td className="px-1 py-1"><b>FILE NO:</b> {patient.fileNo || "—"}</td>
-            <td className="px-1 py-1"><b>TR DOCTOR:</b> {patient.doctor || "—"}</td>
-            <td className="px-1 py-1"><b>AGE:</b> {patient.age || "—"}</td>
-            <td className="px-1 py-1"><b>SEX:</b> {patient.sex || "—"}</td>
+            <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.patient"><b>PATIENT'S NAME:</b> {patient.name}</MovablePrintField></td>
+            <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.doa"><b>DOA:</b> {patient.doa || "—"}</MovablePrintField></td>
+            <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.fileNo"><b>FILE NO:</b> {patient.fileNo || "—"}</MovablePrintField></td>
+            <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.doctor"><b>TR DOCTOR:</b> {patient.doctor || "—"}</MovablePrintField></td>
+            <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.age"><b>AGE:</b> {patient.age || "—"}</MovablePrintField></td>
+            <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.sex"><b>SEX:</b> {patient.sex || "—"}</MovablePrintField></td>
           </tr>
         </tbody>
       </table>
@@ -111,8 +110,8 @@ export function VitalsContent({ patient, id }: { patient: Patient; id: number })
         <tbody>
           {Array.from({ length: ROWS_PER_BLOCK }, (_, r) => (
             <tr key={r}>
-              <VitalRow e={left[r]} />
-              <VitalRow e={right[r]} />
+              <VitalRow e={left[r]} rowIndex={r} block="left" />
+              <VitalRow e={right[r]} rowIndex={r} block="right" />
             </tr>
           ))}
           <tr>
@@ -623,18 +622,18 @@ const SHIFT_ROWS: Array<{ key: string; label: string }> = [
   { key: "night", label: "10:PM\nTO\n7:AM" },
 ];
 
-function HCell({ label, value, width }: { label: string; value: string; width?: string }) {
+function HCell({ label, value, width, fieldKey }: { label: string; value: string; width?: string; fieldKey: string }) {
   return (
     <td className="border border-black px-1 py-1 align-top" style={width ? { width } : undefined}>
       <span className="font-bold">{label} </span>
-      <span>{value || "—"}</span>
+      <MovablePrintField fieldKey={fieldKey}>{value || "—"}</MovablePrintField>
     </td>
   );
 }
 
-function BCell({ children }: { children: string | undefined }) {
+function BCell({ children, fieldKey }: { children: string | undefined; fieldKey: string }) {
   return (
-    <td className="border border-black px-1.5 py-1 align-top text-[11px] whitespace-pre-wrap">{children ?? ""}</td>
+    <td className="border border-black px-1.5 py-1 align-top text-[11px] whitespace-pre-wrap"><MovablePrintField fieldKey={fieldKey}>{children ?? ""}</MovablePrintField></td>
   );
 }
 
@@ -658,21 +657,19 @@ export function SbarContent({ patient, id, date }: { patient: Patient; id: numbe
               DATE
               <div className="font-normal">&nbsp;</div>
             </td>
-            <HCell label="Name:" value={patient.name} width="22%" />
-            <HCell label="FILE#" value={patient.fileNo} width="17%" />
-            <HCell label="DOB/AGE:" value={[patient.dob, patient.age].filter(Boolean).join(" / ")} width="19%" />
+            <HCell label="Name:" value={patient.name} fieldKey="sbar.header.name" width="22%" />
+            <HCell label="FILE#" value={patient.fileNo} fieldKey="sbar.header.fileNo" width="17%" />
+            <HCell label="DOB/AGE:" value={[patient.dob, patient.age].filter(Boolean).join(" / ")} fieldKey="sbar.header.age" width="19%" />
             <td className="w-[27%] border border-black px-1 py-1 text-center font-bold">Diagnosis</td>
             <td rowSpan={2} className="w-[8%] border border-black px-1 py-1 text-center align-middle font-bold">
               Ward:39
             </td>
           </tr>
           <tr>
-            <HCell label="CID" value={patient.cid} />
-            <HCell label="D.O.A:" value={patient.doa} />
-            <HCell label="Nationality" value={patient.nationality} />
-            <td className="border border-black px-1 py-1 text-center font-bold">
-              {patient.diagnosis?.toUpperCase() || "—"}
-            </td>
+            <HCell label="CID" value={patient.cid} fieldKey="sbar.header.cid" />
+            <HCell label="D.O.A:" value={patient.doa} fieldKey="sbar.header.doa" />
+            <HCell label="Nationality" value={patient.nationality} fieldKey="sbar.header.nationality" />
+            <td className="border border-black px-1 py-1 text-center font-bold"><MovablePrintField fieldKey="sbar.header.diagnosis">{patient.diagnosis?.toUpperCase() || "—"}</MovablePrintField></td>
           </tr>
         </tbody>
       </table>
@@ -693,14 +690,12 @@ export function SbarContent({ patient, id, date }: { patient: Patient; id: numbe
             const e = byShift(key);
             return (
               <tr key={key}>
-                <td className="h-[52mm] border border-black px-1 py-1 text-center align-middle text-[11px] font-bold whitespace-pre-line">
-                  {label}
-                </td>
-                <BCell>{e?.situation}</BCell>
-                <BCell>{e?.background}</BCell>
-                <BCell>{e?.assessment}</BCell>
-                <BCell>{e?.recommendation}</BCell>
-                <BCell>{e?.signature}</BCell>
+                <td className="h-[52mm] border border-black px-1 py-1 text-center align-middle text-[11px] font-bold whitespace-pre-line"><MovablePrintField fieldKey={`sbar.shift.${key}`}>{label}</MovablePrintField></td>
+                <BCell fieldKey={`sbar.${key}.situation`}>{e?.situation}</BCell>
+                <BCell fieldKey={`sbar.${key}.background`}>{e?.background}</BCell>
+                <BCell fieldKey={`sbar.${key}.assessment`}>{e?.assessment}</BCell>
+                <BCell fieldKey={`sbar.${key}.recommendation`}>{e?.recommendation}</BCell>
+                <BCell fieldKey={`sbar.${key}.signature`}>{e?.signature}</BCell>
               </tr>
             );
           })}

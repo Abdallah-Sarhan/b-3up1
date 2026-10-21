@@ -241,7 +241,7 @@ function BatchPrintPage() {
               <Button variant="outline" size="sm" onClick={resetCalibration}>
                 {lang === "ar" ? "إعادة ضبط المحاذاة" : "Reset alignment"}
               </Button>
-              {form.template ? (
+              {(form.template || ["summary", "sbar", "vitals"].includes(form.key)) ? (
                 <>
                   <Button variant="outline" size="sm" onClick={() => resetPrintFieldPositions(form.key)}>
                     {lang === "ar" ? "إعادة ضبط مواضع الحقول" : "Reset field positions"}

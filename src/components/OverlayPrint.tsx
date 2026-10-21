@@ -143,6 +143,52 @@ export function makeField(iw: number, ih: number) {
   };
 }
 
+/**
+ * Small independently draggable content wrapper for table-based/plain print sheets.
+ * Offsets are stored in CSS pixels, per form and field, and are shared by single/batch print.
+ */
+export function MovablePrintField({
+  fieldKey,
+  children,
+  className = "",
+}: {
+  fieldKey: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  const formKey = useContext(PrintActiveFormKey);
+  const { position, setPosition } = usePrintFieldPosition(formKey, fieldKey, 0, 0);
+  const dragStart = useRef<{ id: number; x: number; y: number; left: number; top: number } | null>(null);
+  const onPointerDown = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragStart.current = { id: event.pointerId, x: event.clientX, y: event.clientY, left: position.left, top: position.top };
+  };
+  const onPointerMove = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    const start = dragStart.current;
+    if (!start || start.id !== event.pointerId) return;
+    setPosition(start.left + event.clientX - start.x, start.top + event.clientY - start.y);
+  };
+  const onPointerUp = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    if (dragStart.current?.id === event.pointerId) dragStart.current = null;
+  };
+  return (
+    <span
+      className={`relative inline-block cursor-grab active:cursor-grabbing touch-none print:cursor-auto ${className}`}
+      style={{ transform: `translate(${position.left}px, ${position.top}px)`, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      data-print-field={fieldKey}
+      title="Drag to reposition"
+    >
+      {children}
+    </span>
+  );
+}
+
 /** Spread digits evenly across a row of pre-printed boxes. */
 export function BoxedDigits({
   value,
