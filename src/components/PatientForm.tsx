@@ -83,6 +83,7 @@ export function PatientForm({ patient }: { patient?: Patient }) {
     const hit = await db.patients.where(key).equals(value.trim()).first();
     if (hit) {
       setMatchedId(hit.id ?? null);
+      setMatchedVersion(hit.id != null ? getCloudVersion("patients", hit.id) : null);
       setForm({ ...hit, [key]: value });
       toast.info(t("existingPatientFound"));
     }
@@ -128,6 +129,7 @@ export function PatientForm({ patient }: { patient?: Patient }) {
     const hit = await findExisting(form.fileNo, form.cid);
     if (hit && hit.id !== matchedId) {
       setMatchedId(hit.id ?? null);
+      setMatchedVersion(hit.id != null ? getCloudVersion("patients", hit.id) : null);
       setForm({ ...hit });
       toast.info(t("existingPatientFound"));
     }
