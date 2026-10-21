@@ -3,8 +3,6 @@ import { createContext, useContext, useState, type CSSProperties, type PointerEv
 /** Multiplies every printed field's font size (overlay forms). */
 export const PrintFontScale = createContext(1);
 export const usePrintFontScale = () => useContext(PrintFontScale);
-export const PrintTemplateMode = createContext<"white" | "form">("white");
-export const usePrintTemplateMode = () => useContext(PrintTemplateMode);
 import { Link, useParams } from "@tanstack/react-router";
 import { ArrowRight, Printer } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -12,6 +10,9 @@ import { db, type Patient } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
 import { usePrintCalibration } from "@/lib/print-calibration";
+
+export const PrintTemplateMode = createContext<"white" | "form">("white");
+export const usePrintTemplateMode = () => useContext(PrintTemplateMode);
 
 export type OverlayFormKey =
   | "notes"
