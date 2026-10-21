@@ -63,20 +63,36 @@ export async function signedUrl(path: string): Promise<string> {
 export async function uploadSide(fileNo: string, side: Side, file: File) {
   ensureOnline();
   const fn = fileNo.trim();
+  let uploadedPath: string | null = null;
+  let metadataSaved = false;
   try {
     const blob = await compressImage(file);
     const path = `${encodeURIComponent(fn)}/${side}-${Date.now()}.jpg`;
     const up = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: "image/jpeg" });
     if (up.error) throw up.error;
+    uploadedPath = path;
+
     const old = await getDocs(fn);
     const col = side === "front" ? "front_path" : "back_path";
     const { error } = await supabase
       .from("patient_documents")
       .upsert({ file_no: fn, ...(side === "front" ? { front_path: path } : { back_path: path }) }, { onConflict: "file_no" });
     if (error) throw error;
+    metadataSaved = true;
+
     const prev = old?.[col];
-    if (prev) await supabase.storage.from(BUCKET).remove([prev]);
+    if (prev && prev !== path) {
+      const { error: cleanupError } = await supabase.storage.from(BUCKET).remove([prev]);
+      if (cleanupError) {
+        throw new Error("تم حفظ الصورة الجديدة، لكن تعذّر حذف النسخة القديمة. أبلغ المشرف لإكمال التنظيف الآمن.");
+      }
+    }
   } catch (e) {
+    if (uploadedPath && !metadataSaved) {
+      // Do not leave an unreferenced private image behind when metadata did not save.
+      await supabase.storage.from(BUCKET).remove([uploadedPath]).catch(() => undefined);
+    }
+    if (e instanceof Error && e.message.startsWith("تم حفظ الصورة الجديدة")) throw e;
     throw friendly(e);
   }
 }
@@ -87,7 +103,10 @@ export async function removeSide(fileNo: string, side: Side) {
   const old = await getDocs(fn);
   const col = side === "front" ? "front_path" : "back_path";
   const prev = old?.[col];
-  if (prev) await supabase.storage.from(BUCKET).remove([prev]);
+  if (prev) {
+    const { error: removeError } = await supabase.storage.from(BUCKET).remove([prev]);
+    if (removeError) throw friendly(removeError);
+  }
   const { error } = await supabase.from("patient_documents").update(side === "front" ? { front_path: null } : { back_path: null }).eq("file_no", fn);
   if (error) throw friendly(error);
 }
