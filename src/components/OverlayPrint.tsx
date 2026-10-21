@@ -1,8 +1,8 @@
-import { createContext, useContext, useState, type PointerEventHandler, type ReactNode } from "react";
+import { createContext, useContext, useState, type CSSProperties, type PointerEventHandler, type ReactNode } from "react";
 
 /** Multiplies every printed field's font size (overlay forms). */
 export const PrintFontScale = createContext(1);
-export const usePrintFontScale = () => useContext(PrintFontScale);
+export const usePrintFontScale = () => useContext(PrintFontScale);\nexport const PrintTemplateMode = createContext<"white" | "form">("white");\nexport const usePrintTemplateMode = () => useContext(PrintTemplateMode);
 import { Link, useParams } from "@tanstack/react-router";
 import { ArrowRight, Printer } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -84,6 +84,7 @@ export function makeField(iw: number, ih: number) {
           fontSize: `${size * scale}px`,
           fontWeight: bold ? 700 : 400,
           letterSpacing: spacing ? `${spacing}px` : "0.2px",
+          ...customStyle,
         }}
       >
         {children}
