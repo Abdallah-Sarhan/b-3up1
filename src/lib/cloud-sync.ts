@@ -352,6 +352,7 @@ function scheduleRealtimeRefresh(): void {
   refreshTimer = setTimeout(() => {
     void refreshCloudViews().catch(() => {
       lastErrorMessage = "تعذر تحديث البيانات الفورية من السحابة.";
+      cloudUnavailable = true;
     });
   }, 250);
 }
