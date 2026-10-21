@@ -182,10 +182,12 @@ function BatchPrintPage() {
           ) : null}
           {form.template ? (
             <>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={guide} onChange={(e) => setGuide(e.target.checked)} />
-                {lang === "ar" ? "عرض النموذج كخلفية (لا يُطبع)" : "Show form as background (not printed)"}
-              </label>
+              {printMode === "form" ? (
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={guide} onChange={(e) => setGuide(e.target.checked)} />
+                  {lang === "ar" ? "عرض النموذج كخلفية (لا يُطبع)" : "Show form as background (not printed)"}
+                </label>
+              ) : null}
               <label className="flex items-center gap-1 text-sm">
                 {lang === "ar" ? "إزاحة أفقي (mm)" : "Offset X (mm)"}
                 <input
