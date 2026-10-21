@@ -15,11 +15,12 @@ export default defineTool({
     const supabase = supabaseForUser(ctx);
 
     const [current, discharged] = await Promise.all([
-      supabase.from("patients").select("room", { count: "exact" }).is("discharged_at", null),
+      supabase.from("patients").select("room", { count: "exact" }).is("discharged_at", null).is("deleted_at", null),
       supabase
         .from("patients")
         .select("id", { count: "exact", head: true })
-        .not("discharged_at", "is", null),
+        .not("discharged_at", "is", null)
+        .is("deleted_at", null),
     ]);
 
     if (current.error) {
