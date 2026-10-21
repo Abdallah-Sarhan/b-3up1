@@ -76,7 +76,7 @@ BEGIN
   IF p_table NOT IN ('patients','patient_vitals','patient_nurse_notes','patient_sbar','patient_care_plans','patient_rounds','patient_tranquilizer_events','patient_admissions','staff_assignments','medication_register','ward_shift_settings') THEN RAISE EXCEPTION 'unknown table'; END IF;
   IF p_op NOT IN ('upsert','delete') THEN RAISE EXCEPTION 'unknown op'; END IF;
 
-  SELECT result INTO v_prev FROM public.clinical_sync_receipts WHERE op_id = p_op_id;
+  SELECT result INTO v_prev FROM public.clinical_sync_receipts WHERE op_id = p_op_id AND user_id = v_uid;
   IF FOUND THEN RETURN v_prev; END IF;
 
   v_fields := coalesce(p_fields, '{}'::jsonb);
