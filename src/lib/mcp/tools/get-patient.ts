@@ -22,6 +22,7 @@ export default defineTool({
       .from("patients")
       .select("*")
       .eq("file_no", file_no)
+      .is("deleted_at", null)
       .maybeSingle();
 
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
