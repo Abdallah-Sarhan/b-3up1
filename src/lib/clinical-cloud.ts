@@ -85,6 +85,22 @@ export function getLocalId(table: string, cloudId: string): number | string | nu
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
+export function getCloudVersion(table: string, localId: number | string): number | null {
+  const raw = readMap(VERSION_PREFIX + ":" + table + ":" + String(localId));
+  if (raw === null || raw.trim() === "") return null;
+  const version = Number(raw);
+  return Number.isInteger(version) && version >= 0 ? version : null;
+}
+
+export function setCloudVersion(table: string, localId: number | string, version: number): void {
+  if (!Number.isInteger(version) || version < 0) throw new Error("إصدار السجل السحابي غير صالح.");
+  try {
+    localStorage.setItem(VERSION_PREFIX + ":" + table + ":" + String(localId), String(version));
+  } catch {
+    throw new Error("تم حفظ التغيير في السحابة، لكن تعذر حفظ رقم إصدار السجل على هذا الجهاز. حدّث الصفحة قبل أي تعديل آخر.");
+  }
+}
+
 export function linkIds(table: string, localId: number | string, cloudId: string): void {
   try {
     localStorage.setItem(mappingKey(table, localId), cloudId);
