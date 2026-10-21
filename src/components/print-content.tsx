@@ -1,7 +1,7 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, type Patient, type SbarEntry, type VitalEntry } from "@/lib/db";
-import { BoxedDigits, makeField, usePrintFontScale } from "@/components/OverlayPrint";
+import { BoxedDigits, makeField, usePrintFontScale, usePrintTemplateMode } from "@/components/OverlayPrint";
 import { usePrintFieldPosition } from "@/lib/print-calibration";
 import { KcmhHeader, PatientHeaderGrid, PrintTitle } from "@/components/PrintSheet";
 import logoKcmh from "@/assets/logo-kcmh.png.asset.json";
@@ -318,9 +318,10 @@ export const NURSING_CARE_PLAN_TEMPLATE = "/nursing-care-plan-template.png";
 const NCP_TEMPLATE_W = 1472;
 const NCP_TEMPLATE_H = 1044;
 const NCPFieldBase = makeField(NCP_TEMPLATE_W, NCP_TEMPLATE_H);
-type NCPFieldProps = React.ComponentProps<typeof NCPFieldBase> & { fieldKey?: string };
+type NCPFieldProps = React.ComponentProps<typeof NCPFieldBase> & { fieldKey?: string; mergeCell?: boolean };
 function NCPF({
   fieldKey,
+  mergeCell = false,
   draggable = true,
   left,
   top,
@@ -328,13 +329,11 @@ function NCPF({
   height,
   children,
   bold,
-  onPointerDown: _onPointerDown,
-  onPointerMove: _onPointerMove,
-  onPointerUp: _onPointerUp,
-  onPointerCancel: _onPointerCancel,
+  style: customStyle,
   ...baseProps
 }: NCPFieldProps) {
   const key = fieldKey ?? `${left}:${top}:${width}`;
+  const templateMode = usePrintTemplateMode();
   const { position, setPosition } = usePrintFieldPosition("careplan", key, left, top);
   const dragStart = useRef<{
     pointerId: number;
@@ -387,6 +386,12 @@ function NCPF({
       width={width}
       height={height}
       bold={bold ?? true}
+      style={{
+        whiteSpace: "pre-wrap",
+        overflowWrap: "anywhere",
+        ...customStyle,
+        ...(mergeCell && templateMode === "white" ? { backgroundColor: "#fff" } : {}),
+      }}
       draggable={draggable}
       onPointerDown={onDragStart}
       onPointerMove={onDragMove}
@@ -574,8 +579,8 @@ export function NursingCarePlanTemplateContent({ patient, id }: { patient: Patie
               <>
                 <NCPF left={151} top={top} width={88} height={34} align="center" size={7} fieldKey={`row.${index}.date`}>{row.entry.dateIdentified}</NCPF>
                 <NCPF left={245} top={top} width={52} height={34} align="center" size={7} fieldKey={`row.${index}.problemNo`}>{row.entry.problemNo}</NCPF>
-                <NCPF left={306} top={top} width={160} height={mergedHeight} size={7} fieldKey={`group.${index}.problem`}>{row.entry.problem}</NCPF>
-                <NCPF left={475} top={top} width={179} height={mergedHeight} size={7} fieldKey={`group.${index}.objective`}>{row.entry.objective}</NCPF>
+                <NCPF left={306} top={top} width={160} height={mergedHeight} size={7} mergeCell fieldKey={`group.${index}.problem`}>{row.entry.problem}</NCPF>
+                <NCPF left={475} top={top} width={179} height={mergedHeight} size={7} mergeCell fieldKey={`group.${index}.objective`}>{row.entry.objective}</NCPF>
                 <NCPF left={1235} top={top} width={52} height={34} align="center" size={7} fieldKey={`row.${index}.dateResolved`}>{row.entry.dateResolved}</NCPF>
                 <NCPF left={1295} top={top} width={98} height={34} size={7} fieldKey={`row.${index}.nurseSign`}>{row.entry.nurseSign}</NCPF>
               </>
