@@ -102,12 +102,17 @@ export async function importPatientsFromExcel(file: File): Promise<number> {
 }
 
 export async function backupToJson() {
-  const [patients, vitals, notes, sbar, careplan] = await Promise.all([
+  const [patients, vitals, notes, sbar, careplan, rounds, tranq, assignments, admissions, meds] = await Promise.all([
     db.patients.toArray(),
     db.vitals.toArray(),
     db.notes.toArray(),
     db.sbar.toArray(),
     db.careplan.toArray(),
+    db.rounds.toArray(),
+    db.tranq.toArray(),
+    db.assignments.toArray(),
+    db.admissions.toArray(),
+    db.meds.toArray(),
   ]);
   const payload = {
     app: "ward39-registry",
@@ -118,6 +123,11 @@ export async function backupToJson() {
     notes,
     sbar,
     careplan,
+    rounds,
+    tranq,
+    assignments,
+    admissions,
+    meds,
   };
   downloadBlob(
     new Blob([JSON.stringify(payload)], { type: "application/json" }),
@@ -134,6 +144,11 @@ export async function restoreFromJson(file: File): Promise<void> {
     notes?: Array<Record<string, unknown>>;
     sbar?: Array<Record<string, unknown>>;
     careplan?: Array<Record<string, unknown>>;
+    rounds?: Array<Record<string, unknown>>;
+    tranq?: Array<Record<string, unknown>>;
+    assignments?: Array<Record<string, unknown>>;
+    admissions?: Array<Record<string, unknown>>;
+    meds?: Array<Record<string, unknown>>;
   };
   if (data.app !== "ward39-registry" || !Array.isArray(data.patients)) {
     throw new Error("ملف النسخة الاحتياطية غير صالح.");
@@ -187,6 +202,11 @@ export async function restoreFromJson(file: File): Promise<void> {
     ["notes", data.notes ?? []],
     ["sbar", data.sbar ?? []],
     ["careplan", data.careplan ?? []],
+    ["rounds", data.rounds ?? []],
+    ["tranq", data.tranq ?? []],
+    ["assignments", data.assignments ?? []],
+    ["admissions", data.admissions ?? []],
+    ["meds", data.meds ?? []],
   ];
   const stable = (value: unknown): string => {
     if (Array.isArray(value)) return "[" + value.map(stable).join(",") + "]";
@@ -200,11 +220,16 @@ export async function restoreFromJson(file: File): Promise<void> {
   for (const [table, rows] of imports) {
     const local = await db.table(table).toArray() as Array<Record<string, unknown>>;
     for (const source of rows) {
-      const sourcePatientId = Number(source.patientId);
-      const patientId = patientIdMap.get(sourcePatientId);
-      if (patientId == null) continue;
       const { id: _sourceId, ...fields } = source;
-      const candidate = { ...fields, patientId };
+      let candidate: Record<string, unknown>;
+      if (table === "meds" && source.patientId == null) {
+        candidate = fields;
+      } else {
+        const sourcePatientId = Number(source.patientId);
+        const patientId = patientIdMap.get(sourcePatientId);
+        if (patientId == null) continue;
+        candidate = { ...fields, patientId };
+      }
       const duplicate = local.some((entry) => {
         const { id: _id, ...rest } = entry;
         return stable(rest) === stable(candidate);
