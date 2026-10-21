@@ -93,7 +93,7 @@ export function makeField(iw: number, ih: number) {
           fontSize: `${size * scale}px`,
           fontWeight: bold ? 700 : 400,
           letterSpacing: spacing ? `${spacing}px` : "0.2px",
-          ...customStyle,
+          ...(customStyle ?? {}),
         }}
       >
         {children}
