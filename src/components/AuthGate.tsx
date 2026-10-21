@@ -106,22 +106,34 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         }
       }
     };
-    void supabase.auth.getSession()
-      .then(({ data }) => check(data.session?.user.id))
-      .catch(() => {
-        if (alive) {
-          setCloudError("تعذر الاتصال بخدمة تسجيل الدخول السحابية.");
-          setState("cloud-error");
-        }
+    let unsubscribe = () => {};
+    try {
+      void supabase.auth.getSession()
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return check(data.session?.user.id);
+        })
+        .catch(() => {
+          if (alive) {
+            setCloudError("تعذر الاتصال بخدمة تسجيل الدخول السحابية. راجع إعدادات Lovable Cloud ثم أعد المحاولة.");
+            setState("cloud-error");
+          }
+        });
+      const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_OUT") void clearClinicalCloudCache();
+        if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED")
+          void check(session?.user.id);
       });
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") void clearClinicalCloudCache();
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED")
-        void check(session?.user.id);
-    });
+      unsubscribe = () => sub.subscription.unsubscribe();
+    } catch {
+      if (alive) {
+        setCloudError("إعدادات الاتصال بسحابة Lovable Cloud غير مكتملة أو غير متاحة.");
+        setState("cloud-error");
+      }
+    }
     return () => {
       alive = false;
-      sub.subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
