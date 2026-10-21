@@ -42,7 +42,7 @@ export function SummaryContent({ patient }: { patient: Patient }) {
     <>
       <KcmhHeader right="PATIENT DATA SHEET" />
       <PrintTitle>Patient Information</PrintTitle>
-      <PatientHeaderGrid patient={patient} />
+      <MovablePrintField fieldKey="summary.patient-header"><PatientHeaderGrid patient={patient} /></MovablePrintField>
       {patient.notes ? (
         <div className="mb-6">
           <div className="text-sm font-bold">Notes:</div>
