@@ -1,6 +1,8 @@
+import { useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, type Patient, type SbarEntry, type VitalEntry } from "@/lib/db";
 import { BoxedDigits, makeField } from "@/components/OverlayPrint";
+import { usePrintFieldPosition } from "@/lib/print-calibration";
 import { KcmhHeader, PatientHeaderGrid, PrintTitle } from "@/components/PrintSheet";
 import logoKcmh from "@/assets/logo-kcmh.png.asset.json";
 import logoMoh from "@/assets/logo-moh.png.asset.json";
@@ -316,8 +318,84 @@ export const NURSING_CARE_PLAN_TEMPLATE = "/nursing-care-plan-template.png";
 const NCP_TEMPLATE_W = 1472;
 const NCP_TEMPLATE_H = 1044;
 const NCPFieldBase = makeField(NCP_TEMPLATE_W, NCP_TEMPLATE_H);
-function NCPF(props: React.ComponentProps<typeof NCPFieldBase>) {
-  return <NCPFieldBase {...props} bold={props.bold ?? true} />;
+type NCPFieldProps = React.ComponentProps<typeof NCPFieldBase> & { fieldKey?: string };
+function NCPF({
+  fieldKey,
+  draggable = true,
+  left,
+  top,
+  width,
+  height,
+  children,
+  bold,
+  onPointerDown: _onPointerDown,
+  onPointerMove: _onPointerMove,
+  onPointerUp: _onPointerUp,
+  onPointerCancel: _onPointerCancel,
+  ...baseProps
+}: NCPFieldProps) {
+  const key = fieldKey ?? `${left}:${top}:${width}`;
+  const { position, setPosition } = usePrintFieldPosition("careplan", key, left, top);
+  const dragStart = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+    left: number;
+    top: number;
+    parentWidth: number;
+    parentHeight: number;
+  } | null>(null);
+
+  const onDragStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!draggable || event.button !== 0) return;
+    const parent = event.currentTarget.offsetParent as HTMLElement | null;
+    const rect = parent?.getBoundingClientRect();
+    if (!rect || rect.width <= 0 || rect.height <= 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragStart.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      left: position.left,
+      top: position.top,
+      parentWidth: rect.width,
+      parentHeight: rect.height,
+    };
+  };
+
+  const onDragMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = dragStart.current;
+    if (!start || start.pointerId !== event.pointerId) return;
+    const leftNext = start.left + ((event.clientX - start.x) * NCP_TEMPLATE_W) / start.parentWidth;
+    const topNext = start.top + ((event.clientY - start.y) * NCP_TEMPLATE_H) / start.parentHeight;
+    setPosition(
+      Math.min(NCP_TEMPLATE_W - width, Math.max(0, leftNext)),
+      Math.min(NCP_TEMPLATE_H - (height ?? 20), Math.max(0, topNext)),
+    );
+  };
+
+  const onDragEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragStart.current?.pointerId === event.pointerId) dragStart.current = null;
+  };
+
+  return (
+    <NCPFieldBase
+      {...baseProps}
+      left={position.left}
+      top={position.top}
+      width={width}
+      height={height}
+      bold={bold ?? true}
+      draggable={draggable}
+      onPointerDown={onDragStart}
+      onPointerMove={onDragMove}
+      onPointerUp={onDragEnd}
+      onPointerCancel={onDragEnd}
+    >
+      {children}
+    </NCPFieldBase>
+  );
 }
 const NCP_ROW_TOP = 318;
 const NCP_ROW_HEIGHT = 39.5;
@@ -350,7 +428,6 @@ export function NursingCarePlanTemplateContent({ patient, id }: { patient: Patie
     [id],
   );
 
-  // Every intervention becomes an independent physical row in the supplied form.
   const expandedRows = (entries ?? []).flatMap((entry, entryIndex) =>
     splitCarePlanInterventions(entry.intervention).map((point, pointIndex) => ({
       entry,
@@ -359,6 +436,14 @@ export function NursingCarePlanTemplateContent({ patient, id }: { patient: Patie
     })),
   );
   const visibleRows = expandedRows.slice(-NCP_MAX_ROWS);
+  const groupSpans = new Map<string, { start: number; count: number }>();
+  visibleRows.forEach((row, index) => {
+    const groupKey = String(row.entry.id ?? row.key.slice(0, row.key.lastIndexOf("-")));
+    const span = groupSpans.get(groupKey);
+    if (span) span.count += 1;
+    else groupSpans.set(groupKey, { start: index, count: 1 });
+  });
+
   const fileNo = (patient.fileNo || "").replace(/\D/g, "");
   const cid = (patient.cid || "").replace(/\D/g, "");
   const sex = (patient.sex || "").trim().toUpperCase();
@@ -366,52 +451,52 @@ export function NursingCarePlanTemplateContent({ patient, id }: { patient: Patie
   return (
     <>
       <BoxedDigits value={fileNo} cells={6} left={1023} width={250} top={87} iw={NCP_TEMPLATE_W} ih={NCP_TEMPLATE_H} size={9} bold />
-      <NCPF left={1027} top={130} width={347} height={19} size={9}>{patient.name}</NCPF>
+      <NCPF left={1027} top={130} width={347} height={19} size={9} fieldKey="header.patientName">{patient.name}</NCPF>
       <BoxedDigits value={cid} cells={12} left={1022} width={358} top={151} iw={NCP_TEMPLATE_W} ih={NCP_TEMPLATE_H} size={8} bold />
-      <NCPF left={1005} top={197} width={112} height={18} size={8}>{patient.age}</NCPF>
+      <NCPF left={1005} top={197} width={112} height={18} size={8} fieldKey="header.age">{patient.age}</NCPF>
       {sex.startsWith("M") ? (
-        <NCPF left={1134} top={196} width={25} height={20} align="center" size={9} bold>✓</NCPF>
+        <NCPF left={1134} top={196} width={25} height={20} align="center" size={9} bold fieldKey="header.sexM">✓</NCPF>
       ) : sex.startsWith("F") ? (
-        <NCPF left={1185} top={196} width={25} height={20} align="center" size={9} bold>✓</NCPF>
+        <NCPF left={1185} top={196} width={25} height={20} align="center" size={9} bold fieldKey="header.sexF">✓</NCPF>
       ) : null}
-      <NCPF left={1060} top={224} width={320} height={18} size={8}>{patient.maritalStatus}</NCPF>
+      <NCPF left={1060} top={224} width={320} height={18} size={8} fieldKey="header.maritalStatus">{patient.maritalStatus}</NCPF>
 
-      <NCPF left={155} top={132} width={52} height={29} align="center" size={9}>M</NCPF>
-      <NCPF left={225} top={132} width={52} height={29} align="center" size={9}>2</NCPF>
-      <NCPF left={294} top={132} width={52} height={29} align="center" size={9}>39</NCPF>
-      <NCPF left={363} top={132} width={52} height={29} align="center" size={9}>{patient.room}</NCPF>
-      <NCPF left={431} top={132} width={52} height={29} align="center" size={9}>{patient.bed}</NCPF>
-      <NCPF left={506} top={132} width={260} height={25} size={8}>{patient.diagnosis}</NCPF>
+      <NCPF left={155} top={132} width={52} height={29} align="center" size={9} fieldKey="header.dept">M</NCPF>
+      <NCPF left={225} top={132} width={52} height={29} align="center" size={9} fieldKey="header.unit">2</NCPF>
+      <NCPF left={294} top={132} width={52} height={29} align="center" size={9} fieldKey="header.ward">39</NCPF>
+      <NCPF left={363} top={132} width={52} height={29} align="center" size={9} fieldKey="header.room">{patient.room}</NCPF>
+      <NCPF left={431} top={132} width={52} height={29} align="center" size={9} fieldKey="header.bed">{patient.bed}</NCPF>
+      <NCPF left={506} top={132} width={260} height={25} size={8} fieldKey="header.diagnosis">{patient.diagnosis}</NCPF>
 
-      <NCPF left={151} top={208} width={192} height={23} size={8}>{patient.doctor}</NCPF>
-      <NCPF left={356} top={209} width={133} height={23} align="center" size={8}>{patient.doa}</NCPF>
-      <NCPF left={500} top={209} width={130} height={23} align="center" size={8}>{patient.dischargedAt ?? ""}</NCPF>
+      <NCPF left={151} top={208} width={192} height={23} size={8} fieldKey="header.doctor">{patient.doctor}</NCPF>
+      <NCPF left={356} top={209} width={133} height={23} align="center" size={8} fieldKey="header.admissionDate">{patient.doa}</NCPF>
+      <NCPF left={500} top={209} width={130} height={23} align="center" size={8} fieldKey="header.dischargeDate">{patient.dischargedAt ?? ""}</NCPF>
 
       {visibleRows.map((row, index) => {
-        const previous = visibleRows[index - 1];
-        // Keep the problem metadata on the first visible line for each plan item.
-        const startsEntry = !previous || previous.entry.id !== row.entry.id;
+        const groupKey = String(row.entry.id ?? row.key.slice(0, row.key.lastIndexOf("-")));
+        const span = groupSpans.get(groupKey) ?? { start: index, count: 1 };
+        const startsEntry = span.start === index;
         const top = NCP_ROW_TOP + index * NCP_ROW_HEIGHT + 2;
+        const mergedHeight = span.count * NCP_ROW_HEIGHT - 4;
         return (
           <div key={row.key}>
             {startsEntry ? (
               <>
-                <NCPF left={151} top={top} width={88} height={34} align="center" size={7}>{row.entry.dateIdentified}</NCPF>
-                <NCPF left={245} top={top} width={52} height={34} align="center" size={7}>{row.entry.problemNo}</NCPF>
-                <NCPF left={306} top={top} width={160} height={34} size={7}>{row.entry.problem}</NCPF>
-                <NCPF left={475} top={top} width={179} height={34} size={7}>{row.entry.objective}</NCPF>
-                <NCPF left={1235} top={top} width={52} height={34} align="center" size={7}>{row.entry.dateResolved}</NCPF>
-                <NCPF left={1295} top={top} width={98} height={34} size={7}>{row.entry.nurseSign}</NCPF>
+                <NCPF left={151} top={top} width={88} height={34} align="center" size={7} fieldKey={`row.${index}.date`}>{row.entry.dateIdentified}</NCPF>
+                <NCPF left={245} top={top} width={52} height={34} align="center" size={7} fieldKey={`row.${index}.problemNo`}>{row.entry.problemNo}</NCPF>
+                <NCPF left={306} top={top} width={160} height={mergedHeight} size={7} fieldKey={`group.${index}.problem`}>{row.entry.problem}</NCPF>
+                <NCPF left={475} top={top} width={179} height={mergedHeight} size={7} fieldKey={`group.${index}.objective`}>{row.entry.objective}</NCPF>
+                <NCPF left={1235} top={top} width={52} height={34} align="center" size={7} fieldKey={`row.${index}.dateResolved`}>{row.entry.dateResolved}</NCPF>
+                <NCPF left={1295} top={top} width={98} height={34} size={7} fieldKey={`row.${index}.nurseSign`}>{row.entry.nurseSign}</NCPF>
               </>
             ) : null}
-            <NCPF left={665} top={top} width={560} height={34} size={7}>{row.point}</NCPF>
+            <NCPF left={665} top={top} width={560} height={34} size={7} fieldKey={`row.${index}.intervention`}>{row.point}</NCPF>
           </div>
         );
       })}
     </>
   );
 }
-
 const SHIFT_ROWS: Array<{ key: string; label: string }> = [
   { key: "morning", label: "07:AM\nTO\n02:PM" },
   { key: "evening", label: "02:PM\nTO\n10:PM" },
