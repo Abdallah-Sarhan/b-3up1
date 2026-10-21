@@ -9,6 +9,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db, type Patient } from "@/lib/db";
 import { useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
+import { usePrintCalibration } from "@/lib/print-calibration";
 
 export type OverlayFormKey =
   | "notes"
@@ -133,9 +134,8 @@ export function OverlayPrintPage({
   const { t, lang } = useLang();
   const { patientId, patient } = usePrintPatientData();
   const [guide, setGuide] = useState(true);
-  const [dx, setDx] = useState(0);
-  const [dy, setDy] = useState(0);
-  const [fontScale, setFontScale] = useState(1);
+  const [printMode, setPrintMode] = useState<"white" | "form">("form");
+  const { dx, dy, fontScale, setDx, setDy, setFontScale, resetCalibration } = usePrintCalibration(formKey);
 
   if (patient === undefined) {
     return <p className="p-10 text-center text-muted-foreground">{t("loading")}</p>;
@@ -149,8 +149,8 @@ export function OverlayPrintPage({
   }
 
   return (
-    <div className="min-h-screen bg-muted py-6 print:bg-white print:py-0">
-      <style>{`@media print { @page { size: A4 portrait; margin: 0; } }`}</style>
+    <div className={`min-h-screen bg-muted py-6 print:bg-white print:py-0 ${printMode === "form" ? "print-form-only" : ""}`}>
+      <style>{`@media print { @page { size: A4 portrait; margin: 0; } .print-form-only table, .print-form-only th, .print-form-only td { border-color: transparent !important; background: transparent !important; box-shadow: none !important; } }`}</style>
 
       <div className="mx-auto mb-3 max-w-[210mm] px-4 print:hidden">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -164,11 +164,22 @@ export function OverlayPrintPage({
             <input type="checkbox" checked={guide} onChange={(e) => setGuide(e.target.checked)} />
             {lang === "ar" ? "عرض النموذج كخلفية (لا يُطبع)" : "Show form as background (not printed)"}
           </label>
+          <fieldset className="flex flex-wrap items-center gap-3 rounded-md border border-input px-3 py-2 text-sm">
+            <legend className="px-1 font-medium">Print option</legend>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="single-print-mode" checked={printMode === "white"} onChange={() => setPrintMode("white")} />
+              Print on White Paper
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" name="single-print-mode" checked={printMode === "form"} onChange={() => setPrintMode("form")} />
+              Print on Form
+            </label>
+          </fieldset>
           <label className="flex items-center gap-1 text-sm">
             {lang === "ar" ? "إزاحة أفقي (mm)" : "Offset X (mm)"}
             <input
               type="number"
-              step="0.5"
+              step="0.1"
               value={dx}
               onChange={(e) => setDx(Number(e.target.value))}
               className="h-8 w-16 rounded-md border border-input px-1"
@@ -196,6 +207,9 @@ export function OverlayPrintPage({
               className="h-8 w-16 rounded-md border border-input px-1"
             />
           </label>
+          <Button variant="outline" size="sm" onClick={resetCalibration}>
+            {lang === "ar" ? "إعادة ضبط المحاذاة" : "Reset alignment"}
+          </Button>
           <Button size="sm" onClick={() => window.print()}>
             <Printer />
             {t("print")}
@@ -225,7 +239,14 @@ export function OverlayPrintPage({
         className="relative mx-auto bg-white text-black shadow-md print:shadow-none"
         style={{ width: "210mm", height: "297mm", fontFamily: "Arial, Helvetica, sans-serif" }}
       >
-        {guide ? (
+        {printMode === "white" ? (
+          <img
+            src={template}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-fill opacity-100"
+          />
+        ) : guide ? (
           <img
             src={template}
             alt=""
