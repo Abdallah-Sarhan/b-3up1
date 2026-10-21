@@ -48,8 +48,8 @@ async function loadProfile(userId: string): Promise<AuthProfile | null> {
     localStorage.setItem(CACHE_KEY, JSON.stringify(p));
     return p;
   } catch {
-    // Online-only: never authorize access using a cached profile when cloud validation fails.
-    return null;
+    // A network/database failure must not masquerade as an unapproved account.
+    throw new Error("تعذر التحقق من اعتماد الحساب عبر السحابة. تحقق من الاتصال وأعد المحاولة.");
   }
 }
 
@@ -101,7 +101,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         }
       }
     };
-    void supabase.auth.getSession().then(({ data }) => check(data.session?.user.id));
+    void supabase.auth.getSession()
+      .then(({ data }) => check(data.session?.user.id))
+      .catch(() => {
+        if (alive) {
+          setCloudError("تعذر الاتصال بخدمة تسجيل الدخول السحابية.");
+          setState("cloud-error");
+        }
+      });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED")
         void check(session?.user.id);
