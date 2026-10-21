@@ -189,10 +189,10 @@ export async function restoreFromJson(file: File): Promise<void> {
     ["careplan", data.careplan ?? []],
   ];
   const stable = (value: unknown): string => {
-    if (Array.isArray(value)) return JSON.stringify(value.map((item) => JSON.parse(stable(item))));
+    if (Array.isArray(value)) return "[" + value.map(stable).join(",") + "]";
     if (value && typeof value === "object") {
       const object = value as Record<string, unknown>;
-      return JSON.stringify(Object.keys(object).sort().map((key) => [key, object[key]]));
+      return "{" + Object.keys(object).sort().map((key) => JSON.stringify(key) + ":" + stable(object[key])).join(",") + "}";
     }
     return JSON.stringify(value);
   };
