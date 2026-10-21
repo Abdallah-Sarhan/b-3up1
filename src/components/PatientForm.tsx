@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { db, emptyPatient, type Patient } from "@/lib/db";
-import { createPatientCloudFirst, readmitPatientCloudFirst, updatePatientCloudFirst } from "@/lib/clinical-cloud";
+import { createPatientCloudFirst, getCloudVersion, readmitPatientCloudFirst, updatePatientCloudFirst } from "@/lib/clinical-cloud";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, Field, Input, Select, Textarea } from "@/components/ui-kit";
 import { SuggestInput } from "@/components/SuggestInput";
@@ -15,6 +15,9 @@ export function PatientForm({ patient }: { patient?: Patient }) {
     patient ? { ...patient } : emptyPatient(),
   );
   const [saving, setSaving] = useState(false);
+  const initialCloudVersion = useRef<number | null>(
+    patient?.id != null ? getCloudVersion("patients", patient.id) : null,
+  );
   // When adding: id of an already-registered patient matched by file no / civil id
   const [matchedId, setMatchedId] = useState<number | null>(null);
   const [fileNoSugs, setFileNoSugs] = useState<string[]>([]);
@@ -139,7 +142,7 @@ export function PatientForm({ patient }: { patient?: Patient }) {
     try {
       if (patient?.id) {
         const data = { ...form, updatedAt: Date.now() };
-        await updatePatientCloudFirst(patient.id, data);
+        await updatePatientCloudFirst(patient.id, data, initialCloudVersion.current);
         toast.success(t("savedOk"));
         navigate({ to: "/patients/$patientId", params: { patientId: String(patient.id) } });
         return;
@@ -159,7 +162,7 @@ export function PatientForm({ patient }: { patient?: Patient }) {
           ...data,
           dischargedAt: undefined,
           dischargeNote: undefined,
-        });
+        }, getCloudVersion("patients", existingId));
         if (wasDischarged) await readmitPatientCloudFirst(existingId, data.doa);
         toast.success(wasDischarged ? t("readmittedOk") : t("patientAlreadyActive"));
         navigate({ to: "/patients/$patientId", params: { patientId: String(existingId) } });
