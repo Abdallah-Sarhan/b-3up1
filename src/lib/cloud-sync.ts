@@ -76,6 +76,7 @@ let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let lastErrorMessage: string | null = null;
+let cloudUnavailable = true;
 let cacheClearPromise: Promise<void> | null = null;
 let onlineHandler: (() => void) | null = null;
 let offlineHandler: (() => void) | null = null;
