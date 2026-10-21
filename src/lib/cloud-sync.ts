@@ -427,6 +427,10 @@ export async function initializeClinicalCloud(db: Dexie = wardDB): Promise<void>
         });
         await clearClinicalMappings();
       }
+      // Claim this browser cache for the current user before migration starts.
+      // If migration fails and they sign out, the next user's session will still
+      // detect the owner mismatch and clear this cache rather than importing it.
+      try { localStorage.setItem(ACTIVE_USER_MARKER, userId); } catch { /* session auth still applies */ }
       const marker = (() => {
         try { return localStorage.getItem(`${LEGACY_MARKER}:${userId}`); } catch { return null; }
       })();
