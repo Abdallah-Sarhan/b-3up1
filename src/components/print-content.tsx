@@ -593,7 +593,7 @@ export function NursingCarePlanTemplateContent({ patient, id }: { patient: Patie
       <NCPF left={500} top={209} width={130} height={23} align="center" size={8} fieldKey="header.dischargeDate">{patient.dischargedAt ?? ""}</NCPF>
 
       {visibleRows.map((row, index) => {
-        const groupKey = String(row.entry.id ?? row.key.slice(0, row.key.lastIndexOf("-")));
+        const groupKey = row.groupKey;
         const span = groupSpans.get(groupKey) ?? { start: index, count: 1 };
         const startsEntry = span.start === index;
         const top = NCP_ROW_TOP + index * NCP_ROW_HEIGHT + 2;
