@@ -166,7 +166,7 @@ async function removeLocalPatient(patient: Patient): Promise<void> {
   const id = patient.id;
   if (id == null) return;
   await withCloudCacheMutation(async () => {
-    await Promise.all(CLINICAL_TABLES.map((name) => wardDB.table(name).where("patientId").equals(id).delete()));
+    await Promise.all(["vitals", "notes", "sbar", "careplan", "rounds", "tranq", "assignments", "admissions"].map((name) => wardDB.table(name).where("patientId").equals(id).delete()));
     await wardDB.patients.delete(id);
   });
 }
