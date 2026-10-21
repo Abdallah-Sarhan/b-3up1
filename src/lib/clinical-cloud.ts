@@ -256,6 +256,29 @@ async function cloudPatientId(localPatientId: number): Promise<string> {
   return id;
 }
 
+const IDENTITY_FIELDS: Record<ClinicalTable, string[]> = {
+  vitals: ["date", "time"],
+  notes: ["date", "time"],
+  sbar: ["date", "shift"],
+  careplan: ["dateIdentified", "problemNo", "problem"],
+  rounds: ["date"],
+  tranq: ["date", "time", "drug", "dose", "givenBy"],
+  assignments: ["date", "shift"],
+  admissions: ["admittedAt", "createdAt"],
+  meds: ["createdAt", "category"],
+};
+
+function sameClinicalIdentity(table: ClinicalTable, local: Record<string, unknown>, remote: Record<string, unknown>): boolean {
+  const keys = IDENTITY_FIELDS[table];
+  return keys.every((key) =>
+    local[key] !== undefined &&
+    local[key] !== null &&
+    remote[key] !== undefined &&
+    remote[key] !== null &&
+    String(local[key]) === String(remote[key])
+  );
+}
+
 async function findMatchingRemoteChild(
   table: ClinicalTable,
   record: Record<string, unknown>,
@@ -267,10 +290,12 @@ async function findMatchingRemoteChild(
   if (error) throw cleanError(error);
   const target = stableJson(childPayload(record));
   const rows = (data ?? []) as RemoteRow[];
-  return rows.find((row) =>
-    (row.patient_id ?? null) === patientId &&
-    stableJson(row.data ?? {}) === target
-  ) ?? null;
+  // Ignore tombstones so a stale cache never revives a record deleted in cloud.
+  return rows.find((row) => {
+    if (row.deleted_at || (row.patient_id ?? null) !== patientId) return false;
+    const rowData = row.data ?? {};
+    return stableJson(rowData) === target || sameClinicalIdentity(table, childPayload(record), rowData);
+  }) ?? null;
 }
 
 async function uploadChildRemote(
