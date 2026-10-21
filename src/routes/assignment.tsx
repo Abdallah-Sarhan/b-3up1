@@ -132,24 +132,28 @@ function AssignmentPage() {
 
     async function save() {
       if (!requireLeader()) return;
-      await saveSharedSetting(`leader:${date}:${shift}`, leader.trim());
-      const existing = await db.assignments.where("date").equals(date).toArray();
-    await Promise.all(
-      existing.filter((e) => e.shift === shift && e.id != null).map((e) => deleteClinicalRecordCloudFirst("assignments", e.id!)),
-    );
-    const rows = groups.flatMap((g, i) =>
-      g
-        .filter((p) => p.id != null)
-        .map((p) => ({
-          patientId: p.id!,
-          date,
-          shift,
-          nurse: nurses[i]?.trim() || `Nurse ${i + 1}`,
-          remarks: special[i]?.trim() ?? "",
-        })),
-    );
-    for (const row of rows) await createClinicalRecordCloudFirst("assignments", row);
-    toast.success(t("savedOk"));
+      try {
+        await saveSharedSetting(`leader:${date}:${shift}`, leader.trim());
+        const existing = await db.assignments.where("date").equals(date).toArray();
+        const oldRows = existing.filter((e) => e.shift === shift && e.id != null);
+        const rows = groups.flatMap((g, i) =>
+          g
+            .filter((p) => p.id != null)
+            .map((p) => ({
+              patientId: p.id!,
+              date,
+              shift,
+              nurse: nurses[i]?.trim() || `Nurse ${i + 1}`,
+              remarks: special[i]?.trim() ?? "",
+            })),
+        );
+        // Publish the new set before removing the previous assignment records.
+        for (const row of rows) await createClinicalRecordCloudFirst("assignments", row);
+        for (const row of oldRows) await deleteClinicalRecordCloudFirst("assignments", row.id!);
+        toast.success(t("savedOk"));
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "تعذر حفظ توزيع التمريض في السحابة.");
+      }
   }
 
   return (
