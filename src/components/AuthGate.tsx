@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 /** Pages reachable without signing in. */
 export function isPublicPath(pathname: string) {
   return (
-    pathname.startsWith("/print") ||
     pathname === "/login" ||
     pathname === "/reset-password" ||
     pathname.startsWith("/.lovable/oauth")
