@@ -403,12 +403,14 @@ function startLiveSync(): void {
     if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
     void refreshCloudViews().catch(() => {
       lastErrorMessage = "تعذر تحديث البيانات من السحابة؛ تحقّق من الاتصال.";
+      cloudUnavailable = true;
     });
   }, POLL_INTERVAL_MS);
   if (typeof window !== "undefined") {
     onlineHandler = scheduleRealtimeRefresh;
     offlineHandler = () => {
       lastErrorMessage = "انقطع الاتصال. الحفظ متوقف حتى استعادة اتصال السحابة.";
+      cloudUnavailable = true;
     };
     window.addEventListener("online", onlineHandler);
     window.addEventListener("offline", offlineHandler);
