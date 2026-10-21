@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type PointerEventHandler, type ReactNode } from "react";
 
 /** Multiplies every printed field's font size (overlay forms). */
 export const PrintFontScale = createContext(1);
@@ -50,6 +50,11 @@ export function makeField(iw: number, ih: number) {
     size = 13,
     spacing,
     bold,
+    draggable = false,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onPointerCancel,
   }: {
     left: number;
     top: number;
@@ -60,11 +65,16 @@ export function makeField(iw: number, ih: number) {
     size?: number;
     spacing?: number;
     bold?: boolean;
+    draggable?: boolean;
+    onPointerDown?: PointerEventHandler<HTMLDivElement>;
+    onPointerMove?: PointerEventHandler<HTMLDivElement>;
+    onPointerUp?: PointerEventHandler<HTMLDivElement>;
+    onPointerCancel?: PointerEventHandler<HTMLDivElement>;
   }) {
     const scale = usePrintFontScale();
     return (
       <div
-        className="absolute overflow-hidden leading-tight"
+        className={`absolute overflow-hidden leading-tight ${draggable ? "cursor-grab active:cursor-grabbing select-none touch-none" : ""}`}\n        onPointerDown={onPointerDown}\n        onPointerMove={onPointerMove}\n        onPointerUp={onPointerUp}\n        onPointerCancel={onPointerCancel}
         style={{
           left: `${(left / iw) * 100}%`,
           top: `${(top / ih) * 100}%`,
