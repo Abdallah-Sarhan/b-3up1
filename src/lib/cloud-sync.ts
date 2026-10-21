@@ -272,7 +272,9 @@ async function pullClinicalTable(table: ClinicalTable): Promise<void> {
     const fields = { ...(row.data ?? {}) } as Record<string, unknown>;
     const value = { ...fields, ...(parentLocalId != null ? { patientId: parentLocalId } : {}) };
     if (existing?.["id"] != null) {
-      await withCloudCacheMutation(() => wardDB.table(table).update(existing["id"] as number, value as never));
+      if (getCloudVersion(table, existing["id"] as number) !== Number(row.version ?? 0)) {
+        await withCloudCacheMutation(() => wardDB.table(table).update(existing["id"] as number, value as never));
+      }
       linkIds(table, existing["id"] as number, row.id);
       setCloudVersion(table, existing["id"] as number, Number(row.version ?? 0));
       Object.assign(existing, value);
