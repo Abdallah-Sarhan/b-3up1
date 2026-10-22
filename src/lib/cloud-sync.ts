@@ -472,13 +472,11 @@ export async function clearClinicalCloudCache(): Promise<void> {
     stopLiveSync();
     await refreshInFlight?.catch(() => undefined);
     // Never erase the only copy of data after an incomplete/failed migration.
-    let safelyMigrated = false;
-    try {
-      const activeUser = localStorage.getItem(ACTIVE_USER_MARKER);
-      safelyMigrated = Boolean(activeUser && localStorage.getItem(LEGACY_MARKER + ":" + activeUser) === "done");
-    } catch {
-      safelyMigrated = false;
-    }
+    // Do not erase local clinical records automatically: legacy-only records
+    // may be the sole copy. Account ownership mismatch handling remains in
+    // initializeClinicalCloud; explicit cloud-only migration must be completed
+    // before a safe full cache purge can be offered.
+    const safelyMigrated = false;
 
     if (safelyMigrated) {
       await withCloudCacheMutation(async () => {
@@ -486,10 +484,7 @@ export async function clearClinicalCloudCache(): Promise<void> {
       });
       await clearClinicalMappings();
       try {
-        for (let i = localStorage.length - 1; i >= 0; i--) {
-          const key = localStorage.key(i);
-          if (key?.startsWith(LEGACY_MARKER + ":") || key === ACTIVE_USER_MARKER) localStorage.removeItem(key);
-        }
+        localStorage.removeItem(ACTIVE_USER_MARKER);
       } catch {
         // Cloud data remains authoritative even if device-side cleanup fails.
       }
@@ -507,9 +502,6 @@ export async function clearClinicalCloudCache(): Promise<void> {
 export async function resetClinicalCloudMappings(): Promise<void> {
   await clearClinicalMappings();
   try {
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (key?.startsWith(LEGACY_MARKER + ":")) localStorage.removeItem(key);
-    }
+
   } catch { /* cache-only cleanup */ }
 }
