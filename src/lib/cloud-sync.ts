@@ -65,7 +65,7 @@ const PAGE_SIZE = 500;
 const POLL_INTERVAL_MS = 30_000;
 // A stalled Supabase request must not leave the app permanently in "connecting".
 // Each cloud read is bounded; the user can retry after the request fails clearly.
-const CLOUD_READ_TIMEOUT_MS = 3_000;
+const CLOUD_READ_TIMEOUT_MS = 15_000;
 const ACTIVE_USER_MARKER = "ward39.cloud.active-user";
 
 function withCloudReadTimeout<T>(promise: PromiseLike<T>, label: string): Promise<T> {
