@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export type CloudPatient = {
   id: string;
+  version: number;
   fileNo: string;
   name: string;
   nationality: string;
@@ -49,11 +50,13 @@ type PatientRow = {
   created_at: number | null;
   updated_at: number | null;
   deleted_at: string | null;
+  version: number | null;
 };
 
 function mapPatient(row: PatientRow): CloudPatient {
   return {
     id: row.id,
+    version: Number(row.version ?? 0),
     fileNo: row.file_no && !row.file_no.startsWith("~") ? row.file_no : "",
     name: row.name ?? "",
     nationality: row.nationality ?? "",
@@ -80,7 +83,7 @@ function mapPatient(row: PatientRow): CloudPatient {
 export async function fetchActiveCloudPatients(): Promise<CloudPatient[]> {
   const { data, error } = await supabase
     .from("patients")
-    .select("id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,marital_status,notes,discharged_at,discharge_note,created_at,updated_at,deleted_at")
+    .select("id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,marital_status,notes,discharged_at,discharge_note,created_at,updated_at,deleted_at,version")
     .is("deleted_at", null)
     .is("discharged_at", null)
     .order("name", { ascending: true })
