@@ -73,7 +73,7 @@ function AssignmentPage() {
     const [special, setSpecial] = useState<string[]>(() => Array.from({ length: 6 }, () => ""));
     const [seed, setSeed] = useState(0);
     const [leaderNames, setLeaderNames] = useState<string[]>([]);
-  const { records: assignmentRecords, refresh: refreshAssignments, error: assignmentsError } =
+  const { refresh: refreshAssignments, error: assignmentsError } =
     useCloudFilteredRecords("assignments", "date", date);
 
     // One team leader per shift: the leader is stored per (date, shift) and
@@ -167,6 +167,7 @@ function AssignmentPage() {
 
   return (
     <div className="space-y-4">
+      {assignmentsError ? <p role="alert" className="text-sm text-destructive">{assignmentsError}</p> : null}
       <style>{`@media print { @page { size: A4 landscape; margin: 8mm; } }`}</style>
 
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
