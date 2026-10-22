@@ -73,6 +73,7 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 let lastErrorMessage: string | null = null;
 let cloudUnavailable = true;
+let cloudInitializing = false;
 let cacheClearPromise: Promise<void> | null = null;
 let onlineHandler: (() => void) | null = null;
 let offlineHandler: (() => void) | null = null;
@@ -312,9 +313,13 @@ async function assertApprovedSession(): Promise<string> {
 
 async function pullAllCloudData(): Promise<void> {
   assertOnline();
+  // Patient IDs must be resolved before child records are reconciled. After that,
+  // each clinical table has its own IndexedDB table and can be fetched in parallel.
   await pullPatients();
-  for (const table of CLINICAL_TABLES) await pullClinicalTable(table);
-  await pullSharedSettings();
+  await Promise.all([
+    ...CLINICAL_TABLES.map((table) => pullClinicalTable(table)),
+    pullSharedSettings(),
+  ]);
 }
 
 function scheduleRealtimeRefresh(): void {
@@ -408,6 +413,8 @@ export async function initializeClinicalCloud(db: Dexie = wardDB, approvedUserId
     initialization = null;
   }
   initializationUserId = userId;
+  cloudInitializing = true;
+  lastErrorMessage = null;
   initialization = (async () => {
     try {
       // Never reuse another account's browser cache or cloud-id mappings.
@@ -435,11 +442,17 @@ export async function initializeClinicalCloud(db: Dexie = wardDB, approvedUserId
       cloudUnavailable = false;
       startLiveSync();
     } catch (error) {
+      const normalized = safeError(error);
+      // Preserve the concrete failure so the UI does not show a misleading,
+      // generic "data unavailable" message when a table, permission, or RPC fails.
+      lastErrorMessage = normalized.message;
       initialization = null;
       initializationUserId = null;
       cloudUnavailable = true;
       stopLiveSync();
-      throw safeError(error);
+      throw normalized;
+    } finally {
+      cloudInitializing = false;
     }
   })();
   return initialization;
@@ -452,11 +465,12 @@ export async function retryClinicalCloudInitialization(): Promise<void> {
   await initializeClinicalCloud(wardDB);
 }
 
-export function getClinicalCloudStatus(): { online: boolean; available: boolean; warning: string | null } {
+export function getClinicalCloudStatus(): { online: boolean; available: boolean; initializing: boolean; warning: string | null } {
   const online = typeof navigator === "undefined" ? true : navigator.onLine;
   return {
     online,
     available: online && !cloudUnavailable,
+    initializing: cloudInitializing,
     warning: lastErrorMessage,
   };
 }
