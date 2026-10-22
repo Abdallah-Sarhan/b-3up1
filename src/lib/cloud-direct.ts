@@ -213,14 +213,14 @@ export async function fetchCloudRecords(
     id: row.id,
     patientId: row.patient_id ?? null,
     version: Number(row.version ?? 0),
-    createdAt: (row.created_at as string | number | undefined) ?? 0,
+    createdAt: (row.data as Record<string, unknown> | null)?.createdAt as number | string ?? (row.created_at as string | number | undefined) ?? 0,
     changedAt: Number(row.changed_at ?? 0),
   })) as CloudClinicalRecord[];
 }
 
 export async function createCloudRecord(
   table: CloudTableKey,
-  patientId: string,
+  patientId: string | null,
   value: Record<string, unknown>,
 ): Promise<CloudClinicalRecord> {
   const id = uuid();
@@ -275,4 +275,27 @@ export async function deleteCloudRecord(
     fields: {},
     patientId,
   });
+}
+
+/** Fetch all non-deleted records only for explicit export/backup operations. */
+export async function fetchAllCloudRecords(table: CloudClinicalTable): Promise<CloudClinicalRecord[]> {
+  const rows: CloudClinicalRecord[] = [];
+  for (let start = 0; ; start += 500) {
+    const { data, error } = await (supabase.from(table) as any)
+      .select("id,patient_id,data,deleted_at,version,created_at,changed_at,sync_seq")
+      .is("deleted_at", null)
+      .order("sync_seq", { ascending: true, nullsFirst: true })
+      .range(start, start + 499);
+    if (error) throw normalizeError(error);
+    const page = (data ?? []) as RemoteRow[];
+    rows.push(...page.map((row) => ({
+      ...((row.data as Record<string, unknown> | null) ?? {}),
+      id: row.id,
+      patientId: row.patient_id ?? null,
+      version: Number(row.version ?? 0),
+      createdAt: ((row.data as Record<string, unknown> | null)?.createdAt as number | string | undefined) ?? (row.created_at as string | number | undefined) ?? 0,
+      changedAt: Number(row.changed_at ?? 0),
+    })) as CloudClinicalRecord[]);
+    if (page.length < 500) return rows;
+  }
 }
