@@ -99,7 +99,7 @@ export async function fetchActiveCloudPatients(): Promise<CloudPatient[]> {
 export async function fetchCloudPatientById(id: string): Promise<CloudPatient | null> {
   const { data, error } = await supabase
     .from("patients")
-    .select("id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,marital_status,notes,discharged_at,discharge_note,created_at,updated_at,deleted_at")
+    .select("id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,marital_status,notes,discharged_at,discharge_note,created_at,updated_at,deleted_at,version")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle();
@@ -127,7 +127,7 @@ export type CloudClinicalRecord = {
   version: number;
   createdAt: number | string;
   changedAt: number;
-} & Record<string, unknown>;
+} & Record<string, any>;
 
 /** Fetch a bounded set of clinical records directly from Supabase. */
 export async function fetchCloudClinicalRecords(
