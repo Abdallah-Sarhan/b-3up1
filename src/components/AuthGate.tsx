@@ -20,8 +20,6 @@ export type AuthProfile = {
   is_admin: boolean;
 };
 
-const CACHE_KEY = "ward39.profile";
-
 // Never leave the clinical app on an endless startup spinner if auth or cloud
 // initialization stops responding. This does not mark data as loaded or saved.
 function withStartupTimeout<T>(promise: Promise<T>, label: string, timeoutMs = 60_000): Promise<T> {
@@ -59,7 +57,6 @@ async function loadProfile(userId: string): Promise<AuthProfile | null> {
     if (error) throw error;
     if (!prof) return null;
     const p = { ...prof, is_admin: Boolean(admin) };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(p));
     return p;
   } catch {
     // A network/database failure must not masquerade as an unapproved account.
@@ -68,7 +65,6 @@ async function loadProfile(userId: string): Promise<AuthProfile | null> {
 }
 
 export async function signOutEverywhere() {
-  localStorage.removeItem(CACHE_KEY);
   publish(null);
   try {
     await clearClinicalCloudCache();
@@ -90,7 +86,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Remove the old local device lock data.
     try {
-      ["ward39.lockHash", "ward39.recoveryHash", "ward39.recovery", "ward39.lockSalt"].forEach((k) =>
+      ["ward39.profile", "ward39.lockHash", "ward39.recoveryHash", "ward39.recovery", "ward39.lockSalt"].forEach((k) =>
         localStorage.removeItem(k),
       );
       sessionStorage.removeItem("ward39.unlocked");
@@ -102,7 +98,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     const check = async (userId: string | undefined) => {
       if (!userId) {
         publish(null);
+        // Hide all clinical pages immediately, then erase the browser working copy.
         if (alive) setState("out");
+        await clearClinicalCloudCache().catch(() => undefined);
         return;
       }
       try {
@@ -110,30 +108,35 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         publish(p);
         if (!p?.approved) {
           if (alive) setState("pending");
+          // Hide the clinical app immediately; cleanup continues without delaying the status screen.
+          void clearClinicalCloudCache().catch(() => undefined);
           return;
         }
-        // Do not block the clinical UI on the initial cloud pull/migration.
-        // Keep authentication and approval checks mandatory, but report cloud
-        // trouble in-page rather than trapping the user on a startup spinner.
-        if (alive) {
-          setCloudWarning("جارٍ تحميل بيانات السحابة في الخلفية. انتظر تأكيد المزامنة قبل الاعتماد على البيانات أو حفظ تغييرات مهمة.");
-          setState("in");
-        }
-        void withStartupTimeout(
+        // Keep clinical pages hidden until the cloud data pull succeeds.
+        // Cached browser data must not appear as current cloud data.
+        if (alive) setCloudWarning(null);
+        await withStartupTimeout(
           initializeClinicalCloud(undefined, userId),
-          "لم يكتمل تحميل بيانات السحابة خلال دقيقة. قد لا تكون البيانات محدثة، ولم يتم تأكيد مزامنة التغييرات."
-        ).then(() => {
-          if (alive) setCloudWarning(null);
-        }).catch((error) => {
-          if (alive) setCloudWarning(error instanceof Error ? error.message : "تعذر إكمال مزامنة السحابة.");
-        });
+          "لم يكتمل تحميل بيانات السحابة خلال دقيقة. لم يتم عرض بيانات المرضى؛ تحقق من الاتصال ثم أعد المحاولة."
+        );
+        if (alive) setState("in");
       } catch (error) {
         if (alive) {
           setCloudError(error instanceof Error ? error.message : "تعذر فتح البيانات السحابية.");
           setState("cloud-error");
         }
+        // A failed approval check or incomplete cloud pull must not leave partial
+        // or stale patient data stored locally. Do not delay the error screen.
+        void clearClinicalCloudCache().catch(() => undefined);
       }
     };
+    const onPageHide = (event: PageTransitionEvent) => {
+      // Best-effort cleanup on tab/window close. Startup also clears the cache,
+      // because browsers may terminate before an asynchronous pagehide cleanup finishes.
+      if (!event.persisted) void clearClinicalCloudCache();
+    };
+    window.addEventListener("pagehide", onPageHide);
+
     let unsubscribe = () => {};
     try {
       void supabase.auth.getSession()
@@ -162,6 +165,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return () => {
       alive = false;
       unsubscribe();
+      window.removeEventListener("pagehide", onPageHide);
     };
   }, []);
 

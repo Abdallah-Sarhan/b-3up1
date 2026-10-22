@@ -62,52 +62,40 @@ export function remoteTableName(table: ClinicalTable): string {
   return REMOTE_TABLE[table];
 }
 
+// Cloud ID links and versions only live in memory for this tab.
+// They are rebuilt from the cloud during startup and are never persisted in browser storage.
+const cloudIdByLocal = new Map<string, string>();
+const localIdByCloud = new Map<string, string>();
+const cloudVersionByLocal = new Map<string, number>();
+
 function mappingKey(table: string, localId: number | string) {
-  return `${MAP_PREFIX}:${table}:${String(localId)}`;
+  return `${table}:${String(localId)}`;
 }
 function reverseKey(table: string, cloudId: string) {
-  return `${REVERSE_PREFIX}:${table}:${cloudId}`;
-}
-function readMap(key: string): string | null {
-  try {
-    return typeof localStorage === "undefined" ? null : localStorage.getItem(key);
-  } catch {
-    return null;
-  }
+  return `${table}:${cloudId}`;
 }
 export function getCloudId(table: string, localId: number | string): string | null {
-  return readMap(mappingKey(table, localId));
+  return cloudIdByLocal.get(mappingKey(table, localId)) ?? null;
 }
 export function getLocalId(table: string, cloudId: string): number | string | null {
-  const value = readMap(reverseKey(table, cloudId));
-  if (value === null) return null;
+  const value = localIdByCloud.get(reverseKey(table, cloudId));
+  if (value == null) return null;
   if (table === "meta") return value;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
 export function getCloudVersion(table: string, localId: number | string): number | null {
-  const raw = readMap(VERSION_PREFIX + ":" + table + ":" + String(localId));
-  if (raw === null || raw.trim() === "") return null;
-  const version = Number(raw);
-  return Number.isInteger(version) && version >= 0 ? version : null;
+  return cloudVersionByLocal.get(mappingKey(table, localId)) ?? null;
 }
 
 export function setCloudVersion(table: string, localId: number | string, version: number): void {
   if (!Number.isInteger(version) || version < 0) throw new Error("إصدار السجل السحابي غير صالح.");
-  try {
-    localStorage.setItem(VERSION_PREFIX + ":" + table + ":" + String(localId), String(version));
-  } catch {
-    throw new Error("تم حفظ التغيير في السحابة، لكن تعذر حفظ رقم إصدار السجل على هذا الجهاز. حدّث الصفحة قبل أي تعديل آخر.");
-  }
+  cloudVersionByLocal.set(mappingKey(table, localId), version);
 }
 
 export function linkIds(table: string, localId: number | string, cloudId: string): void {
-  try {
-    localStorage.setItem(mappingKey(table, localId), cloudId);
-    localStorage.setItem(reverseKey(table, cloudId), String(localId));
-  } catch {
-    throw new Error("تعذر حفظ رابط السجل السحابي على هذا الجهاز. لا تغلق الصفحة وحاول مرة أخرى.");
-  }
+  cloudIdByLocal.set(mappingKey(table, localId), cloudId);
+  localIdByCloud.set(reverseKey(table, cloudId), String(localId));
 }
 
 function newUuid(): string {
@@ -556,6 +544,10 @@ export async function adoptLegacyClinicalRecord(
 }
 
 export async function clearClinicalMappings(): Promise<void> {
+  cloudIdByLocal.clear();
+  localIdByCloud.clear();
+  cloudVersionByLocal.clear();
+  // Remove mapping keys left by older versions, which persisted them in localStorage.
   try {
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
@@ -564,6 +556,6 @@ export async function clearClinicalMappings(): Promise<void> {
       }
     }
   } catch {
-    // Cache mappings are not authorization; cloud RLS remains authoritative.
+    // In-memory mappings are already cleared; cloud RLS remains authoritative.
   }
 }

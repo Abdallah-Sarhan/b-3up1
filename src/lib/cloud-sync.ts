@@ -66,7 +66,6 @@ const POLL_INTERVAL_MS = 30_000;
 // A stalled Supabase request must not leave the app permanently in "connecting".
 // Each cloud read is bounded; the user can retry after the request fails clearly.
 const CLOUD_READ_TIMEOUT_MS = 3_000;
-const ACTIVE_USER_MARKER = "ward39.cloud.active-user";
 
 function withCloudReadTimeout<T>(promise: PromiseLike<T>, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -88,6 +87,7 @@ let lastErrorMessage: string | null = null;
 let cloudUnavailable = true;
 let cloudInitializing = false;
 let cacheClearPromise: Promise<void> | null = null;
+let cacheGeneration = 0;
 let onlineHandler: (() => void) | null = null;
 let offlineHandler: (() => void) | null = null;
 
@@ -338,10 +338,15 @@ async function pullAllCloudData(): Promise<void> {
   // Patient IDs must be resolved before child records are reconciled. After that,
   // each clinical table has its own IndexedDB table and can be fetched in parallel.
   await pullPatients();
-  await Promise.all([
+  // Wait for every table pull to settle before returning an error. This prevents
+  // a failed table from causing logout cleanup to race with sibling pulls that
+  // are still writing into the local working view.
+  const results = await Promise.allSettled([
     ...CLINICAL_TABLES.map((table) => pullClinicalTable(table)),
     pullSharedSettings(),
   ]);
+  const failed = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+  if (failed) throw failed.reason;
 }
 
 function scheduleRealtimeRefresh(): void {
@@ -424,9 +429,14 @@ export async function initializeClinicalCloud(db: Dexie = wardDB, approvedUserId
   // AuthGate has already confirmed the session and approved profile. Reuse that
   // identity here instead of repeating a cloud approval RPC during startup.
   const userId = approvedUserId ?? await assertApprovedSession();
+  // Finish any sign-out/close cleanup before beginning a new cloud session.
+  if (cacheClearPromise) await cacheClearPromise;
   if (initialization && initializationUserId === userId) return initialization;
   if (initializationUserId && initializationUserId !== userId) {
+    cacheGeneration += 1;
+    const previousInitialization = initialization;
     stopLiveSync();
+    await previousInitialization?.catch(() => undefined);
     await refreshInFlight?.catch(() => undefined);
     await withCloudCacheMutation(async () => {
       for (const table of db.tables) await table.clear();
@@ -434,32 +444,23 @@ export async function initializeClinicalCloud(db: Dexie = wardDB, approvedUserId
     await clearClinicalMappings();
     initialization = null;
   }
+  const generation = cacheGeneration;
   initializationUserId = userId;
   cloudInitializing = true;
   lastErrorMessage = null;
   initialization = (async () => {
     try {
-      // Never reuse another account's browser cache or cloud-id mappings.
-      let previousUser: string | null = null;
-      try { previousUser = localStorage.getItem(ACTIVE_USER_MARKER); } catch { /* no local marker */ }
-      if (previousUser && previousUser !== userId) {
-        await withCloudCacheMutation(async () => {
-          for (const table of db.tables) await table.clear();
-        });
-        await clearClinicalMappings();
-      }
-      // Claim this browser cache for the current user before migration starts.
-      // If migration fails and they sign out, the next user's session will still
-      // detect the owner mismatch and clear this cache rather than importing it.
-      try { localStorage.setItem(ACTIVE_USER_MARKER, userId); } catch { /* session auth still applies */ }
-      // The browser is an access device, not a source of records to upload.
-      // Never auto-import unlinked IndexedDB rows: only records explicitly saved
-      // and confirmed by the cloud are authoritative. Reconcile the device view
-      // from the cloud; legacy local-only records are not uploaded automatically.
+      // IndexedDB is a temporary working view only. Remove any data left by an
+      // earlier tab/session before rebuilding the view from the cloud.
+      await withCloudCacheMutation(async () => {
+        for (const table of db.tables) await table.clear();
+      });
+      await clearClinicalMappings();
+      // Never import unlinked local-only rows. The cloud is the source of truth.
       await pullAllCloudData();
-      try {
-        localStorage.setItem(ACTIVE_USER_MARKER, userId);
-      } catch { /* cloud mappings still work */ }
+      if (generation !== cacheGeneration) {
+        throw new Error("انتهت جلسة السحابة قبل اكتمال التحميل؛ أعد تسجيل الدخول.");
+      }
       lastErrorMessage = null;
       cloudUnavailable = false;
       startLiveSync();
@@ -507,29 +508,30 @@ export async function stopClinicalCloudSync(): Promise<void> {
 export async function clearClinicalCloudCache(): Promise<void> {
   if (cacheClearPromise) return cacheClearPromise;
   cacheClearPromise = (async () => {
+    // Invalidate any pull that started before sign-out, then wait for it to stop
+    // before clearing tables so it cannot repopulate the cache afterwards.
+    cacheGeneration += 1;
+    const pendingInitialization = initialization;
     stopLiveSync();
+    await pendingInitialization?.catch(() => undefined);
     await refreshInFlight?.catch(() => undefined);
-    // Never erase the only copy of data after an incomplete/failed migration.
-    // Do not erase local clinical records automatically: legacy-only records
-    // may be the sole copy. Account ownership mismatch handling remains in
-    // initializeClinicalCloud; explicit cloud-only migration must be completed
-    // before a safe full cache purge can be offered.
-    const safelyMigrated = false;
-
-    if (safelyMigrated) {
-      await withCloudCacheMutation(async () => {
-        for (const table of wardDB.tables) await table.clear();
-      });
-      await clearClinicalMappings();
-      try {
-        localStorage.removeItem(ACTIVE_USER_MARKER);
-      } catch {
-        // Cloud data remains authoritative even if device-side cleanup fails.
-      }
+    // Clinical data is cloud-authoritative. Clear only this device's temporary
+    // working copy and mappings; this does not issue any delete to Supabase.
+    await withCloudCacheMutation(async () => {
+      for (const table of wardDB.tables) await table.clear();
+    });
+    await clearClinicalMappings();
+    try {
+      // Clean up the marker used by older versions.
+      localStorage.removeItem("ward39.cloud.active-user");
+    } catch {
+      // Device cleanup must not affect cloud data.
     }
-
     initialization = null;
     initializationUserId = null;
+    cloudUnavailable = true;
+    cloudInitializing = false;
+    lastErrorMessage = null;
   })().finally(() => {
     cacheClearPromise = null;
   });
