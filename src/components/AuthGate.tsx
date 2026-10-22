@@ -120,7 +120,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           setState("in");
         }
         void withStartupTimeout(
-          initializeClinicalCloud(),
+          initializeClinicalCloud(undefined, userId),
           "لم يكتمل تحميل بيانات السحابة خلال دقيقة. قد لا تكون البيانات محدثة، ولم يتم تأكيد مزامنة التغييرات."
         ).then(() => {
           if (alive) setCloudWarning(null);
