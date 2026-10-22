@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
-import { db, type CarePlanEntry, type NurseNote, type SbarEntry, type VitalEntry } from "@/lib/db";
-import { createClinicalRecordCloudFirst, deleteClinicalRecordCloudFirst, type ClinicalTable } from "@/lib/clinical-cloud";
+import { createCloudRecord, deleteCloudRecord, type CloudTableKey } from "@/lib/cloud-direct";
+import type { CloudClinicalRecord } from "@/lib/cloud-queries";
+import { useCloudRecords } from "@/hooks/use-cloud-records";
 import { useLang } from "@/lib/i18n";
 import { STANDARD_PROBLEMS } from "@/lib/careplan-standards";
 import { Button, Card, CardHeader, Field, Input, Select, Textarea } from "@/components/ui-kit";
@@ -18,16 +18,22 @@ function nowTime() {
   return new Date().toTimeString().slice(0, 5);
 }
 
-async function removeRecord(table: ClinicalTable, id: number) {
+async function removeRecord(
+  table: CloudTableKey,
+  patientId: string,
+  record: CloudClinicalRecord,
+  refresh: () => Promise<void>,
+) {
   try {
-    await deleteClinicalRecordCloudFirst(table, id);
+    await deleteCloudRecord(table, record.id, patientId, record.version);
+    await refresh();
     toast.success("تم حذف السجل من السحابة");
   } catch (error) {
     toast.error(error instanceof Error ? error.message : "تعذر حذف السجل من السحابة.");
   }
 }
 
-export function PatientRecords({ patientId }: { patientId: number }) {
+export function PatientRecords({ patientId }: { patientId: string }) {
   const { t } = useLang();
   const [tab, setTab] = useState<Tab>("vitals");
 
@@ -91,19 +97,17 @@ function DeleteBtn({ onClick }: { onClick: () => void }) {
   );
 }
 
-function VitalsTab({ patientId }: { patientId: number }) {
+function VitalsTab({ patientId }: { patientId: string }) {
   const { t } = useLang();
-  const entries = useLiveQuery(
-    () => db.vitals.where("patientId").equals(patientId).reverse().sortBy("date"),
-    [patientId],
-  );
+  const { records: entries, refresh, error: loadError } = useCloudRecords("vitals", patientId);
   const [form, setForm] = useState({ date: today(), time: nowTime(), bp: "", pulse: "", resp: "", temp: "", spo2: "", weight: "" });
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   async function add() {
-    const entry: VitalEntry = { patientId, ...form };
+    const entry = { ...form };
     try {
-      await createClinicalRecordCloudFirst("vitals", entry);
+      await createCloudRecord("vitals", patientId, entry);
+      await refresh();
       setForm((f) => ({ ...f, bp: "", pulse: "", resp: "", temp: "", spo2: "", weight: "" }));
       toast.success(t("savedOk"));
     } catch (error) {
@@ -134,7 +138,7 @@ function VitalsTab({ patientId }: { patientId: number }) {
             <tr key={v.id}>
               <Td mono>{v.date}</Td><Td mono>{v.time}</Td><Td mono>{v.bp}</Td><Td mono>{v.pulse}</Td>
               <Td mono>{v.resp}</Td><Td mono>{v.temp}</Td><Td mono>{v.spo2}</Td><Td mono>{v.weight}</Td>
-              <Td><DeleteBtn onClick={() => void removeRecord("vitals", v.id!)} /></Td>
+              <Td><DeleteBtn onClick={() => void removeRecord("vitals", patientId, v, refresh)} /></Td>
             </tr>
           ))}
         </EntryTable>
@@ -143,19 +147,17 @@ function VitalsTab({ patientId }: { patientId: number }) {
   );
 }
 
-function NotesTab({ patientId }: { patientId: number }) {
+function NotesTab({ patientId }: { patientId: string }) {
   const { t } = useLang();
-  const entries = useLiveQuery(
-    () => db.notes.where("patientId").equals(patientId).reverse().sortBy("date"),
-    [patientId],
-  );
+  const { records: entries, refresh, error: loadError } = useCloudRecords("notes", patientId);
   const [form, setForm] = useState({ date: today(), time: nowTime(), note: "" });
 
   async function add() {
     if (!form.note.trim()) return;
-    const entry: NurseNote = { patientId, ...form };
+    const entry = { ...form };
     try {
-      await createClinicalRecordCloudFirst("notes", entry);
+      await createCloudRecord("notes", patientId, entry);
+      await refresh();
       setForm((f) => ({ ...f, note: "" }));
       toast.success(t("savedOk"));
     } catch (error) {
@@ -180,7 +182,7 @@ function NotesTab({ patientId }: { patientId: number }) {
           {entries.map((n) => (
             <tr key={n.id}>
               <Td mono>{n.date}</Td><Td mono>{n.time}</Td><Td>{n.note}</Td>
-              <Td><DeleteBtn onClick={() => void removeRecord("notes", n.id!)} /></Td>
+              <Td><DeleteBtn onClick={() => void removeRecord("notes", patientId, n, refresh)} /></Td>
             </tr>
           ))}
         </EntryTable>
@@ -189,12 +191,9 @@ function NotesTab({ patientId }: { patientId: number }) {
   );
 }
 
-function SbarTab({ patientId }: { patientId: number }) {
+function SbarTab({ patientId }: { patientId: string }) {
   const { t } = useLang();
-  const entries = useLiveQuery(
-    () => db.sbar.where("patientId").equals(patientId).reverse().sortBy("date"),
-    [patientId],
-  );
+  const { records: entries, refresh, error: loadError } = useCloudRecords("sbar", patientId);
   const [form, setForm] = useState({
     date: today(), shift: "morning", situation: "", background: "", assessment: "", recommendation: "", signature: "",
   });
@@ -202,9 +201,10 @@ function SbarTab({ patientId }: { patientId: number }) {
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
   async function add() {
-    const entry: SbarEntry = { patientId, ...form };
+    const entry = { ...form };
     try {
-      await createClinicalRecordCloudFirst("sbar", entry);
+      await createCloudRecord("sbar", patientId, entry);
+      await refresh();
       setForm((f) => ({ ...f, situation: "", background: "", assessment: "", recommendation: "" }));
       toast.success(t("savedOk"));
     } catch (error) {
@@ -239,7 +239,7 @@ function SbarTab({ patientId }: { patientId: number }) {
               <Td mono>{s.date}</Td>
               <Td>{t(s.shift === "morning" ? "morningShift" : s.shift === "evening" ? "eveningShift" : "nightShift")}</Td>
               <Td>{s.situation}</Td><Td>{s.assessment}</Td><Td>{s.signature}</Td>
-              <Td><DeleteBtn onClick={() => void removeRecord("sbar", s.id!)} /></Td>
+              <Td><DeleteBtn onClick={() => void removeRecord("sbar", patientId, s, refresh)} /></Td>
             </tr>
           ))}
         </EntryTable>
@@ -248,12 +248,9 @@ function SbarTab({ patientId }: { patientId: number }) {
   );
 }
 
-export function CarePlanTab({ patientId }: { patientId: number }) {
+export function CarePlanTab({ patientId }: { patientId: string }) {
   const { t } = useLang();
-  const entries = useLiveQuery(
-    () => db.careplan.where("patientId").equals(patientId).sortBy("dateIdentified"),
-    [patientId],
-  );
+  const { records: entries, refresh, error: loadError } = useCloudRecords("careplan", patientId);
   const [form, setForm] = useState({
     dateIdentified: today(), problemNo: "", problem: "", objective: "", intervention: "", dateResolved: "", nurseSign: "",
   });
@@ -268,9 +265,10 @@ export function CarePlanTab({ patientId }: { patientId: number }) {
 
   async function add() {
     if (!form.problem.trim()) return;
-    const entry: CarePlanEntry = { patientId, ...form };
+    const entry = { ...form };
     try {
-      await createClinicalRecordCloudFirst("careplan", entry);
+      await createCloudRecord("careplan", patientId, entry);
+      await refresh();
       setForm((f) => ({ ...f, problemNo: "", problem: "", objective: "", intervention: "", dateResolved: "", nurseSign: "" }));
       toast.success(t("savedOk"));
     } catch (error) {
@@ -309,7 +307,7 @@ export function CarePlanTab({ patientId }: { patientId: number }) {
               <Td mono>{c.dateIdentified}</Td><Td mono>{c.problemNo}</Td>
               <Td><span className="line-clamp-2">{c.problem}</span></Td>
               <Td mono>{c.dateResolved}</Td><Td>{c.nurseSign}</Td>
-              <Td><DeleteBtn onClick={() => void removeRecord("careplan", c.id!)} /></Td>
+              <Td><DeleteBtn onClick={() => void removeRecord("careplan", patientId, c, refresh)} /></Td>
             </tr>
           ))}
         </EntryTable>
