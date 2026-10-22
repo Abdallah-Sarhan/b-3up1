@@ -84,22 +84,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/.lovable/oauth");
 
   if (!isPublicScreen && (!cloudStatus.online || !cloudStatus.available)) {
+    const isSyncing = cloudStatus.online && cloudStatus.initializing && !cloudStatus.warning;
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center shadow-sm">
-          <h1 className="text-base font-bold">بيانات الجناح غير متاحة حاليًا</h1>
+          <h1 className="text-base font-bold">
+            {isSyncing ? "جارٍ الاتصال بسحابة الجناح" : "بيانات الجناح غير متاحة حاليًا"}
+          </h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            لا يمكن عرض السجلات السريرية دون اتصال مؤكد بسحابة Lovable Cloud.
+            {isSyncing
+              ? "يتم جلب السجلات السريرية من السحابة. لن نعرض نسخة محلية قديمة على أنها بيانات مؤكدة."
+              : !cloudStatus.online
+                ? "لا يوجد اتصال بالإنترنت. يلزم استعادة الاتصال بالسحابة لعرض السجلات السريرية."
+                : "تعذر تأكيد اتصال قاعدة البيانات السحابية؛ لم نؤكد تحميل البيانات أو حفظ أي تغييرات."}
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {cloudStatus.warning ?? "جارٍ إعادة الاتصال بالسحابة للتحقق من البيانات."}
+          <p className="mt-2 break-words text-xs text-muted-foreground" role="status">
+            {cloudStatus.warning ?? (isSyncing
+              ? "جارٍ التحقق من الجداول والصلاحيات ومزامنة بيانات الجناح."
+              : "لم تصل تفاصيل الخطأ. أعد المحاولة، وإذا تكررت المشكلة استخدم رسالة الخطأ المعروضة هنا للتشخيص.")}
           </p>
           <button
             type="button"
             onClick={() => window.location.reload()}
             className="mt-5 h-10 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            إعادة الاتصال والمحاولة
+            {isSyncing ? "إعادة المحاولة" : "إعادة الاتصال والمحاولة"}
           </button>
           <button
             type="button"
