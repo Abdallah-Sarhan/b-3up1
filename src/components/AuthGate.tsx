@@ -20,8 +20,6 @@ export type AuthProfile = {
   is_admin: boolean;
 };
 
-const CACHE_KEY = "ward39.profile";
-
 // Never leave the clinical app on an endless startup spinner if auth or cloud
 // initialization stops responding. This does not mark data as loaded or saved.
 function withStartupTimeout<T>(promise: Promise<T>, label: string, timeoutMs = 60_000): Promise<T> {
@@ -59,7 +57,6 @@ async function loadProfile(userId: string): Promise<AuthProfile | null> {
     if (error) throw error;
     if (!prof) return null;
     const p = { ...prof, is_admin: Boolean(admin) };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(p));
     return p;
   } catch {
     // A network/database failure must not masquerade as an unapproved account.
@@ -68,7 +65,6 @@ async function loadProfile(userId: string): Promise<AuthProfile | null> {
 }
 
 export async function signOutEverywhere() {
-  localStorage.removeItem(CACHE_KEY);
   publish(null);
   try {
     await clearClinicalCloudCache();
@@ -90,7 +86,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Remove the old local device lock data.
     try {
-      ["ward39.lockHash", "ward39.recoveryHash", "ward39.recovery", "ward39.lockSalt"].forEach((k) =>
+      ["ward39.profile", "ward39.lockHash", "ward39.recoveryHash", "ward39.recovery", "ward39.lockSalt"].forEach((k) =>
         localStorage.removeItem(k),
       );
       sessionStorage.removeItem("ward39.unlocked");
