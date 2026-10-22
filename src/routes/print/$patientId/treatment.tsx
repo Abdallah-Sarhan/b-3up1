@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/lib/db";
+import { useCloudRecords } from "@/hooks/use-cloud-records";
 import {
   BoxedDigits,
   OverlayPrintPage,
@@ -30,10 +29,8 @@ const ROWS = 30;
 
 function TreatmentPrint() {
   const { id } = usePrintPatientData();
-  const entries = useLiveQuery(
-    () => db.tranq.where("patientId").equals(id).sortBy("date"),
-    [id],
-  );
+  const { records: rawEntries } = useCloudRecords("tranq", id);
+  const entries = rawEntries?.slice().sort((a, b) => String(a.date ?? "").localeCompare(String(b.date ?? "")));
   const list = (entries ?? []).slice(-ROWS);
 
   return (
