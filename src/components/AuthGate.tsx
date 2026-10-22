@@ -130,12 +130,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         void clearClinicalCloudCache().catch(() => undefined);
       }
     };
-    const onPageHide = (event: PageTransitionEvent) => {
-      // Best-effort cleanup on tab/window close. Startup also clears the cache,
-      // because browsers may terminate before an asynchronous pagehide cleanup finishes.
-      if (!event.persisted) void clearClinicalCloudCache();
-    };
-    window.addEventListener("pagehide", onPageHide);
+    // Do not clear the clinical cache on pagehide: browsers fire pagehide on
+    // ordinary refresh/navigation too, which can race the next page's cloud pull.
+    // Startup clears the temporary cache before reading cloud data, and sign-out
+    // clears it explicitly, so this handler is unnecessary and slows reloads.
 
     let unsubscribe = () => {};
     try {
@@ -165,7 +163,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return () => {
       alive = false;
       unsubscribe();
-      window.removeEventListener("pagehide", onPageHide);
     };
   }, []);
 
