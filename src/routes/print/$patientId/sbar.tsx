@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, type SbarEntry } from "@/lib/db";
+import type { CloudClinicalRecord } from "@/lib/cloud-queries";
+import { useCloudRecords } from "@/hooks/use-cloud-records";
 import { PrintShell, usePrintPatient } from "@/components/PrintSheet";
 import logoKcmh from "@/assets/logo-kcmh.png.asset.json";
 import logoMoh from "@/assets/logo-moh.png.asset.json";
@@ -26,11 +26,11 @@ const SHIFT_ROWS: Array<{ key: string; label: string }> = [
 function SbarPrint() {
   const { id, patient } = usePrintPatient();
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const all = useLiveQuery(() => db.sbar.where("patientId").equals(id).sortBy("date"), [id]);
+  const { records: all } = useCloudRecords("sbar", id);
   const entries = (all ?? []).filter((e) => e.date === date);
   const availableDates = [...new Set((all ?? []).map((e) => e.date))].sort().reverse();
 
-  const byShift = (shift: string): SbarEntry | undefined => entries.find((e) => e.shift === shift);
+  const byShift = (shift: string): CloudClinicalRecord | undefined => entries.find((e) => e.shift === shift);
 
   return (
     <PrintShell title="Hand Over Sheet (SBAR)" patient={patient} landscape formKey="sbar">
