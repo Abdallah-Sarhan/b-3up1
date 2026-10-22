@@ -10,6 +10,9 @@ DROP POLICY IF EXISTS "patients insertable by anyone" ON public.patients;
 DROP POLICY IF EXISTS "patients updatable by anyone" ON public.patients;
 DROP POLICY IF EXISTS "patients deletable by anyone" ON public.patients;
 DROP POLICY IF EXISTS "Approved staff read patients" ON public.patients;
+DROP POLICY IF EXISTS "Approved staff add patients" ON public.patients;
+DROP POLICY IF EXISTS "Approved staff edit patients" ON public.patients;
+DROP POLICY IF EXISTS "Approved staff delete patients" ON public.patients;
 CREATE POLICY "Approved staff read patients"
   ON public.patients FOR SELECT TO authenticated
   USING (public.is_approved(auth.uid()));
