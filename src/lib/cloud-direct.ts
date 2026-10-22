@@ -245,7 +245,7 @@ export async function createCloudRecord(
 export async function updateCloudRecord(
   table: CloudTableKey,
   id: string,
-  patientId: string,
+  patientId: string | null,
   patch: Record<string, unknown>,
   baseVersion: number,
 ): Promise<CloudClinicalRecord> {
@@ -264,7 +264,7 @@ export async function updateCloudRecord(
 export async function deleteCloudRecord(
   table: CloudTableKey,
   id: string,
-  patientId: string,
+  patientId: string | null,
   baseVersion: number,
 ): Promise<void> {
   await applyCloudEdit({
