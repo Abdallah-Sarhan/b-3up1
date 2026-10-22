@@ -21,6 +21,20 @@ export type AuthProfile = {
 };
 
 const CACHE_KEY = "ward39.profile";
+
+// Never leave the clinical app on an endless startup spinner if auth or cloud
+// initialization stops responding. This does not mark data as loaded or saved.
+function withStartupTimeout<T>(promise: Promise<T>, label: string, timeoutMs = 60_000): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      reject(new Error(label));
+    }, timeoutMs);
+    promise.then(
+      (value) => { window.clearTimeout(timer); resolve(value); },
+      (error) => { window.clearTimeout(timer); reject(error); },
+    );
+  });
+}
 let currentProfile: AuthProfile | null = null;
 const listeners = new Set<(p: AuthProfile | null) => void>();
 export function useAuthProfile() {
@@ -91,13 +105,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         return;
       }
       try {
-        const p = await loadProfile(userId);
+        const p = await withStartupTimeout(loadProfile(userId), "استغرق التحقق من اعتماد الحساب أكثر من دقيقة. لم يتم تحميل بيانات المرضى؛ أعد المحاولة وافحص إعدادات Lovable Cloud.");
         publish(p);
         if (!p?.approved) {
           if (alive) setState("pending");
           return;
         }
-        await initializeClinicalCloud();
+        await withStartupTimeout(initializeClinicalCloud(), "استغرق تحميل البيانات السحابية أكثر من دقيقة. لم نعرض البيانات باعتبارها مكتملة. قد تكون هناك سجلات قديمة يجري ترحيلها؛ أعد المحاولة، وإذا تكرر الأمر يلزم فحص قاعدة بيانات Lovable Cloud.");
         if (alive) setState("in");
       } catch (error) {
         if (alive) {
