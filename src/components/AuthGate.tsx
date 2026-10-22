@@ -85,6 +85,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const isPublic = isPublicPath(pathname);
   const [state, setState] = useState<"loading" | "out" | "pending" | "cloud-error" | "in">("loading");
   const [cloudError, setCloudError] = useState("تعذر الاتصال بالسحابة.");
+  const [cloudWarning, setCloudWarning] = useState<string | null>(null);
 
   useEffect(() => {
     // Remove the old local device lock data.
@@ -111,8 +112,21 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           if (alive) setState("pending");
           return;
         }
-        await withStartupTimeout(initializeClinicalCloud(), "استغرق تحميل البيانات السحابية أكثر من دقيقة. لم نعرض البيانات باعتبارها مكتملة. قد تكون هناك سجلات قديمة يجري ترحيلها؛ أعد المحاولة، وإذا تكرر الأمر يلزم فحص قاعدة بيانات Lovable Cloud.");
-        if (alive) setState("in");
+        // Do not block the clinical UI on the initial cloud pull/migration.
+        // Keep authentication and approval checks mandatory, but report cloud
+        // trouble in-page rather than trapping the user on a startup spinner.
+        if (alive) {
+          setCloudWarning("جارٍ تحميل بيانات السحابة في الخلفية. انتظر تأكيد المزامنة قبل الاعتماد على البيانات أو حفظ تغييرات مهمة.");
+          setState("in");
+        }
+        void withStartupTimeout(
+          initializeClinicalCloud(),
+          "لم يكتمل تحميل بيانات السحابة خلال دقيقة. قد لا تكون البيانات محدثة، ولم يتم تأكيد مزامنة التغييرات."
+        ).then(() => {
+          if (alive) setCloudWarning(null);
+        }).catch((error) => {
+          if (alive) setCloudWarning(error instanceof Error ? error.message : "تعذر إكمال مزامنة السحابة.");
+        });
       } catch (error) {
         if (alive) {
           setCloudError(error instanceof Error ? error.message : "تعذر فتح البيانات السحابية.");
@@ -205,5 +219,21 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  return <>{children}</>;
+  return (
+    <>
+      {cloudWarning && (
+        <div role="status" className="sticky top-0 z-50 border-b border-amber-500/40 bg-amber-100 px-4 py-2 text-center text-sm text-amber-950">
+          {cloudWarning}
+          <button
+            type="button"
+            className="ml-3 underline"
+            onClick={() => window.location.reload()}
+          >
+            إعادة المحاولة
+          </button>
+        </div>
+      )}
+      {children}
+    </>
+  );
 }
