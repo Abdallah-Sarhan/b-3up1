@@ -1,30 +1,41 @@
-# W39 3
+# Ward 39 — Patient Management System
 
-هل تستطيع انشاء برنامج للابتوب يعمل اوفلاين
+Ward 39 is an **online-only web application** for managing the Ward 39 patient registry. The web application uses Supabase/Lovable Cloud for clinical records and private document storage. It is not an Electron desktop application and does not support offline clinical data entry.
 
 This project was built with [Lovable](https://lovable.dev).
 
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/bb8ea357-e928-48dd-ae32-563e1f626ec0).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Requirements: Node.js and npm.
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+git clone https://github.com/Abdallah-Sarhan/b-3up1.git
+cd b-3up1
+npm install
 npm run dev
 ```
 
-## Sign-in
-Username + password (Lovable Cloud). New accounts need admin approval (page "إدارة المستخدمين"). Password recovery link goes to the recovery email. The desktop app needs internet for the first sign-in.
+Production build and local preview:
 
-## البطاقة المدنية
-صورتا الوجه والخلف تُرفعان من صفحة المريض إلى تخزين سحابي خاص (`civil-ids`) وتُربطان برقم الملف في `patient_documents`. القراءة للموظفين المعتمدين فقط عبر روابط مؤقتة، والطباعة من `/print/$patientId/civilid`. تحتاج إنترنت، ولا تدخل في النسخ الاحتياطي أو المزامنة أو المساعد الذكي.
+```sh
+npm run build
+npm run preview
+```
+
+Configure the Supabase project URL and publishable key using the hosting environment's supported environment variables. Never expose a Supabase service-role key in browser code.
+
+## Sign-in and access
+
+Sign in with username and password. New accounts require administrator approval. Clinical data must only be available to approved staff through Supabase authentication and Row Level Security (RLS). The online web application requires an active internet connection.
+
+The intended session policy is memory-only: refreshing or closing the tab requires signing in again. Do not persist authentication tokens or clinical records in browser storage.
+
+## Civil ID documents
+
+The front and back images of a patient's civil ID are intended to be uploaded to the private `civil-ids` storage bucket and linked through `patient_documents`. Access must be limited to approved staff, with temporary signed URLs used for viewing and printing at `/print/$patientId/civilid`. Verify the deployed storage policies before production use.
+
+## Data safety
+
+Clinical data must be read and written to Supabase directly. Do not add IndexedDB, localStorage/sessionStorage persistence, offline queues, service-worker caches, or manual local backup/import flows for clinical records. If the connection is lost, block writes and show: `لا يوجد اتصال بالإنترنت، يرجى إعادة المحاولة`.
+
+Before publishing, validate database migrations, RLS policies for every clinical table, and policies for all storage buckets. A successful frontend build alone does not verify backend access controls.
