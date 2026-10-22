@@ -107,8 +107,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         const p = await withStartupTimeout(loadProfile(userId), "استغرق التحقق من اعتماد الحساب أكثر من دقيقة. لم يتم تحميل بيانات المرضى؛ أعد المحاولة وافحص إعدادات Lovable Cloud.");
         publish(p);
         if (!p?.approved) {
-          await clearClinicalCloudCache().catch(() => undefined);
           if (alive) setState("pending");
+          // Hide the clinical app immediately; cleanup continues without delaying the status screen.
+          void clearClinicalCloudCache().catch(() => undefined);
           return;
         }
         // Keep clinical pages hidden until the cloud data pull succeeds.
@@ -120,13 +121,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         );
         if (alive) setState("in");
       } catch (error) {
-        // A failed approval check or incomplete cloud pull must not leave partial
-        // or stale patient data stored locally after the error screen appears.
-        await clearClinicalCloudCache().catch(() => undefined);
         if (alive) {
           setCloudError(error instanceof Error ? error.message : "تعذر فتح البيانات السحابية.");
           setState("cloud-error");
         }
+        // A failed approval check or incomplete cloud pull must not leave partial
+        // or stale patient data stored locally. Do not delay the error screen.
+        void clearClinicalCloudCache().catch(() => undefined);
       }
     };
     const onPageHide = (event: PageTransitionEvent) => {
