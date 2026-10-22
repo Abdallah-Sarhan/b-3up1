@@ -63,7 +63,20 @@ const REALTIME_TABLES = [
 
 const PAGE_SIZE = 500;
 const POLL_INTERVAL_MS = 30_000;
+// A stalled Supabase request must not leave the app permanently in "connecting".
+// Each cloud read is bounded; the user can retry after the request fails clearly.
+const CLOUD_READ_TIMEOUT_MS = 15_000;
 const ACTIVE_USER_MARKER = "ward39.cloud.active-user";
+
+function withCloudReadTimeout<T>(promise: PromiseLike<T>, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(label)), CLOUD_READ_TIMEOUT_MS);
+    Promise.resolve(promise).then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
 
 let initialization: Promise<void> | null = null;
 let initializationUserId: string | null = null;
@@ -107,10 +120,13 @@ function stable(value: unknown): string {
 async function fetchAllRows(table: string): Promise<RemoteRow[]> {
   const all: RemoteRow[] = [];
   for (let start = 0; ; start += PAGE_SIZE) {
-    const { data, error } = await (supabase.from(table as never) as any)
-      .select("*")
-      .order("sync_seq", { ascending: true, nullsFirst: true })
-      .range(start, start + PAGE_SIZE - 1);
+    const { data, error } = await withCloudReadTimeout(
+      (supabase.from(table as never) as any)
+        .select("*")
+        .order("sync_seq", { ascending: true, nullsFirst: true })
+        .range(start, start + PAGE_SIZE - 1),
+      `انتهت مهلة قراءة جدول "${table}" من السحابة بعد 15 ثانية. تحقق من اتصال Lovable Cloud وصلاحيات الجدول ثم أعد المحاولة.`,
+    );
     if (error) throw safeError(error);
     const page = (data ?? []) as RemoteRow[];
     all.push(...page);
@@ -301,11 +317,17 @@ async function pullSharedSettings(): Promise<void> {
 
 async function assertApprovedSession(): Promise<string> {
   assertOnline();
-  const { data, error } = await supabase.auth.getSession();
+  const { data, error } = await withCloudReadTimeout(
+    supabase.auth.getSession(),
+    "انتهت مهلة التحقق من جلسة الدخول السحابية بعد 15 ثانية. أعد المحاولة.",
+  );
   if (error) throw safeError(error);
   const userId = data.session?.user.id;
   if (!userId) throw new Error("انتهت جلسة الدخول. سجّل الدخول ثم أعد فتح البرنامج.");
-  const { data: approved, error: approvalError } = await supabase.rpc("is_approved", { _user_id: userId });
+  const { data: approved, error: approvalError } = await withCloudReadTimeout(
+    supabase.rpc("is_approved", { _user_id: userId }),
+    "انتهت مهلة التحقق من اعتماد الحساب بعد 15 ثانية. تحقق من إعدادات قاعدة البيانات ثم أعد المحاولة.",
+  );
   if (approvalError) throw safeError(approvalError);
   if (!approved) throw new Error("حسابك ينتظر موافقة المشرف أو لم يعد معتمدًا للوصول إلى بيانات المرضى.");
   return userId;
