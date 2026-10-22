@@ -120,7 +120,7 @@ function stable(value: unknown): string {
 async function fetchAllRows(table: string): Promise<RemoteRow[]> {
   const all: RemoteRow[] = [];
   for (let start = 0; ; start += PAGE_SIZE) {
-    const { data, error } = await withCloudReadTimeout(
+    const { data, error } = await withCloudReadTimeout<{ data: RemoteRow[] | null; error: unknown }>(
       (supabase.from(table as never) as any)
         .select("*")
         .order("sync_seq", { ascending: true, nullsFirst: true })
