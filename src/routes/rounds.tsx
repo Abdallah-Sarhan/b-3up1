@@ -35,7 +35,7 @@ function RoundsPage() {
   const [dirtyNotes, setDirtyNotes] = useState<Record<string, boolean>>({});
   const notesRef = useRef(notes);
   const dirtyRef = useRef(dirtyNotes);
-     useEffect(() => { notesRef.current = notes; }, [notes]);
+  useEffect(() => { notesRef.current = notes; }, [notes]);
   useEffect(() => { dirtyRef.current = dirtyNotes; }, [dirtyNotes]);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ function RoundsPage() {
     setNotes((current) => {
       const next = { ...map };
       for (const [idText, isDirty] of Object.entries(dirtyRef.current)) {
-        const id = Number(idText);
+        const id = idText;
         if (isDirty) next[id] = notesRef.current[id] ?? current[id] ?? "";
       }
       return next;
@@ -103,6 +103,7 @@ function RoundsPage() {
       </div>
 
       <Card>
+        {loadError ? <p role="alert" className="px-4 pt-3 text-sm text-destructive">{loadError}</p> : null}
         <CardHeader title={`${t("rounds")} — ${date}`} subtitle={String(rows.length)} />
         <div className="overflow-x-auto px-2 pb-4">
           <table className="w-full min-w-[760px] border-collapse text-sm">
