@@ -299,3 +299,28 @@ export async function fetchAllCloudRecords(table: CloudClinicalTable): Promise<C
     if (page.length < 500) return rows;
   }
 }
+
+/** Query records by a JSON payload field, used for date and category-scoped pages. */
+export async function fetchCloudRecordsByField(
+  table: CloudClinicalTable,
+  field: string,
+  value: string | number,
+  limit = 500,
+): Promise<CloudClinicalRecord[]> {
+  const max = Math.min(1000, Math.max(1, limit));
+  const { data, error } = await (supabase.from(table) as any)
+    .select("id,patient_id,data,deleted_at,version,created_at,changed_at")
+    .is("deleted_at", null)
+    .contains("data", { [field]: value })
+    .order("changed_at", { ascending: false })
+    .limit(max);
+  if (error) throw normalizeError(error);
+  return ((data ?? []) as RemoteRow[]).map((row) => ({
+    ...((row.data as Record<string, unknown> | null) ?? {}),
+    id: row.id,
+    patientId: row.patient_id ?? null,
+    version: Number(row.version ?? 0),
+    createdAt: ((row.data as Record<string, unknown> | null)?.createdAt as number | string | undefined) ?? (row.created_at as string | number | undefined) ?? 0,
+    changedAt: Number(row.changed_at ?? 0),
+  })) as CloudClinicalRecord[];
+}
