@@ -1,6 +1,6 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, type Patient, type SbarEntry, type VitalEntry } from "@/lib/db";
+import type { CloudPatient } from "@/lib/cloud-queries";
+import { useCloudRecords } from "@/hooks/use-cloud-records";
 import { BoxedDigits, makeField, MovablePrintField, usePrintFontScale, usePrintTemplateMode } from "@/components/OverlayPrint";
 import { usePrintFieldPosition } from "@/lib/print-calibration";
 import { KcmhHeader, PatientHeaderGrid, PrintTitle } from "@/components/PrintSheet";
@@ -30,14 +30,14 @@ export interface PrintFormDef {
   landscape?: boolean;
   /** Overlay forms print onto a pre-printed scanned template. */
   template?: string;
-  Content: (props: { patient: Patient; id: number }) => React.ReactNode;
+  Content: (props: { patient: CloudPatient; id: string }) => React.ReactNode;
 }
 
 /* ------------------------------------------------------------------ */
 /* Plain sheets                                                        */
 /* ------------------------------------------------------------------ */
 
-export function SummaryContent({ patient }: { patient: Patient }) {
+export function SummaryContent({ patient }: { patient: CloudPatient }) {
   return (
     <>
       <KcmhHeader right="PATIENT DATA SHEET" />
@@ -77,8 +77,8 @@ function VitalRow({ e, rowIndex, block }: { e: VitalEntry | undefined; rowIndex:
   );
 }
 
-export function VitalsContent({ patient, id }: { patient: Patient; id: number }) {
-  const entries = useLiveQuery(() => db.vitals.where("patientId").equals(id).sortBy("date"), [id]);
+export function VitalsContent({ patient, id }: { patient: CloudPatient; id: string }) {
+  const { records: entries } = useCloudRecords("vitals", id);
   const latest = (entries ?? []).slice(-ROWS_PER_BLOCK * 2);
   const left = latest.slice(0, ROWS_PER_BLOCK);
   const right = latest.slice(ROWS_PER_BLOCK);
@@ -166,7 +166,7 @@ export function DigitBoxes({
  * MOH logo on the left; HOSPITAL / HOSP. NO. boxes, Dept/Unit/Ward/Room/Bed
  * boxes, Date of Adm., Doctor in Charge, NAME, C.I.D. boxes, SEX, AGE, Diagnosis.
  */
-export function MohFormHeader({ patient }: { patient: Patient }) {
+export function MohFormHeader({ patient }: { patient: CloudPatient }) {
   const deptCells: Array<[string, string]> = [
     ["Dept.", "M"],
     ["Unit", "2"],
@@ -256,11 +256,8 @@ export function MohFormHeader({ patient }: { patient: Patient }) {
   );
 }
 
-export function CarePlanContent({ patient, id }: { patient: Patient; id: number }) {
-  const entries = useLiveQuery(
-    () => db.careplan.where("patientId").equals(id).sortBy("dateIdentified"),
-    [id],
-  );
+export function CarePlanContent({ patient, id }: { patient: CloudPatient; id: string }) {
+  const { records: entries } = useCloudRecords("careplan", id);
   const list = entries ?? [];
 
   return (
@@ -516,11 +513,8 @@ function splitCarePlanInterventions(value: string): string[] {
 }
 
 /** Patient and care-plan values positioned over the scanned NURS. 6B paper form. */
-export function NursingCarePlanTemplateContent({ patient, id }: { patient: Patient; id: number }) {
-  const entries = useLiveQuery(
-    () => db.careplan.where("patientId").equals(id).sortBy("dateIdentified"),
-    [id],
-  );
+export function NursingCarePlanTemplateContent({ patient, id }: { patient: CloudPatient; id: string }) {
+  const { records: entries } = useCloudRecords("careplan", id);
   const fontScale = usePrintFontScale();
   const linesPerRow = Math.max(1, Math.floor((NCP_ROW_HEIGHT - 4) / (7 * fontScale * 1.25)));
 
@@ -637,8 +631,8 @@ function BCell({ children, fieldKey }: { children: string | undefined; fieldKey:
   );
 }
 
-export function SbarContent({ patient, id, date }: { patient: Patient; id: number; date: string }) {
-  const all = useLiveQuery(() => db.sbar.where("patientId").equals(id).sortBy("date"), [id]);
+export function SbarContent({ patient, id, date }: { patient: CloudPatient; id: string; date: string }) {
+  const { records: all } = useCloudRecords("sbar", id);
   const entries = (all ?? []).filter((e) => e.date === date);
   const byShift = (shift: string): SbarEntry | undefined => entries.find((e) => e.shift === shift);
 
@@ -705,7 +699,7 @@ export function SbarContent({ patient, id, date }: { patient: Patient; id: numbe
   );
 }
 
-function SbarSheet({ patient, id }: { patient: Patient; id: number }) {
+function SbarSheet({ patient, id }: { patient: CloudPatient; id: string }) {
   const today = new Date().toISOString().slice(0, 10);
   return <SbarContent patient={patient} id={id} date={today} />;
 }
@@ -722,8 +716,8 @@ const NOTES_ROW_H = 47.2;
 const NOTES_ROWS = 29;
 const NOTES_COL = { date: 240, time: 388, notes: 515, sign: 1112 };
 
-export function NotesContent({ patient, id }: { patient: Patient; id: number }) {
-  const entries = useLiveQuery(() => db.notes.where("patientId").equals(id).sortBy("date"), [id]);
+export function NotesContent({ patient, id }: { patient: CloudPatient; id: string }) {
+  const { records: entries } = useCloudRecords("notes", id);
   const list = (entries ?? []).slice(-NOTES_ROWS);
   const cid = (patient.cid || "").replace(/\D/g, "");
   const fileNo = (patient.fileNo || "").replace(/\D/g, "");
@@ -775,8 +769,8 @@ const TR_ROW_TOP = 412;
 const TR_ROW_H = 38.6;
 const TR_ROWS = 30;
 
-export function TreatmentContent({ patient, id }: { patient: Patient; id: number }) {
-  const entries = useLiveQuery(() => db.tranq.where("patientId").equals(id).sortBy("date"), [id]);
+export function TreatmentContent({ patient, id }: { patient: CloudPatient; id: string }) {
+  const { records: entries } = useCloudRecords("tranq", id);
   const list = (entries ?? []).slice(-TR_ROWS);
   const cid = (patient.cid || "").replace(/\D/g, "");
   const fileNo = (patient.fileNo || "").replace(/\D/g, "");
@@ -826,7 +820,7 @@ const CO_IW = 1196;
 const CO_IH = 1692;
 const CF = makeField(CO_IW, CO_IH);
 
-export function ConsultationContent({ patient }: { patient: Patient }) {
+export function ConsultationContent({ patient }: { patient: CloudPatient }) {
   const cid = (patient.cid || "").replace(/\D/g, "");
   const fileNo = (patient.fileNo || "").replace(/\D/g, "");
   return (
@@ -861,8 +855,8 @@ const PR_ROW_TOP = 425;
 const PR_ROW_H = 38.7;
 const PR_ROWS = 28;
 
-export function ProgressContent({ patient, id }: { patient: Patient; id: number }) {
-  const entries = useLiveQuery(() => db.rounds.where("patientId").equals(id).sortBy("date"), [id]);
+export function ProgressContent({ patient, id }: { patient: CloudPatient; id: string }) {
+  const { records: entries } = useCloudRecords("rounds", id);
   const list = (entries ?? []).slice(-PR_ROWS);
   const cid = (patient.cid || "").replace(/\D/g, "");
   const fileNo = (patient.fileNo || "").replace(/\D/g, "");
@@ -909,8 +903,8 @@ const ND_IW = 1352;
 const ND_IH = 1920;
 const DF = makeField(ND_IW, ND_IH);
 
-export function NursingDbContent({ patient, id }: { patient: Patient; id: number }) {
-  const vitals = useLiveQuery(() => db.vitals.where("patientId").equals(id).sortBy("date"), [id]);
+export function NursingDbContent({ patient, id }: { patient: CloudPatient; id: string }) {
+  const { records: vitals } = useCloudRecords("vitals", id);
   const last = (vitals ?? []).at(-1);
   const cid = (patient.cid || "").replace(/\D/g, "");
   const fileNo = (patient.fileNo || "").replace(/\D/g, "");
