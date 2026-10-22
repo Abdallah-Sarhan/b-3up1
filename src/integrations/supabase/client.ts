@@ -48,8 +48,9 @@ function createSupabaseClient() {
       fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
     },
     auth: {
-      // Keep the auth session in memory only; closing/reloading the tab requires login again.
-      persistSession: false,
+      // Persist only the Supabase authentication session so refreshes do not require a new login.
+      // Clinical records remain in the separately managed temporary cache and are cleared on logout/startup.
+      persistSession: true,
       autoRefreshToken: true,
     },
   });
