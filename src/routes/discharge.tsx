@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { LogOut, Search, Undo2 } from "lucide-react";
-import { db, dbReady, dischargePatient, readmitPatient } from "@/lib/db";
+import { dischargeCloudPatient, readmitCloudPatient } from "@/lib/cloud-direct";
+import { useCloudPatients } from "@/hooks/use-cloud-patients";
+import { useCloudRecords } from "@/hooks/use-cloud-records";
+import type { CloudPatient } from "@/lib/cloud-queries";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, CardHeader, Input } from "@/components/ui-kit";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -24,10 +26,7 @@ function DischargePage() {
   const { t } = useLang();
   const [query, setQuery] = useState("");
 
-  const patients = useLiveQuery(async () => {
-    await dbReady;
-    return db.patients.orderBy("name").toArray();
-  }, []);
+  const patients = useCloudPatients(true);
 
   const { active, discharged } = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -44,23 +43,23 @@ function DischargePage() {
     };
   }, [patients, query]);
 
-  const [pendingId, setPendingId] = useState<number | null>(null);
+  const [pendingPatient, setPendingPatient] = useState<CloudPatient | null>(null);
 
   async function confirmDischarge(note: string) {
-    const id = pendingId;
-    setPendingId(null);
-    if (id == null) return;
+    const patient = pendingPatient;
+    setPendingPatient(null);
+    if (!patient) return;
     try {
-      await dischargePatient(id, note);
+      await dischargeCloudPatient(patient, note);
       toast.success(t("dischargeDone"));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر حفظ خروج المريض في السحابة.");
     }
   }
 
-  async function readmit(id: number) {
+  async function readmit(patient: CloudPatient) {
     try {
-      await readmitPatient(id);
+      await readmitCloudPatient(patient);
       toast.success(t("readmittedOk"));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر حفظ إعادة الدخول في السحابة.");
@@ -96,7 +95,7 @@ function DischargePage() {
                   {p.fileNo} · {p.diagnosis}
                 </p>
               </div>
-              <Button variant="destructive" size="sm" onClick={() => setPendingId(p.id!)}>
+              <Button variant="destructive" size="sm" onClick={() => setPendingPatient(p)}>
                 <LogOut />
                 {t("discharged")}
               </Button>
@@ -120,7 +119,7 @@ function DischargePage() {
                 </p>
                 <AdmissionHistory patientId={p.id!} />
               </div>
-              <Button variant="outline" size="sm" onClick={() => readmit(p.id!)}>
+              <Button variant="outline" size="sm" onClick={() => readmit(p)}>
                 <Undo2 />
                 {t("undoDischarge")}
               </Button>
@@ -133,26 +132,23 @@ function DischargePage() {
       </Card>
 
       <ConfirmDialog
-        open={pendingId != null}
+        open={pendingPatient != null}
         title={t("confirmDischarge")}
         withNote
         noteLabel={t("dischargeNote")}
         confirmLabel={t("discharged")}
         destructive
         onConfirm={(note) => void confirmDischarge(note)}
-        onCancel={() => setPendingId(null)}
+        onCancel={() => setPendingPatient(null)}
       />
     </div>
 
   );
 }
 
-function AdmissionHistory({ patientId }: { patientId: number }) {
+function AdmissionHistory({ patientId }: { patientId: string }) {
   const { t } = useLang();
-  const list = useLiveQuery(
-    () => db.admissions.where("patientId").equals(patientId).sortBy("admittedAt"),
-    [patientId],
-  );
+  const { records: list } = useCloudRecords("admissions", patientId);
   if (!list || list.length === 0) return null;
   return (
     <details className="mt-1 text-xs text-muted-foreground">
