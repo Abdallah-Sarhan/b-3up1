@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, type VitalEntry } from "@/lib/db";
+import type { CloudClinicalRecord } from "@/lib/cloud-queries";
+import { useCloudRecords } from "@/hooks/use-cloud-records";
 import { KcmhHeader, PrintShell, usePrintPatient } from "@/components/PrintSheet";
 
 export const Route = createFileRoute("/print/$patientId/vitals")({
@@ -19,10 +19,8 @@ const ROWS_PER_BLOCK = 26;
 
 function VitalsPrint() {
   const { id, patient } = usePrintPatient();
-  const entries = useLiveQuery(
-    () => db.vitals.where("patientId").equals(id).sortBy("date"),
-    [id],
-  );
+  const { records: rawEntries } = useCloudRecords("vitals", id);
+  const entries = rawEntries?.slice().sort((a, b) => String(a.date ?? "").localeCompare(String(b.date ?? "")));
 
   // Latest entries, oldest first, split into two column blocks like the paper sheet.
   const latest = (entries ?? []).slice(-ROWS_PER_BLOCK * 2);
@@ -89,7 +87,7 @@ function VitalsPrint() {
   );
 }
 
-function VitalRow({ e }: { e: VitalEntry | undefined }) {
+function VitalRow({ e }: { e: CloudClinicalRecord | undefined }) {
   return (
     <>
       <td className="h-6 border border-black px-1 py-1">{e?.date ?? ""}</td>
