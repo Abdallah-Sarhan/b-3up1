@@ -5,7 +5,6 @@
     "**/*.css"
   ],
   "type": "module",
-  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
@@ -91,7 +90,6 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@electron/packager": "^20.3.0",
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "2.26.5",
     "@types/node": "^22.16.5",
@@ -99,7 +97,6 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
     "drizzle-kit": "^0.31.10",
-    "electron": "^37.10.3",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.6",
@@ -110,7 +107,6 @@
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "8.1.5",
-    "vite-plugin-singlefile": "^2.3.3"
+    "vite": "8.1.5"
   }
 }
