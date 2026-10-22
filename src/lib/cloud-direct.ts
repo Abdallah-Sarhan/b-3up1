@@ -353,3 +353,39 @@ export async function saveCloudSharedSetting(key: string, value: string): Promis
     fields: { key, value },
   });
 }
+
+export async function dischargeCloudPatient(patient: CloudPatient, note: string): Promise<CloudPatient> {
+  const today = new Date().toISOString().slice(0, 10);
+  const admissions = await fetchCloudRecords("patient_admissions", patient.id, 200);
+  const open = admissions.find((row) => !row.dischargedAt);
+  if (open) {
+    await updateCloudRecord("admissions", open.id, patient.id, { dischargedAt: today, dischargeNote: note }, open.version);
+  } else {
+    await createCloudRecord("admissions", patient.id, {
+      admittedAt: patient.doa || today,
+      dischargedAt: today,
+      dischargeNote: note,
+      createdAt: Date.now(),
+    });
+  }
+  return updateCloudPatient(patient.id, {
+    dischargedAt: today,
+    dischargeNote: note,
+    updatedAt: Date.now(),
+  }, patient.version);
+}
+
+export async function readmitCloudPatient(patient: CloudPatient): Promise<CloudPatient> {
+  const doa = new Date().toISOString().slice(0, 10);
+  const admissions = await fetchCloudRecords("patient_admissions", patient.id, 200);
+  const open = admissions.find((row) => !row.dischargedAt);
+  if (!open) {
+    await createCloudRecord("admissions", patient.id, { admittedAt: doa, createdAt: Date.now() });
+  }
+  return updateCloudPatient(patient.id, {
+    doa,
+    dischargedAt: null,
+    dischargeNote: null,
+    updatedAt: Date.now(),
+  }, patient.version);
+}
