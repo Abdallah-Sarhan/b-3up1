@@ -87,6 +87,7 @@ let lastErrorMessage: string | null = null;
 let cloudUnavailable = true;
 let cloudInitializing = false;
 let cacheClearPromise: Promise<void> | null = null;
+let cacheGeneration = 0;
 let onlineHandler: (() => void) | null = null;
 let offlineHandler: (() => void) | null = null;
 
@@ -423,9 +424,14 @@ export async function initializeClinicalCloud(db: Dexie = wardDB, approvedUserId
   // AuthGate has already confirmed the session and approved profile. Reuse that
   // identity here instead of repeating a cloud approval RPC during startup.
   const userId = approvedUserId ?? await assertApprovedSession();
+  // Finish any sign-out/close cleanup before beginning a new cloud session.
+  if (cacheClearPromise) await cacheClearPromise;
   if (initialization && initializationUserId === userId) return initialization;
   if (initializationUserId && initializationUserId !== userId) {
+    cacheGeneration += 1;
+    const previousInitialization = initialization;
     stopLiveSync();
+    await previousInitialization?.catch(() => undefined);
     await refreshInFlight?.catch(() => undefined);
     await withCloudCacheMutation(async () => {
       for (const table of db.tables) await table.clear();
@@ -433,6 +439,7 @@ export async function initializeClinicalCloud(db: Dexie = wardDB, approvedUserId
     await clearClinicalMappings();
     initialization = null;
   }
+  const generation = cacheGeneration;
   initializationUserId = userId;
   cloudInitializing = true;
   lastErrorMessage = null;
@@ -446,6 +453,9 @@ export async function initializeClinicalCloud(db: Dexie = wardDB, approvedUserId
       await clearClinicalMappings();
       // Never import unlinked local-only rows. The cloud is the source of truth.
       await pullAllCloudData();
+      if (generation !== cacheGeneration) {
+        throw new Error("انتهت جلسة السحابة قبل اكتمال التحميل؛ أعد تسجيل الدخول.");
+      }
       lastErrorMessage = null;
       cloudUnavailable = false;
       startLiveSync();
@@ -493,7 +503,12 @@ export async function stopClinicalCloudSync(): Promise<void> {
 export async function clearClinicalCloudCache(): Promise<void> {
   if (cacheClearPromise) return cacheClearPromise;
   cacheClearPromise = (async () => {
+    // Invalidate any pull that started before sign-out, then wait for it to stop
+    // before clearing tables so it cannot repopulate the cache afterwards.
+    cacheGeneration += 1;
+    const pendingInitialization = initialization;
     stopLiveSync();
+    await pendingInitialization?.catch(() => undefined);
     await refreshInFlight?.catch(() => undefined);
     // Clinical data is cloud-authoritative. Clear only this device's temporary
     // working copy and mappings; this does not issue any delete to Supabase.
