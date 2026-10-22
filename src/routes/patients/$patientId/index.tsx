@@ -1,16 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Pencil, Printer, Trash2, FileText, HeartPulse, ClipboardList, NotebookPen, ArrowRight } from "lucide-react";
-import { db } from "@/lib/db";
+import { fetchCloudPatientById, type CloudPatient } from "@/lib/cloud-queries";
+import { deleteCloudPatient } from "@/lib/cloud-direct";
 import { useLang } from "@/lib/i18n";
 import { Badge, Button, Card, CardHeader } from "@/components/ui-kit";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PatientRecords } from "@/components/PatientRecords";
 import { CivilIdSection } from "@/components/CivilIdSection";
 import { removeAllForFileNo } from "@/lib/civil-id";
-import { deletePatientCloudFirst } from "@/lib/clinical-cloud";
+ 
 
 export const Route = createFileRoute("/patients/$patientId/")({
   head: () => ({
@@ -28,8 +28,20 @@ function PatientFilePage() {
   const { t } = useLang();
   const navigate = useNavigate();
   const { patientId } = useParams({ from: "/patients/$patientId/" });
-  const id = Number(patientId);
-  const patient = useLiveQuery(() => db.patients.get(id), [id]);
+  const [patient, setPatient] = useState<CloudPatient | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    setPatient(undefined);
+    void fetchCloudPatientById(patientId).then((value) => {
+      if (alive) setPatient(value);
+    }).catch((error) => {
+      if (alive) {
+        toast.error(error instanceof Error ? error.message : "تعذر تحميل المريض من السحابة.");
+        setPatient(null);
+      }
+    });
+    return () => { alive = false; };
+  }, [patientId]);
   const [askDelete, setAskDelete] = useState(false);
 
   if (patient === undefined) {
@@ -46,7 +58,7 @@ function PatientFilePage() {
     try {
       // The cloud RPC tombstones the patient; the database trigger hides linked
       // clinical records atomically before this device cache is cleared.
-      await deletePatientCloudFirst(id);
+      await deleteCloudPatient(patientId, patient!.version);
       // The clinical record is already safely removed from active cloud views.
       // Civil ID cleanup is a separate storage operation, so report it clearly
       // instead of implying that the patient deletion failed.
@@ -141,7 +153,7 @@ function PatientFilePage() {
 
       <CivilIdSection fileNo={patient.fileNo ?? ""} patientId={patientId} />
 
-      <PatientRecords patientId={id} />
+      <PatientRecords patientId={patientId} />
 
       <ConfirmDialog
         open={askDelete}
