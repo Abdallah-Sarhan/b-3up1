@@ -38,6 +38,7 @@ export default defineTool({
           `doctor.ilike.${pattern}`,
         ].join(","),
       )
+      .is("deleted_at", null)
       .limit(max);
 
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };

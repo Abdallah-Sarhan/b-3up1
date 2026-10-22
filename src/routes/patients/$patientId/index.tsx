@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PatientRecords } from "@/components/PatientRecords";
 import { CivilIdSection } from "@/components/CivilIdSection";
 import { removeAllForFileNo } from "@/lib/civil-id";
+import { deletePatientCloudFirst } from "@/lib/clinical-cloud";
 
 export const Route = createFileRoute("/patients/$patientId/")({
   head: () => ({
@@ -42,18 +43,23 @@ function PatientFilePage() {
   async function onDelete() {
     setAskDelete(false);
 
-    await db.transaction("rw", [db.patients, db.vitals, db.notes, db.sbar, db.careplan], async () => {
-      await Promise.all([
-        db.vitals.where("patientId").equals(id).delete(),
-        db.notes.where("patientId").equals(id).delete(),
-        db.sbar.where("patientId").equals(id).delete(),
-        db.careplan.where("patientId").equals(id).delete(),
-        db.patients.delete(id),
-      ]);
-    });
-    void removeAllForFileNo(patient!.fileNo ?? "");
-    toast.success(t("deletedOk"));
-    navigate({ to: "/patients" });
+    try {
+      // The cloud RPC tombstones the patient; the database trigger hides linked
+      // clinical records atomically before this device cache is cleared.
+      await deletePatientCloudFirst(id);
+      // The clinical record is already safely removed from active cloud views.
+      // Civil ID cleanup is a separate storage operation, so report it clearly
+      // instead of implying that the patient deletion failed.
+      try {
+        await removeAllForFileNo(patient!.fileNo ?? "");
+        toast.success(t("deletedOk"));
+      } catch {
+        toast.error("تم حذف سجل المريض، لكن تعذر حذف صور البطاقة المدنية. أبلغ المشرف لإكمال حذف الصور الخاصة.");
+      }
+      navigate({ to: "/patients" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حذف المريض من السحابة.");
+    }
   }
 
   const forms = [

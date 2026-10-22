@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { db, emptyPatient, type Patient, readmitPatient } from "@/lib/db";
+import { db, emptyPatient, type Patient } from "@/lib/db";
+import { createPatientCloudFirst, getCloudVersion, readmitPatientCloudFirst, updatePatientCloudFirst } from "@/lib/clinical-cloud";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, Field, Input, Select, Textarea } from "@/components/ui-kit";
 import { SuggestInput } from "@/components/SuggestInput";
@@ -14,8 +15,12 @@ export function PatientForm({ patient }: { patient?: Patient }) {
     patient ? { ...patient } : emptyPatient(),
   );
   const [saving, setSaving] = useState(false);
+  const initialCloudVersion = useRef<number | null>(
+    patient?.id != null ? getCloudVersion("patients", patient.id) : null,
+  );
   // When adding: id of an already-registered patient matched by file no / civil id
   const [matchedId, setMatchedId] = useState<number | null>(null);
+  const [matchedVersion, setMatchedVersion] = useState<number | null>(null);
   const [fileNoSugs, setFileNoSugs] = useState<string[]>([]);
   const [cidSugs, setCidSugs] = useState<string[]>([]);
   const suggestTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -78,6 +83,7 @@ export function PatientForm({ patient }: { patient?: Patient }) {
     const hit = await db.patients.where(key).equals(value.trim()).first();
     if (hit) {
       setMatchedId(hit.id ?? null);
+      setMatchedVersion(hit.id != null ? getCloudVersion("patients", hit.id) : null);
       setForm({ ...hit, [key]: value });
       toast.info(t("existingPatientFound"));
     }
@@ -123,6 +129,7 @@ export function PatientForm({ patient }: { patient?: Patient }) {
     const hit = await findExisting(form.fileNo, form.cid);
     if (hit && hit.id !== matchedId) {
       setMatchedId(hit.id ?? null);
+      setMatchedVersion(hit.id != null ? getCloudVersion("patients", hit.id) : null);
       setForm({ ...hit });
       toast.info(t("existingPatientFound"));
     }
@@ -138,7 +145,7 @@ export function PatientForm({ patient }: { patient?: Patient }) {
     try {
       if (patient?.id) {
         const data = { ...form, updatedAt: Date.now() };
-        await db.patients.update(patient.id, data);
+        await updatePatientCloudFirst(patient.id, data, initialCloudVersion.current);
         toast.success(t("savedOk"));
         navigate({ to: "/patients/$patientId", params: { patientId: String(patient.id) } });
         return;
@@ -154,21 +161,23 @@ export function PatientForm({ patient }: { patient?: Patient }) {
         };
         delete data.dischargedAt;
         delete data.dischargeNote;
-        await db.patients.update(existingId, (obj) => {
-          Object.assign(obj, data);
-          delete obj.dischargedAt;
-          delete obj.dischargeNote;
-        });
-        if (wasDischarged) await readmitPatient(existingId, data.doa);
+        await updatePatientCloudFirst(existingId, {
+          ...data,
+          dischargedAt: undefined,
+          dischargeNote: undefined,
+        }, matchedId === existingId ? matchedVersion : getCloudVersion("patients", existingId));
+        if (wasDischarged) await readmitPatientCloudFirst(existingId, data.doa);
         toast.success(wasDischarged ? t("readmittedOk") : t("patientAlreadyActive"));
         navigate({ to: "/patients/$patientId", params: { patientId: String(existingId) } });
         return;
       }
       const addData = { ...form, updatedAt: Date.now() } as Partial<Patient>;
       delete addData.id;
-      const id = await db.patients.add(addData as Omit<Patient, "id">);
+      const id = await createPatientCloudFirst(addData as Omit<Patient, "id">);
       toast.success(t("savedOk"));
       navigate({ to: "/patients/$patientId", params: { patientId: String(id) } });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ بيانات المريض في السحابة.");
     } finally {
       setSaving(false);
     }

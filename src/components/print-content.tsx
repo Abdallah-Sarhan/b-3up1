@@ -383,7 +383,7 @@ function NCPF({
       left={position.left}
       top={position.top}
       width={width}
-      height={height}
+      height={height ?? 20}
       bold={bold ?? true}
       style={{
         whiteSpace: "pre-wrap",

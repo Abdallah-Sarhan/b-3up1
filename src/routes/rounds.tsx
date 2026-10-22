@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Printer, Save } from "lucide-react";
 import { db } from "@/lib/db";
+import { createClinicalRecordCloudFirst, getCloudVersion, updateClinicalRecordCloudFirst } from "@/lib/clinical-cloud";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, CardHeader, Field, Input, Textarea } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
@@ -32,6 +33,17 @@ function RoundsPage() {
   const patients = useActivePatients();
   const [date, setDate] = useState(today());
   const [notes, setNotes] = useState<Record<number, string>>({});
+  const [dirtyNotes, setDirtyNotes] = useState<Record<number, boolean>>({});
+  const notesRef = useRef(notes);
+  const dirtyRef = useRef(dirtyNotes);
+  const entryVersions = useRef<Record<string, number | null>>({});
+  useEffect(() => { notesRef.current = notes; }, [notes]);
+  useEffect(() => { dirtyRef.current = dirtyNotes; }, [dirtyNotes]);
+
+  useEffect(() => {
+    setNotes({});
+    setDirtyNotes({});
+  }, [date]);
 
   const entries = useLiveQuery(
     () => db.rounds.where("date").equals(date).toArray(),
@@ -46,23 +58,51 @@ function RoundsPage() {
     [patients],
   );
 
-  // Load saved notes for the chosen date.
+  // Hydrate once per cloud-version change without wiping unsaved typing.
   useEffect(() => {
     if (!entries) return;
+    for (const e of entries) {
+      const versionKey = `${date}:${e.patientId}`;
+      if (e.id != null && !Object.prototype.hasOwnProperty.call(entryVersions.current, versionKey)) {
+        entryVersions.current[versionKey] = getCloudVersion("rounds", e.id);
+      }
+    }
     const map: Record<number, string> = {};
     for (const e of entries) map[e.patientId] = e.findings ?? "";
-    setNotes(map);
-  }, [entries]);
+    setNotes((current) => {
+      const next = { ...map };
+      for (const [idText, isDirty] of Object.entries(dirtyRef.current)) {
+        const id = Number(idText);
+        if (isDirty) next[id] = notesRef.current[id] ?? current[id] ?? "";
+      }
+      return next;
+    });
+  }, [entries, date]);
 
   async function saveNote(patientId: number) {
-    const note = notes[patientId] ?? "";
+    const note = notesRef.current[patientId] ?? "";
     const existing = (entries ?? []).find((e) => e.patientId === patientId);
-    if (existing?.id != null) {
-      await db.rounds.update(existing.id, { findings: note });
-    } else {
-      await db.rounds.add({ patientId, date, doctor: "", findings: note, orders: "", nurse: "" });
+    try {
+      if (existing?.id != null) {
+        const versionKey = `${date}:${patientId}`;
+        await updateClinicalRecordCloudFirst(
+          "rounds",
+          existing.id,
+          { findings: note },
+          entryVersions.current[versionKey] ?? null,
+        );
+        entryVersions.current[versionKey] = getCloudVersion("rounds", existing.id);
+      } else {
+        const createdId = await createClinicalRecordCloudFirst("rounds", {
+          patientId, date, doctor: "", findings: note, orders: "", nurse: "",
+        });
+        entryVersions.current[`${date}:${patientId}`] = getCloudVersion("rounds", createdId);
+      }
+      setDirtyNotes((prev) => ({ ...prev, [patientId]: false }));
+      toast.success(t("savedOk"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ ملاحظة الراوند في السحابة.");
     }
-    toast.success(t("savedOk"));
   }
 
   return (
@@ -109,7 +149,10 @@ function RoundsPage() {
                       rows={2}
                       value={notes[p.id!] ?? ""}
                       onChange={(e) =>
-                        setNotes((prev) => ({ ...prev, [p.id!]: e.target.value }))
+                        {
+                          setNotes((prev) => ({ ...prev, [p.id!]: e.target.value }));
+                          setDirtyNotes((prev) => ({ ...prev, [p.id!]: true }));
+                        }
                       }
                       onBlur={() => saveNote(p.id!)}
                     />

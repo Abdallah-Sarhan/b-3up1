@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import { db, type CarePlanEntry, type NurseNote, type SbarEntry, type VitalEntry } from "@/lib/db";
+import { createClinicalRecordCloudFirst, deleteClinicalRecordCloudFirst, type ClinicalTable } from "@/lib/clinical-cloud";
 import { useLang } from "@/lib/i18n";
 import { STANDARD_PROBLEMS } from "@/lib/careplan-standards";
 import { Button, Card, CardHeader, Field, Input, Select, Textarea } from "@/components/ui-kit";
@@ -15,6 +16,15 @@ function today() {
 }
 function nowTime() {
   return new Date().toTimeString().slice(0, 5);
+}
+
+async function removeRecord(table: ClinicalTable, id: number) {
+  try {
+    await deleteClinicalRecordCloudFirst(table, id);
+    toast.success("تم حذف السجل من السحابة");
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : "تعذر حذف السجل من السحابة.");
+  }
 }
 
 export function PatientRecords({ patientId }: { patientId: number }) {
@@ -92,9 +102,13 @@ function VitalsTab({ patientId }: { patientId: number }) {
 
   async function add() {
     const entry: VitalEntry = { patientId, ...form };
-    await db.vitals.add(entry);
-    setForm((f) => ({ ...f, bp: "", pulse: "", resp: "", temp: "", spo2: "", weight: "" }));
-    toast.success(t("savedOk"));
+    try {
+      await createClinicalRecordCloudFirst("vitals", entry);
+      setForm((f) => ({ ...f, bp: "", pulse: "", resp: "", temp: "", spo2: "", weight: "" }));
+      toast.success(t("savedOk"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ العلامات الحيوية في السحابة.");
+    }
   }
 
   return (
@@ -120,7 +134,7 @@ function VitalsTab({ patientId }: { patientId: number }) {
             <tr key={v.id}>
               <Td mono>{v.date}</Td><Td mono>{v.time}</Td><Td mono>{v.bp}</Td><Td mono>{v.pulse}</Td>
               <Td mono>{v.resp}</Td><Td mono>{v.temp}</Td><Td mono>{v.spo2}</Td><Td mono>{v.weight}</Td>
-              <Td><DeleteBtn onClick={() => db.vitals.delete(v.id!)} /></Td>
+              <Td><DeleteBtn onClick={() => void removeRecord("vitals", v.id!)} /></Td>
             </tr>
           ))}
         </EntryTable>
@@ -140,9 +154,13 @@ function NotesTab({ patientId }: { patientId: number }) {
   async function add() {
     if (!form.note.trim()) return;
     const entry: NurseNote = { patientId, ...form };
-    await db.notes.add(entry);
-    setForm((f) => ({ ...f, note: "" }));
-    toast.success(t("savedOk"));
+    try {
+      await createClinicalRecordCloudFirst("notes", entry);
+      setForm((f) => ({ ...f, note: "" }));
+      toast.success(t("savedOk"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ ملاحظة التمريض في السحابة.");
+    }
   }
 
   return (
@@ -162,7 +180,7 @@ function NotesTab({ patientId }: { patientId: number }) {
           {entries.map((n) => (
             <tr key={n.id}>
               <Td mono>{n.date}</Td><Td mono>{n.time}</Td><Td>{n.note}</Td>
-              <Td><DeleteBtn onClick={() => db.notes.delete(n.id!)} /></Td>
+              <Td><DeleteBtn onClick={() => void removeRecord("notes", n.id!)} /></Td>
             </tr>
           ))}
         </EntryTable>
@@ -185,9 +203,13 @@ function SbarTab({ patientId }: { patientId: number }) {
 
   async function add() {
     const entry: SbarEntry = { patientId, ...form };
-    await db.sbar.add(entry);
-    setForm((f) => ({ ...f, situation: "", background: "", assessment: "", recommendation: "" }));
-    toast.success(t("savedOk"));
+    try {
+      await createClinicalRecordCloudFirst("sbar", entry);
+      setForm((f) => ({ ...f, situation: "", background: "", assessment: "", recommendation: "" }));
+      toast.success(t("savedOk"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ SBAR في السحابة.");
+    }
   }
 
   return (
@@ -217,7 +239,7 @@ function SbarTab({ patientId }: { patientId: number }) {
               <Td mono>{s.date}</Td>
               <Td>{t(s.shift === "morning" ? "morningShift" : s.shift === "evening" ? "eveningShift" : "nightShift")}</Td>
               <Td>{s.situation}</Td><Td>{s.assessment}</Td><Td>{s.signature}</Td>
-              <Td><DeleteBtn onClick={() => db.sbar.delete(s.id!)} /></Td>
+              <Td><DeleteBtn onClick={() => void removeRecord("sbar", s.id!)} /></Td>
             </tr>
           ))}
         </EntryTable>
@@ -247,9 +269,13 @@ export function CarePlanTab({ patientId }: { patientId: number }) {
   async function add() {
     if (!form.problem.trim()) return;
     const entry: CarePlanEntry = { patientId, ...form };
-    await db.careplan.add(entry);
-    setForm((f) => ({ ...f, problemNo: "", problem: "", objective: "", intervention: "", dateResolved: "", nurseSign: "" }));
-    toast.success(t("savedOk"));
+    try {
+      await createClinicalRecordCloudFirst("careplan", entry);
+      setForm((f) => ({ ...f, problemNo: "", problem: "", objective: "", intervention: "", dateResolved: "", nurseSign: "" }));
+      toast.success(t("savedOk"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "تعذر حفظ خطة الرعاية في السحابة.");
+    }
   }
 
   return (
@@ -283,7 +309,7 @@ export function CarePlanTab({ patientId }: { patientId: number }) {
               <Td mono>{c.dateIdentified}</Td><Td mono>{c.problemNo}</Td>
               <Td><span className="line-clamp-2">{c.problem}</span></Td>
               <Td mono>{c.dateResolved}</Td><Td>{c.nurseSign}</Td>
-              <Td><DeleteBtn onClick={() => db.careplan.delete(c.id!)} /></Td>
+              <Td><DeleteBtn onClick={() => void removeRecord("careplan", c.id!)} /></Td>
             </tr>
           ))}
         </EntryTable>

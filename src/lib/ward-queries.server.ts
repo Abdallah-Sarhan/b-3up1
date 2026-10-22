@@ -29,11 +29,12 @@ export function supabaseWithToken(token: string): SupabaseClient {
 
 export async function wardSummary(supabase: SupabaseClient) {
   const [current, discharged] = await Promise.all([
-    supabase.from("patients").select("room", { count: "exact" }).is("discharged_at", null),
+    supabase.from("patients").select("room", { count: "exact" }).is("discharged_at", null).is("deleted_at", null),
     supabase
       .from("patients")
       .select("id", { count: "exact", head: true })
-      .not("discharged_at", "is", null),
+      .not("discharged_at", "is", null)
+      .is("deleted_at", null),
   ]);
   if (current.error) throw new Error(current.error.message);
   if (discharged.error) throw new Error(discharged.error.message);
@@ -58,7 +59,7 @@ export async function listPatients(
   opts: { includeDischarged: boolean | null; limit: number | null },
 ) {
   const max = Math.min(Math.max(opts.limit ?? 100, 1), 200);
-  let query = supabase.from("patients").select(PATIENT_COLUMNS).order("folder_no").limit(max);
+  let query = supabase.from("patients").select(PATIENT_COLUMNS).is("deleted_at", null).order("folder_no").limit(max);
   if (!opts.includeDischarged) query = query.is("discharged_at", null);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
@@ -86,6 +87,7 @@ export async function searchPatients(
         `doctor.ilike.${pattern}`,
       ].join(","),
     )
+    .is("deleted_at", null)
     .limit(max);
 
   if (error) throw new Error(error.message);
@@ -97,6 +99,7 @@ export async function getPatient(supabase: SupabaseClient, fileNo: string) {
     .from("patients")
     .select(PATIENT_COLUMNS)
     .eq("file_no", fileNo)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error) throw new Error(error.message);
   return { patient: data ?? null };

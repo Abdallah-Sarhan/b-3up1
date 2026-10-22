@@ -76,7 +76,7 @@ BEGIN
   IF p_table NOT IN ('patients','patient_vitals','patient_nurse_notes','patient_sbar','patient_care_plans','patient_rounds','patient_tranquilizer_events','patient_admissions','staff_assignments','medication_register','ward_shift_settings') THEN RAISE EXCEPTION 'unknown table'; END IF;
   IF p_op NOT IN ('upsert','delete') THEN RAISE EXCEPTION 'unknown op'; END IF;
 
-  SELECT result INTO v_prev FROM public.clinical_sync_receipts WHERE op_id = p_op_id;
+  SELECT result INTO v_prev FROM public.clinical_sync_receipts WHERE op_id = p_op_id AND user_id = v_uid;
   IF FOUND THEN RETURN v_prev; END IF;
 
   v_fields := coalesce(p_fields, '{}'::jsonb);
@@ -96,6 +96,8 @@ BEGIN
   ELSIF p_op = 'delete' THEN
     IF v_cur IS NULL THEN
       v_result := jsonb_build_object('status','ok','row',NULL,'conflicts','[]'::jsonb);
+    ELSIF coalesce(p_base_version, 0) < coalesce((v_cur ->> 'version')::integer, 0) THEN
+      v_result := jsonb_build_object('status','conflict','row',v_cur,'conflicts',jsonb_build_array(jsonb_build_object('field','__delete__','kept','not_deleted','discarded','delete')));
     ELSE
       EXECUTE format('UPDATE public.%I t SET deleted_at = now(), version = t.version + 1, changed_at = $2, updated_by = $3 WHERE t.id = $1 RETURNING to_jsonb(t)', p_table)
         INTO v_row USING p_id, p_changed_at, v_uid;
@@ -131,7 +133,7 @@ BEGIN
          AND coalesce(v_cur_fields ->> v_key, '') IS DISTINCT FROM coalesce(v_val #>> '{}', '') THEN
         IF v_local_wins THEN
           v_merged := v_merged || jsonb_build_object(v_key, v_val);
-          v_conflicts := v_conflicts || jsonb_build_object('field', v_key, 'kept', v_val, 'discarded', v_cur_fields -> v_key);
+          v_conflicts := v_conflicts || jsonb_build_object('field', v_key, 'kept', v_cur_fields -> v_key, 'discarded', v_val);
         ELSE
           v_conflicts := v_conflicts || jsonb_build_object('field', v_key, 'kept', v_cur_fields -> v_key, 'discarded', v_val);
         END IF;
@@ -139,9 +141,13 @@ BEGIN
         v_merged := v_merged || jsonb_build_object(v_key, v_val);
       END IF;
     END LOOP;
-    BEGIN
-      IF p_table = 'patients' THEN
-        UPDATE public.patients p SET (file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,marital_status,notes,discharged_at,discharge_note,updated_at,created_at) = (
+    IF jsonb_array_length(v_conflicts) > 0 THEN
+      -- Reject the whole write on conflict; never partially save fields from a stale form.
+      v_result := jsonb_build_object('status','conflict','row',v_cur,'conflicts',v_conflicts);
+    ELSE
+      BEGIN
+        IF p_table = 'patients' THEN
+          UPDATE public.patients p SET (file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,marital_status,notes,discharged_at,discharge_note,updated_at,created_at) = (
           SELECT coalesce(nullif(btrim(r.file_no),''),'~'||p_id::text),coalesce(r.name,''),coalesce(r.nationality,''),coalesce(r.diagnosis,''),coalesce(r.folder_no,''),coalesce(r.age,''),coalesce(r.doctor,''),coalesce(r.cid,''),coalesce(r.doa,''),coalesce(r.dob,''),coalesce(r.sex,''),coalesce(r.room,''),coalesce(r.bed,''),coalesce(r.marital_status,''),coalesce(r.notes,''),r.discharged_at,r.discharge_note,coalesce(r.updated_at,0),coalesce(r.created_at,0) FROM jsonb_populate_record(NULL::public.patients, v_merged) r),
           version = p.version + 1,
           changed_at = greatest(p.changed_at, p_changed_at),
@@ -155,7 +161,8 @@ BEGIN
     EXCEPTION WHEN unique_violation THEN
       v_result := jsonb_build_object('status','file_conflict','existing_id',NULL,'conflicts','[]'::jsonb);
     END;
-    IF jsonb_array_length(v_conflicts) > 0 AND v_result ->> 'status' = 'ok' THEN
+    END IF;
+    IF jsonb_array_length(v_conflicts) > 0 THEN
       INSERT INTO public.sync_history (table_name, record_id, op_id, user_id, field, kept, discarded)
       SELECT p_table, p_id, p_op_id, v_uid, c ->> 'field', c -> 'kept', c -> 'discarded'
       FROM jsonb_array_elements(v_conflicts) c;
@@ -170,6 +177,19 @@ END; $$;
 REVOKE ALL ON FUNCTION public.apply_clinical_edit(uuid, text, uuid, text, integer, jsonb, bigint, uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.apply_clinical_edit(uuid, text, uuid, text, integer, jsonb, bigint, uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.apply_clinical_edit(uuid, text, uuid, text, integer, jsonb, bigint, uuid) TO authenticated;
+
+-- Remove permissive legacy patient policies: permissive policies combine with OR.
+REVOKE ALL ON public.patients FROM anon;
+REVOKE INSERT, UPDATE, DELETE ON public.patients FROM authenticated;
+GRANT SELECT ON public.patients TO authenticated;
+DROP POLICY IF EXISTS "patients readable by anyone" ON public.patients;
+DROP POLICY IF EXISTS "patients insertable by anyone" ON public.patients;
+DROP POLICY IF EXISTS "patients updatable by anyone" ON public.patients;
+DROP POLICY IF EXISTS "patients deletable by anyone" ON public.patients;
+DROP POLICY IF EXISTS "Approved staff read patients" ON public.patients;
+CREATE POLICY "Approved staff read patients"
+  ON public.patients FOR SELECT TO authenticated
+  USING (public.is_approved(auth.uid()));
 
 DO $p$ DECLARE t text; BEGIN
   FOREACH t IN ARRAY ARRAY['patients','patient_vitals','patient_nurse_notes','patient_sbar','patient_care_plans','patient_rounds','patient_tranquilizer_events','patient_admissions','staff_assignments','medication_register','ward_shift_settings'] LOOP

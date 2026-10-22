@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import { db, type Patient } from "@/lib/db";
+import { createClinicalRecordCloudFirst, createPatientCloudFirst, type ClinicalTable } from "@/lib/clinical-cloud";
 
 const HEADERS: Array<{ key: keyof Patient; label: string }> = [
   { key: "fileNo", label: "FILE NO" },
@@ -96,17 +97,22 @@ export async function importPatientsFromExcel(file: File): Promise<number> {
     });
     added++;
   }
-  if (toAdd.length > 0) await db.patients.bulkAdd(toAdd);
+  for (const patient of toAdd) await createPatientCloudFirst(patient);
   return added;
 }
 
 export async function backupToJson() {
-  const [patients, vitals, notes, sbar, careplan] = await Promise.all([
+  const [patients, vitals, notes, sbar, careplan, rounds, tranq, assignments, admissions, meds] = await Promise.all([
     db.patients.toArray(),
     db.vitals.toArray(),
     db.notes.toArray(),
     db.sbar.toArray(),
     db.careplan.toArray(),
+    db.rounds.toArray(),
+    db.tranq.toArray(),
+    db.assignments.toArray(),
+    db.admissions.toArray(),
+    db.meds.toArray(),
   ]);
   const payload = {
     app: "ward39-registry",
@@ -117,6 +123,11 @@ export async function backupToJson() {
     notes,
     sbar,
     careplan,
+    rounds,
+    tranq,
+    assignments,
+    admissions,
+    meds,
   };
   downloadBlob(
     new Blob([JSON.stringify(payload)], { type: "application/json" }),
@@ -125,34 +136,107 @@ export async function backupToJson() {
 }
 
 export async function restoreFromJson(file: File): Promise<void> {
-  const text = await file.text();
-  const data = JSON.parse(text) as {
+  const raw = await file.text();
+  const data = JSON.parse(raw) as {
     app?: string;
-    patients?: Patient[];
-    vitals?: unknown[];
-    notes?: unknown[];
-    sbar?: unknown[];
-    careplan?: unknown[];
+    patients?: Array<Patient & { id?: number }>;
+    vitals?: Array<Record<string, unknown>>;
+    notes?: Array<Record<string, unknown>>;
+    sbar?: Array<Record<string, unknown>>;
+    careplan?: Array<Record<string, unknown>>;
+    rounds?: Array<Record<string, unknown>>;
+    tranq?: Array<Record<string, unknown>>;
+    assignments?: Array<Record<string, unknown>>;
+    admissions?: Array<Record<string, unknown>>;
+    meds?: Array<Record<string, unknown>>;
   };
   if (data.app !== "ward39-registry" || !Array.isArray(data.patients)) {
-    throw new Error("invalid backup");
+    throw new Error("ملف النسخة الاحتياطية غير صالح.");
   }
-  await db.transaction(
-    "rw",
-    [db.patients, db.vitals, db.notes, db.sbar, db.careplan],
-    async () => {
-      await Promise.all([
-        db.patients.clear(),
-        db.vitals.clear(),
-        db.notes.clear(),
-        db.sbar.clear(),
-        db.careplan.clear(),
-      ]);
-      await db.patients.bulkAdd(data.patients!);
-      if (data.vitals?.length) await db.vitals.bulkAdd(data.vitals as never[]);
-      if (data.notes?.length) await db.notes.bulkAdd(data.notes as never[]);
-      if (data.sbar?.length) await db.sbar.bulkAdd(data.sbar as never[]);
-      if (data.careplan?.length) await db.careplan.bulkAdd(data.careplan as never[]);
-    },
-  );
+
+  // Merge into the cloud rather than clearing live patient records. Existing
+  // records win; only missing patients and clinical rows are imported.
+  const patientIdMap = new Map<number, number>();
+  for (const candidate of data.patients) {
+    const fileNo = String(candidate.fileNo ?? "").trim();
+    const cid = String(candidate.cid ?? "").trim();
+    const name = String(candidate.name ?? "").trim();
+    let existing: Patient | undefined;
+    if (fileNo) existing = await db.patients.where("fileNo").equals(fileNo).first();
+    if (!existing && cid) existing = await db.patients.where("cid").equals(cid).first();
+    if (!existing && name && !fileNo && !cid) {
+      existing = await db.patients.filter((p) => p.name.trim() === name && !p.fileNo.trim() && !p.cid.trim()).first();
+    }
+    const sourceId = Number(candidate.id);
+    let destinationId: number;
+    if (existing?.id != null) {
+      destinationId = existing.id;
+    } else {
+      destinationId = await createPatientCloudFirst({
+        fileNo: candidate.fileNo ?? "",
+        name: candidate.name ?? "",
+        nationality: candidate.nationality ?? "",
+        diagnosis: candidate.diagnosis ?? "",
+        folderNo: candidate.folderNo ?? "",
+        age: candidate.age ?? "",
+        doctor: candidate.doctor ?? "",
+        cid: candidate.cid ?? "",
+        doa: candidate.doa ?? "",
+        dob: candidate.dob ?? "",
+        sex: candidate.sex ?? "",
+        room: candidate.room ?? "",
+        bed: candidate.bed ?? "",
+        maritalStatus: candidate.maritalStatus ?? "",
+        notes: candidate.notes ?? "",
+        ...(candidate.dischargedAt ? { dischargedAt: candidate.dischargedAt } : {}),
+        ...(candidate.dischargeNote ? { dischargeNote: candidate.dischargeNote } : {}),
+        createdAt: candidate.createdAt ?? Date.now(),
+        updatedAt: candidate.updatedAt ?? Date.now(),
+      });
+    }
+    if (Number.isFinite(sourceId)) patientIdMap.set(sourceId, Number(destinationId));
+  }
+
+  const imports: Array<[ClinicalTable, Array<Record<string, unknown>>]> = [
+    ["vitals", data.vitals ?? []],
+    ["notes", data.notes ?? []],
+    ["sbar", data.sbar ?? []],
+    ["careplan", data.careplan ?? []],
+    ["rounds", data.rounds ?? []],
+    ["tranq", data.tranq ?? []],
+    ["assignments", data.assignments ?? []],
+    ["admissions", data.admissions ?? []],
+    ["meds", data.meds ?? []],
+  ];
+  const stable = (value: unknown): string => {
+    if (Array.isArray(value)) return "[" + value.map(stable).join(",") + "]";
+    if (value && typeof value === "object") {
+      const object = value as Record<string, unknown>;
+      return "{" + Object.keys(object).sort().map((key) => JSON.stringify(key) + ":" + stable(object[key])).join(",") + "}";
+    }
+    return JSON.stringify(value);
+  };
+
+  for (const [table, rows] of imports) {
+    const local = await db.table(table).toArray() as Array<Record<string, unknown>>;
+    for (const source of rows) {
+      const { id: _sourceId, ...fields } = source;
+      let candidate: Record<string, unknown>;
+      if (table === "meds" && source["patientId"] == null) {
+        candidate = fields;
+      } else {
+        const sourcePatientId = Number(source["patientId"]);
+        const patientId = patientIdMap.get(sourcePatientId);
+        if (patientId == null) continue;
+        candidate = { ...fields, patientId };
+      }
+      const duplicate = local.some((entry) => {
+        const { id: _id, ...rest } = entry;
+        return stable(rest) === stable(candidate);
+      });
+      if (duplicate) continue;
+      const newId = await createClinicalRecordCloudFirst(table, candidate);
+      local.push({ ...candidate, id: newId });
+    }
+  }
 }
