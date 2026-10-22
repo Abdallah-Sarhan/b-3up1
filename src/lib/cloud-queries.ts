@@ -164,3 +164,20 @@ export async function fetchCloudClinicalRecords(
     changedAt: Number(row.changed_at ?? 0),
   }));
 }
+
+/** Fetch the full patient register only for explicit export/backup/restore tasks. */
+export async function fetchAllCloudPatients(): Promise<CloudPatient[]> {
+  const all: PatientRow[] = [];
+  for (let start = 0; ; start += 500) {
+    const { data, error } = await supabase
+      .from("patients")
+      .select("id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,marital_status,notes,discharged_at,discharge_note,created_at,updated_at,deleted_at,version")
+      .is("deleted_at", null)
+      .order("name", { ascending: true })
+      .range(start, start + 499);
+    if (error) throw new Error("تعذر تصدير قائمة المرضى من السحابة: " + error.message);
+    const page = (data ?? []) as PatientRow[];
+    all.push(...page);
+    if (page.length < 500) return all.map(mapPatient);
+  }
+}
