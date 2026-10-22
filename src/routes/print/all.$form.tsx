@@ -7,7 +7,7 @@ import { useActivePatients } from "@/components/PatientPicker";
 import { PRINT_FORMS, getPrintForm, type PrintFormDef } from "@/components/print-content";
 import { PrintActiveFormKey, PrintFontScale, PrintTemplateMode } from "@/components/OverlayPrint";
 import { resetPrintFieldPositions, usePrintCalibration } from "@/lib/print-calibration";
-import type { Patient } from "@/lib/db";
+import type { CloudPatient } from "@/lib/cloud-queries";
 
 export const Route = createFileRoute("/print/all/$form")({
   head: () => ({
@@ -35,7 +35,7 @@ function Sheet({
   printMode,
 }: {
   form: PrintFormDef;
-  patient: Patient;
+  patient: CloudPatient;
   guide: boolean;
   dx: number;
   dy: number;
