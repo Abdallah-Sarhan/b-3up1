@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
 import { AlertTriangle, CheckCircle2, Clock, Users } from "lucide-react";
-import { db, dbReady } from "@/lib/db";
+import { useActivePatients } from "@/components/PatientPicker";
+import { fetchCloudRecords, fetchCloudRecordsByField } from "@/lib/cloud-direct";
+import type { CloudClinicalRecord } from "@/lib/cloud-queries";
 import { useLang } from "@/lib/i18n";
 import { Badge, Card, CardHeader } from "@/components/ui-kit";
 
@@ -33,18 +34,33 @@ function todayStr() {
 function HandoverPage() {
   const { t, lang } = useLang();
   const today = todayStr();
+  const activePatients = useActivePatients();
+  const [data, setData] = useState<{
+    patients: NonNullable<typeof activePatients>;
+    vitals: CloudClinicalRecord[];
+    sbar: CloudClinicalRecord[];
+    assignments: CloudClinicalRecord[];
+  } | undefined>(undefined);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const data = useLiveQuery(async () => {
-    await dbReady;
-    const all = await db.patients.orderBy("name").toArray();
-    const patients = all.filter((p) => !p.dischargedAt);
-    const [vitals, sbar, assignments] = await Promise.all([
-      db.vitals.toArray(),
-      db.sbar.where("date").equals(today).toArray(),
-      db.assignments.where("date").equals(today).toArray(),
-    ]);
-    return { patients, vitals, sbar, assignments };
-  }, [today]);
+  useEffect(() => {
+    let alive = true;
+    if (!activePatients) return;
+    setData(undefined);
+    void Promise.all([
+      Promise.all(activePatients.map((patient) => fetchCloudRecords("patient_vitals", patient.id, 100))).then((sets) => sets.flat()),
+      fetchCloudRecordsByField("patient_sbar", "date", today),
+      fetchCloudRecordsByField("staff_assignments", "date", today),
+    ]).then(([vitals, sbar, assignments]) => {
+      if (alive) {
+        setData({ patients: activePatients, vitals, sbar, assignments });
+        setLoadError(null);
+      }
+    }).catch((error) => {
+      if (alive) setLoadError(error instanceof Error ? error.message : "تعذر تحميل بيانات التسليم من السحابة.");
+    });
+    return () => { alive = false; };
+  }, [activePatients, today]);
 
   const rows = useMemo(() => {
     if (!data) return [];
@@ -70,6 +86,7 @@ function HandoverPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">{t("handover")}</h1>
+      {loadError ? <p role="alert" className="text-sm text-destructive">{loadError}</p> : null}
       <p className="text-sm text-muted-foreground">{today}</p>
 
       <div className="grid gap-3 sm:grid-cols-4">
