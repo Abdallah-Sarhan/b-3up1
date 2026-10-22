@@ -98,10 +98,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     const check = async (userId: string | undefined) => {
       if (!userId) {
         publish(null);
-        // A tab without an authenticated cloud session must not retain a local
-        // clinical working copy from a previous visit.
-        await clearClinicalCloudCache().catch(() => undefined);
+        // Hide all clinical pages immediately, then erase the browser working copy.
         if (alive) setState("out");
+        await clearClinicalCloudCache().catch(() => undefined);
         return;
       }
       try {
