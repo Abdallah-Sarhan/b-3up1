@@ -2,8 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Printer, Save, Shuffle, UserCheck } from "lucide-react";
-import { db } from "@/lib/db";
-import { createClinicalRecordCloudFirst, deleteClinicalRecordCloudFirst, saveSharedSetting } from "@/lib/clinical-cloud";
+import {
+  createCloudRecord,
+  deleteCloudRecord,
+  fetchCloudRecordsByField,
+  fetchCloudSharedSettings,
+  saveCloudSharedSetting,
+} from "@/lib/cloud-direct";
+import { useCloudFilteredRecords } from "@/hooks/use-cloud-filtered-records";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, CardHeader, Field, Input, Select } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
@@ -67,25 +73,21 @@ function AssignmentPage() {
     const [special, setSpecial] = useState<string[]>(() => Array.from({ length: 6 }, () => ""));
     const [seed, setSeed] = useState(0);
     const [leaderNames, setLeaderNames] = useState<string[]>([]);
+  const { records: assignmentRecords, refresh: refreshAssignments, error: assignmentsError } =
+    useCloudFilteredRecords("assignments", "date", date);
 
     // One team leader per shift: the leader is stored per (date, shift) and
     // loaded automatically so the print sheet always shows the shift's leader.
     useEffect(() => {
       let cancelled = false;
-      db.meta.get(`leader:${date}:${shift}`).then((row) => {
-        if (!cancelled) setLeader(row?.value ?? "");
+      void fetchCloudSharedSettings("leader:").then((rows) => {
+        if (cancelled) return;
+        setLeader(rows.find((row) => row.key === `leader:${date}:${shift}`)?.value ?? "");
+        setLeaderNames([...new Set(rows.map((row) => row.value).filter(Boolean))]);
+      }).catch((error) => {
+        if (!cancelled) toast.error(error instanceof Error ? error.message : "تعذر تحميل إعدادات قائد الفريق من السحابة.");
       });
-      db.meta
-        .filter((r) => r.key.startsWith("leader:"))
-        .toArray()
-        .then((rows) => {
-          if (cancelled) return;
-          const names = [...new Set(rows.map((r) => r.value).filter(Boolean))];
-          setLeaderNames(names);
-        });
-      return () => {
-        cancelled = true;
-      };
+      return () => { cancelled = true; };
     }, [date, shift]);
 
   useEffect(() => {
@@ -109,7 +111,7 @@ function AssignmentPage() {
       const v = leader.trim();
       if (!v) return;
       const t = setTimeout(() => {
-        void saveSharedSetting(`leader:${date}:${shift}`, v).catch((error) => { toast.error(error instanceof Error ? error.message : "تعذر حفظ قائد الفريق في السحابة."); });
+        void saveCloudSharedSetting(`leader:${date}:${shift}`, v).catch((error) => { toast.error(error instanceof Error ? error.message : "تعذر حفظ قائد الفريق في السحابة."); });
       }, 400);
       return () => clearTimeout(t);
     }, [leader, date, shift]);
@@ -133,14 +135,14 @@ function AssignmentPage() {
     async function save() {
       if (!requireLeader()) return;
       try {
-        await saveSharedSetting(`leader:${date}:${shift}`, leader.trim());
-        const existing = await db.assignments.where("date").equals(date).toArray();
-        const oldRows = existing.filter((e) => e.shift === shift && e.id != null);
+        await saveCloudSharedSetting(`leader:${date}:${shift}`, leader.trim());
+        const existing = await fetchCloudRecordsByField("staff_assignments", "date", date);
+        const oldRows = existing.filter((e) => e.shift === shift && e.id);
         const rows = groups.flatMap((g, i) =>
           g
-            .filter((p) => p.id != null)
+            .filter((p) => p.id)
             .map((p) => ({
-              patientId: p.id!,
+              patientId: p.id,
               date,
               shift,
               nurse: nurses[i]?.trim() || `Nurse ${i + 1}`,
@@ -148,8 +150,15 @@ function AssignmentPage() {
             })),
         );
         // Publish the new set before removing the previous assignment records.
-        for (const row of rows) await createClinicalRecordCloudFirst("assignments", row);
-        for (const row of oldRows) await deleteClinicalRecordCloudFirst("assignments", row.id!);
+        for (const row of rows) {
+          await createCloudRecord("assignments", String(row.patientId), {
+            date: row.date, shift: row.shift, nurse: row.nurse, remarks: row.remarks,
+          });
+        }
+        for (const row of oldRows) {
+          if (row.patientId) await deleteCloudRecord("assignments", row.id, row.patientId, row.version);
+        }
+        await refreshAssignments();
         toast.success(t("savedOk"));
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "تعذر حفظ توزيع التمريض في السحابة.");
