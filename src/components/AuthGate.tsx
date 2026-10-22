@@ -98,6 +98,9 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     const check = async (userId: string | undefined) => {
       if (!userId) {
         publish(null);
+        // A tab without an authenticated cloud session must not retain a local
+        // clinical working copy from a previous visit.
+        await clearClinicalCloudCache().catch(() => undefined);
         if (alive) setState("out");
         return;
       }
@@ -123,6 +126,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         }
       }
     };
+    const onPageHide = (event: PageTransitionEvent) => {
+      // Best-effort cleanup on tab/window close. Startup also clears the cache,
+      // because browsers may terminate before an asynchronous pagehide cleanup finishes.
+      if (!event.persisted) void clearClinicalCloudCache();
+    };
+    window.addEventListener("pagehide", onPageHide);
+
     let unsubscribe = () => {};
     try {
       void supabase.auth.getSession()
@@ -151,6 +161,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return () => {
       alive = false;
       unsubscribe();
+      window.removeEventListener("pagehide", onPageHide);
     };
   }, []);
 
