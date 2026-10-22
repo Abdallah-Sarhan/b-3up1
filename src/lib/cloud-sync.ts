@@ -393,8 +393,10 @@ function startLiveSync(): void {
  * approved Supabase session exists. Any startup error prevents clinical screens
  * from rendering, rather than presenting old IndexedDB data as current.
  */
-export async function initializeClinicalCloud(db: Dexie = wardDB): Promise<void> {
-  const userId = await assertApprovedSession();
+export async function initializeClinicalCloud(db: Dexie = wardDB, approvedUserId?: string): Promise<void> {
+  // AuthGate has already confirmed the session and approved profile. Reuse that
+  // identity here instead of repeating a cloud approval RPC during startup.
+  const userId = approvedUserId ?? await assertApprovedSession();
   if (initialization && initializationUserId === userId) return initialization;
   if (initializationUserId && initializationUserId !== userId) {
     stopLiveSync();
