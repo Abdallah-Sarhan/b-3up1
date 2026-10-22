@@ -106,3 +106,58 @@ export async function fetchCloudPatientById(id: string): Promise<CloudPatient | 
   }
   return data ? mapPatient(data as PatientRow) : null;
 }
+
+export type CloudClinicalTable =
+  | "patient_vitals"
+  | "patient_nurse_notes"
+  | "patient_sbar"
+  | "patient_care_plans"
+  | "patient_rounds"
+  | "patient_tranquilizer_events"
+  | "staff_assignments"
+  | "patient_admissions"
+  | "medication_register";
+
+export type CloudClinicalRecord = {
+  id: string;
+  patientId: string | null;
+  version: number;
+  createdAt: number | string;
+  changedAt: number;
+} & Record<string, unknown>;
+
+/** Fetch a bounded set of clinical records directly from Supabase. */
+export async function fetchCloudClinicalRecords(
+  table: CloudClinicalTable,
+  patientId?: string,
+  limit = 100,
+): Promise<CloudClinicalRecord[]> {
+  let query = (supabase.from(table) as any)
+    .select("id,patient_id,data,deleted_at,version,created_at,changed_at")
+    .is("deleted_at", null)
+    .order("changed_at", { ascending: false })
+    .limit(Math.max(1, Math.min(500, limit)));
+
+  if (patientId) query = query.eq("patient_id", patientId);
+
+  const { data, error } = await query;
+  if (error) {
+    throw new Error("تعذر تحميل السجلات من السحابة: " + error.message);
+  }
+
+  return (data ?? []).map((row: {
+    id: string;
+    patient_id: string | null;
+    data: Record<string, unknown> | null;
+    version: number | null;
+    created_at: number | string | null;
+    changed_at: number | null;
+  }) => ({
+    ...(row.data ?? {}),
+    id: row.id,
+    patientId: row.patient_id,
+    version: Number(row.version ?? 0),
+    createdAt: row.created_at ?? 0,
+    changedAt: Number(row.changed_at ?? 0),
+  }));
+}
