@@ -338,10 +338,15 @@ async function pullAllCloudData(): Promise<void> {
   // Patient IDs must be resolved before child records are reconciled. After that,
   // each clinical table has its own IndexedDB table and can be fetched in parallel.
   await pullPatients();
-  await Promise.all([
+  // Wait for every table pull to settle before returning an error. This prevents
+  // a failed table from causing logout cleanup to race with sibling pulls that
+  // are still writing into the local working view.
+  const results = await Promise.allSettled([
     ...CLINICAL_TABLES.map((table) => pullClinicalTable(table)),
     pullSharedSettings(),
   ]);
+  const failed = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+  if (failed) throw failed.reason;
 }
 
 function scheduleRealtimeRefresh(): void {
