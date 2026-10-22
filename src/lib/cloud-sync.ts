@@ -2,8 +2,6 @@ import type Dexie from "dexie";
 import { db as wardDB, withCloudCacheMutation, type Patient } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  adoptLegacyClinicalRecord,
-  adoptLegacyPatient,
   clearClinicalMappings,
   getCloudId,
   getCloudVersion,
@@ -11,7 +9,6 @@ import {
   linkIds,
   setCloudVersion,
   remoteTableName,
-  saveSharedSetting,
   type ClinicalTable,
 } from "@/lib/clinical-cloud";
 
@@ -66,7 +63,6 @@ const REALTIME_TABLES = [
 
 const PAGE_SIZE = 500;
 const POLL_INTERVAL_MS = 30_000;
-const LEGACY_MARKER = "ward39.cloud.initialized.v2";
 const ACTIVE_USER_MARKER = "ward39.cloud.active-user";
 
 let initialization: Promise<void> | null = null;
@@ -302,32 +298,6 @@ async function pullSharedSettings(): Promise<void> {
   }
 }
 
-async function migrateUnlinkedLegacyCache(db: Dexie): Promise<void> {
-  // Existing local data is imported only when it has no cloud link. Known cloud
-  // rows are never uploaded from an old cache and therefore cannot roll back
-  // newer edits made on another device.
-  const patients = (await db.table("patients").toArray()) as Patient[];
-  for (const patient of patients) {
-    if (patient.id == null) continue;
-    if (getCloudId("patients", patient.id)) continue;
-    await adoptLegacyPatient(patient.id, patient);
-  }
-
-  for (const table of CLINICAL_TABLES) {
-    const entries = (await db.table(table).toArray()) as Record<string, unknown>[];
-    for (const entry of entries) {
-      if (typeof entry["id"] !== "number" || getCloudId(table, entry["id"])) continue;
-      await adoptLegacyClinicalRecord(table, entry["id"], entry);
-    }
-  }
-
-  const settings = await db.table("meta").toArray() as Array<{ key: string; value: string }>;
-  for (const setting of settings) {
-    if (!setting.key.startsWith("leader:") || getCloudId("ward_shift_settings", setting.key)) continue;
-    await saveSharedSetting(setting.key, setting.value);
-  }
-}
-
 async function assertApprovedSession(): Promise<string> {
   assertOnline();
   const { data, error } = await supabase.auth.getSession();
@@ -423,8 +393,10 @@ function startLiveSync(): void {
  * approved Supabase session exists. Any startup error prevents clinical screens
  * from rendering, rather than presenting old IndexedDB data as current.
  */
-export async function initializeClinicalCloud(db: Dexie = wardDB): Promise<void> {
-  const userId = await assertApprovedSession();
+export async function initializeClinicalCloud(db: Dexie = wardDB, approvedUserId?: string): Promise<void> {
+  // AuthGate has already confirmed the session and approved profile. Reuse that
+  // identity here instead of repeating a cloud approval RPC during startup.
+  const userId = approvedUserId ?? await assertApprovedSession();
   if (initialization && initializationUserId === userId) return initialization;
   if (initializationUserId && initializationUserId !== userId) {
     stopLiveSync();
@@ -451,19 +423,12 @@ export async function initializeClinicalCloud(db: Dexie = wardDB): Promise<void>
       // If migration fails and they sign out, the next user's session will still
       // detect the owner mismatch and clear this cache rather than importing it.
       try { localStorage.setItem(ACTIVE_USER_MARKER, userId); } catch { /* session auth still applies */ }
-      const marker = (() => {
-        try { return localStorage.getItem(`${LEGACY_MARKER}:${userId}`); } catch { return null; }
-      })();
-      // First reconcile cloud records and tombstones with this device cache.
-      // Then migrate only the rows that are still genuinely local-only, and
-      // pull once more so newly imported rows have confirmed cloud identities.
+      // The browser is an access device, not a source of records to upload.
+      // Never auto-import unlinked IndexedDB rows: only records explicitly saved
+      // and confirmed by the cloud are authoritative. Reconcile the device view
+      // from the cloud; legacy local-only records are not uploaded automatically.
       await pullAllCloudData();
-      if (marker !== "done") {
-        await migrateUnlinkedLegacyCache(db);
-        await pullAllCloudData();
-      }
       try {
-        localStorage.setItem(`${LEGACY_MARKER}:${userId}`, "done");
         localStorage.setItem(ACTIVE_USER_MARKER, userId);
       } catch { /* cloud mappings still work */ }
       lastErrorMessage = null;
@@ -509,13 +474,11 @@ export async function clearClinicalCloudCache(): Promise<void> {
     stopLiveSync();
     await refreshInFlight?.catch(() => undefined);
     // Never erase the only copy of data after an incomplete/failed migration.
-    let safelyMigrated = false;
-    try {
-      const activeUser = localStorage.getItem(ACTIVE_USER_MARKER);
-      safelyMigrated = Boolean(activeUser && localStorage.getItem(LEGACY_MARKER + ":" + activeUser) === "done");
-    } catch {
-      safelyMigrated = false;
-    }
+    // Do not erase local clinical records automatically: legacy-only records
+    // may be the sole copy. Account ownership mismatch handling remains in
+    // initializeClinicalCloud; explicit cloud-only migration must be completed
+    // before a safe full cache purge can be offered.
+    const safelyMigrated = false;
 
     if (safelyMigrated) {
       await withCloudCacheMutation(async () => {
@@ -523,10 +486,7 @@ export async function clearClinicalCloudCache(): Promise<void> {
       });
       await clearClinicalMappings();
       try {
-        for (let i = localStorage.length - 1; i >= 0; i--) {
-          const key = localStorage.key(i);
-          if (key?.startsWith(LEGACY_MARKER + ":") || key === ACTIVE_USER_MARKER) localStorage.removeItem(key);
-        }
+        localStorage.removeItem(ACTIVE_USER_MARKER);
       } catch {
         // Cloud data remains authoritative even if device-side cleanup fails.
       }
@@ -544,9 +504,6 @@ export async function clearClinicalCloudCache(): Promise<void> {
 export async function resetClinicalCloudMappings(): Promise<void> {
   await clearClinicalMappings();
   try {
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const key = localStorage.key(i);
-      if (key?.startsWith(LEGACY_MARKER + ":")) localStorage.removeItem(key);
-    }
+
   } catch { /* cache-only cleanup */ }
 }
