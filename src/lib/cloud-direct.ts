@@ -324,3 +324,32 @@ export async function fetchCloudRecordsByField(
     changedAt: Number(row.changed_at ?? 0),
   })) as CloudClinicalRecord[];
 }
+
+export async function fetchCloudSharedSettings(prefix = ""): Promise<Array<{ key: string; value: string }>> {
+  const { data, error } = await (supabase.from("ward_shift_settings") as any)
+    .select("id,data,deleted_at")
+    .is("deleted_at", null)
+    .limit(500);
+  if (error) throw normalizeError(error);
+  return ((data ?? []) as Array<{ data: Record<string, unknown> | null; deleted_at: string | null }>)
+    .filter((row) => !row.deleted_at && String(row.data?.key ?? "").startsWith(prefix))
+    .map((row) => ({ key: String(row.data?.key ?? ""), value: String(row.data?.value ?? "") }));
+}
+
+export async function saveCloudSharedSetting(key: string, value: string): Promise<void> {
+  const { data, error } = await (supabase.from("ward_shift_settings") as any)
+    .select("id,version,deleted_at,data")
+    .contains("data", { key })
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw normalizeError(error);
+  const found = data as RemoteRow | null;
+  await applyCloudEdit({
+    table: "ward_shift_settings",
+    id: found?.id ?? uuid(),
+    op: "upsert",
+    baseVersion: Number(found?.version ?? 0),
+    fields: { key, value },
+  });
+}
