@@ -108,21 +108,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           if (alive) setState("pending");
           return;
         }
-        // Do not block the clinical UI on the initial cloud pull/migration.
-        // Keep authentication and approval checks mandatory, but report cloud
-        // trouble in-page rather than trapping the user on a startup spinner.
-        if (alive) {
-          setCloudWarning("جارٍ تحميل بيانات السحابة في الخلفية. انتظر تأكيد المزامنة قبل الاعتماد على البيانات أو حفظ تغييرات مهمة.");
-          setState("in");
-        }
-        void withStartupTimeout(
+        // Keep clinical pages hidden until the cloud data pull succeeds.
+        // Cached browser data must not appear as current cloud data.
+        if (alive) setCloudWarning(null);
+        await withStartupTimeout(
           initializeClinicalCloud(undefined, userId),
-          "لم يكتمل تحميل بيانات السحابة خلال دقيقة. قد لا تكون البيانات محدثة، ولم يتم تأكيد مزامنة التغييرات."
-        ).then(() => {
-          if (alive) setCloudWarning(null);
-        }).catch((error) => {
-          if (alive) setCloudWarning(error instanceof Error ? error.message : "تعذر إكمال مزامنة السحابة.");
-        });
+          "لم يكتمل تحميل بيانات السحابة خلال دقيقة. لم يتم عرض بيانات المرضى؛ تحقق من الاتصال ثم أعد المحاولة."
+        );
+        if (alive) setState("in");
       } catch (error) {
         if (alive) {
           setCloudError(error instanceof Error ? error.message : "تعذر فتح البيانات السحابية.");
