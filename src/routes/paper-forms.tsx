@@ -21,7 +21,7 @@ export const Route = createFileRoute("/paper-forms")({
 function PaperFormsPage() {
   const { t, lang } = useLang();
   const patients = useActivePatients();
-  const [patientId, setPatientId] = useState<number | "">("");
+  const [patientId, setPatientId] = useState<string | "">("");
 
   const forms = [
     { to: "/print/$patientId/summary", icon: FileText, label: t("patientData") },
