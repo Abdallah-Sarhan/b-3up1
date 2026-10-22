@@ -65,7 +65,7 @@ function MedsPage() {
   const [fontSize, setFontSize] = useState(9);
 
   const { records: rawList, refresh, error: loadError } = useCloudFilteredRecords("meds", "category", category);
-  const list = rawList as CloudMedEntry[] | undefined;
+  const list = rawList as unknown as CloudMedEntry[] | undefined;
   const groups = useMemo(() => groupOf(list ?? []), [list]);
   const isControl = category === "control";
 
@@ -132,6 +132,7 @@ function MedsPage() {
         duration: "",
         createdAt: Date.now(),
       });
+      await refresh();
       toast.success("تمت إضافة صف المريض إلى السحابة");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر إضافة صف المريض في السحابة.");
@@ -149,6 +150,7 @@ function MedsPage() {
 
   return (
     <div className="space-y-4">
+      {loadError ? <p role="alert" className="text-sm text-destructive">{loadError}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <h1 className="text-2xl font-bold">المهدئات الكبرى والأدوية المراقبة</h1>
         <Button variant="outline" onClick={() => window.print()}>
