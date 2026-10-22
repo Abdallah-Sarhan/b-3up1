@@ -66,7 +66,6 @@ const POLL_INTERVAL_MS = 30_000;
 // A stalled Supabase request must not leave the app permanently in "connecting".
 // Each cloud read is bounded; the user can retry after the request fails clearly.
 const CLOUD_READ_TIMEOUT_MS = 3_000;
-const ACTIVE_USER_MARKER = "ward39.cloud.active-user";
 
 function withCloudReadTimeout<T>(promise: PromiseLike<T>, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -439,27 +438,14 @@ export async function initializeClinicalCloud(db: Dexie = wardDB, approvedUserId
   lastErrorMessage = null;
   initialization = (async () => {
     try {
-      // Never reuse another account's browser cache or cloud-id mappings.
-      let previousUser: string | null = null;
-      try { previousUser = localStorage.getItem(ACTIVE_USER_MARKER); } catch { /* no local marker */ }
-      if (previousUser && previousUser !== userId) {
-        await withCloudCacheMutation(async () => {
-          for (const table of db.tables) await table.clear();
-        });
-        await clearClinicalMappings();
-      }
-      // Claim this browser cache for the current user before migration starts.
-      // If migration fails and they sign out, the next user's session will still
-      // detect the owner mismatch and clear this cache rather than importing it.
-      try { localStorage.setItem(ACTIVE_USER_MARKER, userId); } catch { /* session auth still applies */ }
-      // The browser is an access device, not a source of records to upload.
-      // Never auto-import unlinked IndexedDB rows: only records explicitly saved
-      // and confirmed by the cloud are authoritative. Reconcile the device view
-      // from the cloud; legacy local-only records are not uploaded automatically.
+      // IndexedDB is a temporary working view only. Remove any data left by an
+      // earlier tab/session before rebuilding the view from the cloud.
+      await withCloudCacheMutation(async () => {
+        for (const table of db.tables) await table.clear();
+      });
+      await clearClinicalMappings();
+      // Never import unlinked local-only rows. The cloud is the source of truth.
       await pullAllCloudData();
-      try {
-        localStorage.setItem(ACTIVE_USER_MARKER, userId);
-      } catch { /* cloud mappings still work */ }
       lastErrorMessage = null;
       cloudUnavailable = false;
       startLiveSync();
@@ -509,27 +495,23 @@ export async function clearClinicalCloudCache(): Promise<void> {
   cacheClearPromise = (async () => {
     stopLiveSync();
     await refreshInFlight?.catch(() => undefined);
-    // Never erase the only copy of data after an incomplete/failed migration.
-    // Do not erase local clinical records automatically: legacy-only records
-    // may be the sole copy. Account ownership mismatch handling remains in
-    // initializeClinicalCloud; explicit cloud-only migration must be completed
-    // before a safe full cache purge can be offered.
-    const safelyMigrated = false;
-
-    if (safelyMigrated) {
-      await withCloudCacheMutation(async () => {
-        for (const table of wardDB.tables) await table.clear();
-      });
-      await clearClinicalMappings();
-      try {
-        localStorage.removeItem(ACTIVE_USER_MARKER);
-      } catch {
-        // Cloud data remains authoritative even if device-side cleanup fails.
-      }
+    // Clinical data is cloud-authoritative. Clear only this device's temporary
+    // working copy and mappings; this does not issue any delete to Supabase.
+    await withCloudCacheMutation(async () => {
+      for (const table of wardDB.tables) await table.clear();
+    });
+    await clearClinicalMappings();
+    try {
+      // Clean up the marker used by older versions.
+      localStorage.removeItem("ward39.cloud.active-user");
+    } catch {
+      // Device cleanup must not affect cloud data.
     }
-
     initialization = null;
     initializationUserId = null;
+    cloudUnavailable = true;
+    cloudInitializing = false;
+    lastErrorMessage = null;
   })().finally(() => {
     cacheClearPromise = null;
   });
