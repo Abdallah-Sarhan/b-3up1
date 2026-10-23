@@ -137,7 +137,7 @@ function AssignmentPage() {
       try {
         await saveCloudSharedSetting(`leader:${date}:${shift}`, leader.trim());
         const existing = await fetchCloudRecordsByField("staff_assignments", "date", date);
-        const oldRows = existing.filter((e) => e.shift === shift && e.id);
+        const oldRows = existing.filter((e) => e["shift"] === shift && e.id);
         const rows = groups.flatMap((g, i) =>
           g
             .filter((p) => p.id)
@@ -152,7 +152,7 @@ function AssignmentPage() {
         // Publish the new set before removing the previous assignment records.
         for (const row of rows) {
           await createCloudRecord("assignments", String(row.patientId), {
-            date: row.date, shift: row.shift, nurse: row.nurse, remarks: row.remarks,
+            date: row.date, shift: row["shift"], nurse: row.nurse, remarks: row.remarks,
           });
         }
         for (const row of oldRows) {
