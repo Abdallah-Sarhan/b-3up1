@@ -85,14 +85,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Offline patient registry for Ward 39 (KCMH): patient registration, printable data sheets, SBAR handover, vital signs, nurses notes and care plans.",
+          "Online Ward 39 patient registry: cloud-based patient registration, printable data sheets, SBAR handover, vital signs, nursing notes and care plans.",
       },
       { name: "author", content: "Ward 39 — KCMH" },
       { property: "og:title", content: "Ward 39 Patient Registry" },
       {
         property: "og:description",
         content:
-          "Offline patient registry for Ward 39: registration, printing, SBAR, vitals, nursing notes and care plans.",
+          "Online patient registry for Ward 39 with direct cloud records, printing, SBAR, vitals, nursing notes and care plans.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

@@ -163,18 +163,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>("ar");
 
   useEffect(() => {
-    const saved = window.localStorage.getItem("ward39-lang");
-    if (saved === "ar" || saved === "en") setLangState(saved);
-  }, []);
-
-  useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
   }, [lang]);
 
   const setLang = (l: Lang) => {
     setLangState(l);
-    window.localStorage.setItem("ward39-lang", l);
   };
 
   const t = (k: TKey) => dict[k]?.[lang] ?? String(k);

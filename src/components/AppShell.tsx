@@ -23,6 +23,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [newPass, setNewPass] = useState("");
   const [passMsg, setPassMsg] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
+  const [isOnline, setIsOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine);
 
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +34,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setOldPass(""); setNewPass(""); setConfirmPass("");
     setPassMsg("تم تغيير كلمة السر");
   };
+
+  useEffect(() => {
+    const updateOnline = () => setIsOnline(navigator.onLine);
+    window.addEventListener("online", updateOnline);
+    window.addEventListener("offline", updateOnline);
+    return () => {
+      window.removeEventListener("online", updateOnline);
+      window.removeEventListener("offline", updateOnline);
+    };
+  }, []);
 
   useEffect(() => {
     if (isPrint) return;
@@ -62,6 +73,33 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pathname === "/login" ||
     pathname === "/reset-password" ||
     pathname.startsWith("/.lovable/oauth");
+
+  if (!isPublicScreen && !isOnline) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center shadow-sm">
+          <h1 className="text-base font-bold">لا يوجد اتصال بالإنترنت</h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            هذا التطبيق يعمل بالاتصال المباشر بقاعدة البيانات السحابية، ولا يحتفظ بنسخة محلية من السجلات السريرية.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-5 h-10 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            إعادة المحاولة
+          </button>
+          <button
+            type="button"
+            onClick={() => void signOutEverywhere()}
+            className="mt-2 h-10 w-full rounded-md border border-input text-sm font-medium hover:bg-accent"
+          >
+            تسجيل الخروج
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (isPrint) return <>{children}</>;
 
