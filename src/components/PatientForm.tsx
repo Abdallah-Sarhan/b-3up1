@@ -170,7 +170,7 @@ export function PatientForm({ patient }: { patient?: CloudPatient }) {
         const wasDischarged = Boolean(match.dischargedAt || form.dischargedAt);
         const data: Record<string, unknown> = {
           ...form,
-          doa: form.doa || new Date().toISOString().slice(0, 10),
+          doa: form["doa"] || new Date().toISOString().slice(0, 10),
           updatedAt: Date.now(),
           dischargedAt: null,
           dischargeNote: null,
@@ -178,7 +178,7 @@ export function PatientForm({ patient }: { patient?: CloudPatient }) {
         await updateCloudPatient(match.id, data, matchedId === match.id ? (matchedVersion ?? match.version) : match.version);
         if (wasDischarged) {
           await createCloudRecord("admissions", match.id, {
-            admittedAt: data.doa,
+            admittedAt: data["doa"],
             createdAt: Date.now(),
           });
         }
@@ -243,7 +243,7 @@ export function PatientForm({ patient }: { patient?: CloudPatient }) {
             <Input type="date" value={form.dob} onChange={setDob} dir="ltr" />
           </Field>
           <Field label={t("doa")}>
-            <Input value={form.doa} onChange={set("doa")} dir="ltr" placeholder="YYYY-MM-DD" />
+            <Input value={form["doa"]} onChange={set("doa")} dir="ltr" placeholder="YYYY-MM-DD" />
           </Field>
           <Field label={t("doctor")}>
             <Input value={form.doctor} onChange={set("doctor")} />
