@@ -1,9 +1,8 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { Activity, ArrowRight, Bot, FileWarning, Languages, Lock, LogOut, ShieldCheck, Users } from "lucide-react";
+import { Activity, ArrowRight, Bot, Languages, Lock, LogOut, ShieldCheck, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLang } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { getClinicalCloudStatus } from "@/lib/cloud-sync";
 import { signOutEverywhere, useAuthProfile } from "@/components/AuthGate";
 
 // In-app navigation trail so the back button retraces the exact path the
@@ -19,26 +18,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isPrint = pathname.startsWith("/print");
   const profile = useAuthProfile();
   const isHome = pathname === "/";
-  const [isDesktop, setIsDesktop] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [passMsg, setPassMsg] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
-  const [cloudStatus, setCloudStatus] = useState(getClinicalCloudStatus());
-
-  useEffect(() => {
-    const updateStatus = () => setCloudStatus(getClinicalCloudStatus());
-    updateStatus();
-    const timer = window.setInterval(updateStatus, 3000);
-    window.addEventListener("online", updateStatus);
-    window.addEventListener("offline", updateStatus);
-    return () => {
-      window.clearInterval(timer);
-      window.removeEventListener("online", updateStatus);
-      window.removeEventListener("offline", updateStatus);
-    };
-  }, []);
 
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,10 +33,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     setOldPass(""); setNewPass(""); setConfirmPass("");
     setPassMsg("تم تغيير كلمة السر");
   };
-
-  useEffect(() => {
-    setIsDesktop(Boolean(window.ward39Desktop));
-  }, []);
 
   useEffect(() => {
     if (isPrint) return;
@@ -82,40 +62,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pathname === "/login" ||
     pathname === "/reset-password" ||
     pathname.startsWith("/.lovable/oauth");
-
-  if (!isPublicScreen && (!cloudStatus.online || !cloudStatus.available)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center shadow-sm">
-          <h1 className="text-base font-bold">السحابة غير متاحة</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            {!cloudStatus.online
-              ? "لا يوجد اتصال بالإنترنت. أعد الاتصال لفتح السجلات السريرية."
-              : "لم يتم تأكيد اتصال قاعدة البيانات. لن نعرض بيانات محلية قديمة على أنها بيانات مؤكدة."}
-          </p>
-          {cloudStatus.warning && (
-            <p className="mt-2 break-words text-xs text-muted-foreground" role="alert">
-              {cloudStatus.warning}
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="mt-5 h-10 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
-          >
-            إعادة المحاولة
-          </button>
-          <button
-            type="button"
-            onClick={() => void signOutEverywhere()}
-            className="mt-2 h-10 w-full rounded-md border border-input text-sm font-medium hover:bg-accent"
-          >
-            تسجيل الخروج
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   if (isPrint) return <>{children}</>;
 
@@ -168,17 +114,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </span>
               </Link>
             )}
-            {isDesktop ? (
-              <button
-                type="button"
-                onClick={() => void window.ward39Desktop?.exportDiagnostics()}
-                className="inline-flex size-9 items-center justify-center rounded-md border border-input hover:bg-accent"
-                aria-label="حفظ تقرير التشخيص"
-                title="حفظ تقرير التشخيص"
-              >
-                <FileWarning className="size-4" />
-              </button>
-            ) : null}
             <button
               onClick={() => setLang(lang === "ar" ? "en" : "ar")}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-input px-3 text-sm font-medium hover:bg-accent"
@@ -251,19 +186,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </header>
-      {!cloudStatus.online || cloudStatus.warning ? (
-        <div role="status" className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-sm text-foreground print:hidden">
-          {!cloudStatus.online
-            ? "انقطع الاتصال بالإنترنت. الحفظ السريري متوقف حتى استعادة الاتصال بسحابة Lovable Cloud."
-            : cloudStatus.warning}
-        </div>
-      ) : null}
       <main className="mx-auto max-w-6xl px-4 py-6 print:max-w-none print:p-0">{children}</main>
-      <footer className="border-t border-border py-4 text-center text-xs text-muted-foreground print:hidden">
-        {cloudStatus.online && !cloudStatus.warning
-          ? "متصل بسحابة Lovable Cloud — الحفظ السريري لا يُعتمد إلا بعد تأكيد الخادم."
-          : "حالة السحابة غير مستقرة — لا تعتمد على حفظ سريري حتى تظهر حالة الاتصال المستقر."}
-      </footer>
     </div>
   );
 }

@@ -9,20 +9,10 @@ export type PrintCalibration = {
 type StoredCalibrations = Record<string, Partial<PrintCalibration>>;
 
 const DEFAULT_CALIBRATION: PrintCalibration = { dx: 0, dy: 0, fontScale: 1 };
-const STORAGE_KEY = "ward39.print-calibration.v1";
+let storedCalibrations: StoredCalibrations = {};
 
 function readStoredCalibrations(): StoredCalibrations {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-
-    const parsed: unknown = JSON.parse(raw);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as StoredCalibrations)
-      : {};
-  } catch {
-    return {};
-  }
+  return storedCalibrations;
 }
 
 function normalizeCalibration(value: Partial<PrintCalibration> | undefined): PrintCalibration {
@@ -55,9 +45,7 @@ export function usePrintCalibration(formKey: string) {
     if (loadedKey !== formKey) return;
 
     try {
-      const stored = readStoredCalibrations();
-      stored[formKey] = calibration;
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+      storedCalibrations[formKey] = calibration;
     } catch {
       // Printing still works if browser storage is blocked or unavailable.
     }
@@ -88,21 +76,12 @@ export function usePrintCalibration(formKey: string) {
 
 export type PrintFieldPosition = { left: number; top: number };
 type StoredFieldPositions = Record<string, Record<string, PrintFieldPosition>>;
-const FIELD_POSITION_STORAGE_KEY = "ward39.print-field-positions.v1";
+let storedFieldPositions: StoredFieldPositions = {};
 const FIELD_POSITION_RESET_EVENT = "ward39:print-field-positions-reset";
 const FIELD_POSITION_CHANGE_EVENT = "ward39:print-field-position-changed";
 
 function readFieldPositions(): StoredFieldPositions {
-  try {
-    const raw = window.localStorage.getItem(FIELD_POSITION_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed: unknown = JSON.parse(raw);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as StoredFieldPositions)
-      : {};
-  } catch {
-    return {};
-  }
+  return storedFieldPositions;
 }
 
 /**
@@ -157,10 +136,8 @@ export function usePrintFieldPosition(
     const nextPosition = { left, top };
     setPositionState(nextPosition);
     try {
-      const stored = readFieldPositions();
-      stored[formKey] ??= {};
-      stored[formKey][fieldKey] = nextPosition;
-      window.localStorage.setItem(FIELD_POSITION_STORAGE_KEY, JSON.stringify(stored));
+      storedFieldPositions[formKey] ??= {};
+      storedFieldPositions[formKey][fieldKey] = nextPosition;
       window.dispatchEvent(
         new CustomEvent(FIELD_POSITION_CHANGE_EVENT, {
           detail: { formKey, fieldKey, position: nextPosition },
@@ -176,9 +153,7 @@ export function usePrintFieldPosition(
 
 export function resetPrintFieldPositions(formKey: string) {
   try {
-    const stored = readFieldPositions();
-    delete stored[formKey];
-    window.localStorage.setItem(FIELD_POSITION_STORAGE_KEY, JSON.stringify(stored));
+    delete storedFieldPositions[formKey];
     window.dispatchEvent(new CustomEvent(FIELD_POSITION_RESET_EVENT, { detail: formKey }));
   } catch {
     // Reset is optional if browser storage is unavailable.
