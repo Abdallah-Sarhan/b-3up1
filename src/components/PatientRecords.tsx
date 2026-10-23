@@ -130,7 +130,11 @@ function VitalsTab({ patientId }: { patientId: string }) {
           <Button onClick={add} className="w-full"><Plus />{t("add")}</Button>
         </div>
       </div>
-      {!entries?.length ? (
+      {loadError ? (
+        <p role="alert" className="py-4 text-center text-sm text-destructive">{loadError}</p>
+      ) : entries === undefined ? (
+        <p className="py-4 text-center text-sm text-muted-foreground">{t("loading")}</p>
+      ) : !entries.length ? (
         <p className="py-4 text-center text-sm text-muted-foreground">{t("noEntries")}</p>
       ) : (
         <EntryTable head={[t("date"), t("time"), t("bp"), t("pulse"), t("resp"), t("temp"), t("spo2"), t("weight"), ""]}>
@@ -175,7 +179,11 @@ function NotesTab({ patientId }: { patientId: string }) {
           <Button onClick={add}><Plus />{t("add")}</Button>
         </div>
       </div>
-      {!entries?.length ? (
+      {loadError ? (
+        <p role="alert" className="py-4 text-center text-sm text-destructive">{loadError}</p>
+      ) : entries === undefined ? (
+        <p className="py-4 text-center text-sm text-muted-foreground">{t("loading")}</p>
+      ) : !entries.length ? (
         <p className="py-4 text-center text-sm text-muted-foreground">{t("noEntries")}</p>
       ) : (
         <EntryTable head={[t("date"), t("time"), t("note"), ""]}>
@@ -230,7 +238,11 @@ function SbarTab({ patientId }: { patientId: string }) {
         <Field label={t("recommendation")}><Textarea value={form.recommendation} onChange={set("recommendation")} rows={2} /></Field>
       </div>
       <Button onClick={add}><Plus />{t("add")}</Button>
-      {!entries?.length ? (
+      {loadError ? (
+        <p role="alert" className="py-4 text-center text-sm text-destructive">{loadError}</p>
+      ) : entries === undefined ? (
+        <p className="py-4 text-center text-sm text-muted-foreground">{t("loading")}</p>
+      ) : !entries.length ? (
         <p className="py-4 text-center text-sm text-muted-foreground">{t("noEntries")}</p>
       ) : (
         <EntryTable head={[t("date"), t("shift"), t("situation"), t("assessment"), t("signature"), ""]}>
@@ -298,7 +310,11 @@ export function CarePlanTab({ patientId }: { patientId: string }) {
         </div>
       </div>
       <Button onClick={add}><Plus />{t("add")}</Button>
-      {!entries?.length ? (
+      {loadError ? (
+        <p role="alert" className="py-4 text-center text-sm text-destructive">{loadError}</p>
+      ) : entries === undefined ? (
+        <p className="py-4 text-center text-sm text-muted-foreground">{t("loading")}</p>
+      ) : !entries.length ? (
         <p className="py-4 text-center text-sm text-muted-foreground">{t("noEntries")}</p>
       ) : (
         <EntryTable head={[t("dateIdentified"), t("problemNo"), t("problem"), t("dateResolved"), t("nurseSign"), ""]}>

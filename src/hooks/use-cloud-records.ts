@@ -17,6 +17,7 @@ export function useCloudRecords(table: CloudTableKey, patientId: string) {
       setRecords(rows);
       setError(null);
     } catch (cause) {
+      setRecords(undefined);
       setError(cause instanceof Error ? cause.message : "تعذر تحميل السجلات من السحابة.");
     }
   }, [table, patientId]);
@@ -35,7 +36,10 @@ export function useCloudRecords(table: CloudTableKey, patientId: string) {
           setError(null);
         }
       } catch (cause) {
-        if (alive) setError(cause instanceof Error ? cause.message : "تعذر تحميل السجلات من السحابة.");
+        if (alive) {
+          setRecords(undefined);
+          setError(cause instanceof Error ? cause.message : "تعذر تحميل السجلات من السحابة.");
+        }
       }
     };
 

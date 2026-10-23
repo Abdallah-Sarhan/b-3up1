@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchActiveCloudPatients, type CloudPatient } from "@/lib/cloud-queries";
 import { useLang } from "@/lib/i18n";
@@ -10,13 +11,21 @@ export function useActivePatients(): CloudPatient[] | undefined {
   const [patients, setPatients] = useState<CloudPatient[]>();
   useEffect(() => {
     let alive = true;
+    let failureReported = false;
     const load = async () => {
       try {
         const rows = await fetchActiveCloudPatients();
         if (alive) setPatients(rows);
+        failureReported = false;
       } catch (error) {
         console.error("Failed to read active patients from Supabase", error);
-        if (alive) setPatients(undefined);
+        if (alive) {
+          setPatients([]);
+          if (!failureReported) {
+            toast.error(error instanceof Error ? error.message : "تعذر تحميل قائمة المرضى من السحابة.");
+          }
+        }
+        failureReported = true;
       }
     };
     void load();

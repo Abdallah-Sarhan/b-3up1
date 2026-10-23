@@ -17,6 +17,7 @@ export function useCloudFilteredRecords(
       setRecords(rows);
       setError(null);
     } catch (cause) {
+      setRecords(undefined);
       setError(cause instanceof Error ? cause.message : "تعذر تحميل السجلات من السحابة.");
     }
   }, [table, field, value]);
@@ -31,7 +32,10 @@ export function useCloudFilteredRecords(
           setError(null);
         }
       } catch (cause) {
-        if (alive) setError(cause instanceof Error ? cause.message : "تعذر تحميل السجلات من السحابة.");
+        if (alive) {
+          setRecords(undefined);
+          setError(cause instanceof Error ? cause.message : "تعذر تحميل السجلات من السحابة.");
+        }
       }
     };
     void load();
