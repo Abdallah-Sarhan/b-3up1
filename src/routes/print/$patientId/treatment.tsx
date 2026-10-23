@@ -30,7 +30,7 @@ const ROWS = 30;
 function TreatmentPrint() {
   const { id } = usePrintPatientData();
   const { records: rawEntries } = useCloudRecords("tranq", id);
-  const entries = rawEntries?.slice().sort((a, b) => String(a.date ?? "").localeCompare(String(b.date ?? "")));
+  const entries = rawEntries?.slice().sort((a, b) => String(a["date"] ?? "").localeCompare(String(b["date"] ?? "")));
   const list = (entries ?? []).slice(-ROWS);
 
   return (
@@ -65,13 +65,13 @@ function TreatmentPrint() {
               return (
                 <div key={e.id}>
                   <F left={178} top={top} width={116} align="center" size={11}>
-                    {[e.date, e.time].filter(Boolean).join(" ")}
+                    {[e["date"], e["time"]].filter(Boolean).join(" ")}
                   </F>
                   <F left={306} top={top} width={478} size={11}>
-                    {[e.drug, e.dose, e.route, e.indication].filter(Boolean).join(" — ")}
+                    {[e["drug"], e["dose"], e["route"], e["indication"]].filter(Boolean).join(" — ")}
                   </F>
                   <F left={798} top={top} width={308} size={11}>
-                    {e.effect}
+                    {e["effect"]}
                   </F>
                 </div>
               );
