@@ -32,7 +32,7 @@ jobs:
             echo "Legacy local clinical database or bulk-sync code is still referenced."
             exit 1
           fi
-          if grep -RInE 'indexedDB\\.open|localStorage\\.setItem|sessionStorage\\.setItem|navigator\\.serviceWorker\\.register' src --exclude=previewAuthStorage.ts; then
+          if grep -RInE 'indexedDB[.]open|localStorage[.]setItem|sessionStorage[.]setItem|navigator[.]serviceWorker[.]register' src --exclude=previewAuthStorage.ts; then
             echo "Clinical application code must not persist data in browser storage or register service workers."
             exit 1
           fi
