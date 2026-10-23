@@ -32,7 +32,7 @@ function RoundsPage() {
   const { t, lang } = useLang();
   const patients = useActivePatients();
   const [date, setDate] = useState(today());
-  const [notes, setNotes] = useState<Record<number, string>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
 
   const entries = useLiveQuery(
     () => db.rounds.where("date").equals(date).toArray(),
@@ -50,12 +50,12 @@ function RoundsPage() {
   // Load saved notes for the chosen date.
   useEffect(() => {
     if (!entries) return;
-    const map: Record<number, string> = {};
+    const map: Record<string, string> = {};
     for (const e of entries) map[e.patientId] = e.findings ?? "";
     setNotes(map);
   }, [entries]);
 
-  async function saveNote(patientId: number) {
+  async function saveNote(patientId: string) {
     const note = notes[patientId] ?? "";
     const existing = (entries ?? []).find((e) => e.patientId === patientId);
     try {
