@@ -57,7 +57,7 @@ function RoundsPage() {
   useEffect(() => {
     if (!entries) return;
     const map: Record<string, string> = {};
-    for (const e of entries) if (e.patientId) map[e.patientId] = String(e.findings ?? "");
+    for (const e of entries) if (e.patientId) map[e.patientId] = String(e["findings"] ?? "");
     setNotes((current) => {
       const next = { ...map };
       for (const [idText, isDirty] of Object.entries(dirtyRef.current)) {
