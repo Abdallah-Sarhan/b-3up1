@@ -66,7 +66,7 @@ const VITAL_COLS = ["DATE", "TIME", "BP", "PULSE", "RESP", "TEMP", "SPO2"] as co
 const ROWS_PER_BLOCK = 14;
 
 function VitalRow({ e, rowIndex, block }: { e: CloudClinicalRecord | undefined; rowIndex: number; block: "left" | "right" }) {
-  const values = [e?.["date"] ?? "", e?.["time"] ?? "", e?.["bp"] ?? "", e?.["pulse"] ?? "", e?.["resp"] ?? "", e?.["temp"] ?? "", e?.spo2 ?? ""];
+  const values = [e?.["date"] ?? "", e?.["time"] ?? "", e?.["bp"] ?? "", e?.["pulse"] ?? "", e?.["resp"] ?? "", e?.["temp"] ?? "", e?.["spo2"] ?? ""];
   return (
     <>
       {values.map((value, columnIndex) => (
@@ -686,11 +686,11 @@ export function SbarContent({ patient, id, date }: { patient: CloudPatient; id: 
             return (
               <tr key={key}>
                 <td className="h-[52mm] border border-black px-1 py-1 text-center align-middle text-[11px] font-bold whitespace-pre-line"><MovablePrintField fieldKey={`sbar["shift"].${key}`}>{label}</MovablePrintField></td>
-                <BCell fieldKey={`sbar.${key}.situation`}>{e?.situation}</BCell>
-                <BCell fieldKey={`sbar.${key}.background`}>{e?.background}</BCell>
-                <BCell fieldKey={`sbar.${key}.assessment`}>{e?.assessment}</BCell>
-                <BCell fieldKey={`sbar.${key}.recommendation`}>{e?.recommendation}</BCell>
-                <BCell fieldKey={`sbar.${key}.signature`}>{e?.signature}</BCell>
+                <BCell fieldKey={`sbar.${key}.situation`}>{e?.["situation"]}</BCell>
+                <BCell fieldKey={`sbar.${key}.background`}>{e?.["background"]}</BCell>
+                <BCell fieldKey={`sbar.${key}.assessment`}>{e?.["assessment"]}</BCell>
+                <BCell fieldKey={`sbar.${key}.recommendation`}>{e?.["recommendation"]}</BCell>
+                <BCell fieldKey={`sbar.${key}.signature`}>{e?.["signature"]}</BCell>
               </tr>
             );
           })}
