@@ -1,6 +1,6 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from "react";
 import type { CloudPatient } from "@/lib/cloud-queries";
-import type { VitalEntry, SbarEntry } from "@/lib/db";
+import type { CloudClinicalRecord } from "@/lib/cloud-queries";
 import { useCloudRecords } from "@/hooks/use-cloud-records";
 import { BoxedDigits, makeField, MovablePrintField, usePrintFontScale, usePrintTemplateMode } from "@/components/OverlayPrint";
 import { usePrintFieldPosition } from "@/lib/print-calibration";
@@ -65,7 +65,7 @@ export function SummaryContent({ patient }: { patient: CloudPatient }) {
 const VITAL_COLS = ["DATE", "TIME", "BP", "PULSE", "RESP", "TEMP", "SPO2"] as const;
 const ROWS_PER_BLOCK = 14;
 
-function VitalRow({ e, rowIndex, block }: { e: VitalEntry | undefined; rowIndex: number; block: "left" | "right" }) {
+function VitalRow({ e, rowIndex, block }: { e: CloudClinicalRecord | undefined; rowIndex: number; block: "left" | "right" }) {
   const values = [e?.["date"] ?? "", e?.["time"] ?? "", e?.["bp"] ?? "", e?.["pulse"] ?? "", e?.["resp"] ?? "", e?.["temp"] ?? "", e?.spo2 ?? ""];
   return (
     <>
@@ -635,7 +635,7 @@ function BCell({ children, fieldKey }: { children: string | undefined; fieldKey:
 export function SbarContent({ patient, id, date }: { patient: CloudPatient; id: string; date: string }) {
   const { records: all } = useCloudRecords("sbar", id);
   const entries = (all ?? []).filter((e) => e["date"] === date);
-  const byShift = (shift: string): SbarEntry | undefined => entries.find((e) => e["shift"] === shift);
+  const byShift = (shift: string): CloudClinicalRecord | undefined => entries.find((e) => e["shift"] === shift);
 
   return (
     <div className="border-2 border-black">
