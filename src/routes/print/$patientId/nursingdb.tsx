@@ -26,7 +26,7 @@ const F = makeField(IW, IH);
 function NursingDbPrint() {
   const { id } = usePrintPatientData();
   const { records: rawVitals } = useCloudRecords("vitals", id);
-  const vitals = rawVitals?.slice().sort((a, b) => String(a.date ?? "").localeCompare(String(b.date ?? "")));
+  const vitals = rawVitals?.slice().sort((a, b) => String(a["date"] ?? "").localeCompare(String(b["date"] ?? "")));
   const last = (vitals ?? []).at(-1);
 
   return (
@@ -60,11 +60,11 @@ function NursingDbPrint() {
             {/* Vital signs and measurements (latest reading) */}
             {last ? (
               <>
-                <F left={548} top={1118} width={140} size={12}>{last.temp}</F>
-                <F left={740} top={1118} width={200} size={12}>{last.pulse}</F>
-                <F left={1015} top={1140} width={200} size={12}>{last.resp}</F>
-                <F left={548} top={1158} width={180} size={12}>{last.bp}</F>
-                <F left={790} top={1158} width={160} size={12}>{last.weight}</F>
+                <F left={548} top={1118} width={140} size={12}>{last["temp"]}</F>
+                <F left={740} top={1118} width={200} size={12}>{last["pulse"]}</F>
+                <F left={1015} top={1140} width={200} size={12}>{last["resp"]}</F>
+                <F left={548} top={1158} width={180} size={12}>{last["bp"]}</F>
+                <F left={790} top={1158} width={160} size={12}>{last["weight"]}</F>
               </>
             ) : null}
           </>
