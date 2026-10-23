@@ -38,8 +38,8 @@ function DischargePage() {
         (p.cid || "").toLowerCase().includes(q),
     );
     return {
-      active: list.filter((p) => !p.dischargedAt),
-      discharged: list.filter((p) => p.dischargedAt),
+      active: list.filter((p) => !p["dischargedAt"]),
+      discharged: list.filter((p) => p["dischargedAt"]),
     };
   }, [patients, query]);
 
@@ -115,7 +115,7 @@ function DischargePage() {
               <div>
                 <span className="font-medium">{p.name || `${t("fileNo")} ${p.fileNo}`}</span>
                 <p className="text-xs text-muted-foreground">
-                  {p.dischargedAt} {p.dischargeNote ? `· ${p.dischargeNote}` : ""}
+                  {p["dischargedAt"]} {p["dischargeNote"] ? `· ${p["dischargeNote"]}` : ""}
                 </p>
                 <AdmissionHistory patientId={p.id!} />
               </div>
@@ -156,9 +156,9 @@ function AdmissionHistory({ patientId }: { patientId: string }) {
       <ul className="mt-1 space-y-0.5 ps-4">
         {list.map((a) => (
           <li key={a.id}>
-            {t("admittedOn")}: {a.admittedAt} —{" "}
-            {a.dischargedAt ? `${t("discharged")}: ${a.dischargedAt}` : t("stillAdmitted")}
-            {a.dischargeNote ? ` · ${a.dischargeNote}` : ""}
+            {t("admittedOn")}: {a["admittedAt"]} —{" "}
+            {a["dischargedAt"] ? `${t("discharged")}: ${a["dischargedAt"]}` : t("stillAdmitted")}
+            {a["dischargeNote"] ? ` · ${a["dischargeNote"]}` : ""}
           </li>
         ))}
       </ul>
