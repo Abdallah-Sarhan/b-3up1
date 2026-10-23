@@ -113,3 +113,44 @@ CREATE POLICY "Approved users manage their own messages"
   ON public.chat_messages FOR ALL TO authenticated
   USING (auth.uid() = user_id AND public.is_approved(auth.uid()))
   WITH CHECK (auth.uid() = user_id AND public.is_approved(auth.uid()));
+
+
+-- Efficient RLS-respecting latest-vitals lookup for the shift handover board.
+CREATE INDEX IF NOT EXISTS patient_vitals_latest_idx
+  ON public.patient_vitals (
+    patient_id,
+    (data ->> 'date') DESC,
+    (data ->> 'time') DESC,
+    changed_at DESC
+  )
+  WHERE deleted_at IS NULL;
+
+CREATE OR REPLACE FUNCTION public.latest_patient_vitals(p_patient_ids uuid[])
+RETURNS TABLE (
+  id uuid,
+  patient_id uuid,
+  data jsonb,
+  version integer,
+  created_at timestamptz,
+  changed_at bigint
+)
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path TO 'public'
+AS $function$
+  SELECT DISTINCT ON (v.patient_id)
+    v.id, v.patient_id, v.data, v.version, v.created_at, v.changed_at
+  FROM public.patient_vitals AS v
+  WHERE v.deleted_at IS NULL
+    AND v.patient_id = ANY(COALESCE(p_patient_ids, ARRAY[]::uuid[]))
+  ORDER BY
+    v.patient_id,
+    COALESCE(v.data ->> 'date', '') DESC,
+    COALESCE(v.data ->> 'time', '') DESC,
+    v.changed_at DESC,
+    v.created_at DESC
+$function$;
+
+REVOKE ALL ON FUNCTION public.latest_patient_vitals(uuid[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.latest_patient_vitals(uuid[]) TO authenticated;

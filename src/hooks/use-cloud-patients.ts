@@ -4,18 +4,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchActiveCloudPatients, fetchAllCloudPatients, type CloudPatient } from "@/lib/cloud-queries";
 
 /** Cloud-backed patient list. Full history is fetched only for screens that request it explicitly. */
+function samePatientSnapshot(current: CloudPatient[] | undefined, next: CloudPatient[]): boolean {
+  return current !== undefined && current.length === next.length && current.every((p, i) => p.id === next[i]?.id && p.version === next[i]?.version);
+}
+
 export function useCloudPatients(includeDischarged = false) {
   const [patients, setPatients] = useState<CloudPatient[] | undefined>(undefined);
 
   useEffect(() => {
     let alive = true;
+    setPatients(undefined);
     let failureReported = false;
     const load = async () => {
       try {
         const rows = includeDischarged
           ? await fetchAllCloudPatients()
           : await fetchActiveCloudPatients();
-        if (alive) setPatients(rows);
+        if (alive) setPatients((current) => samePatientSnapshot(current, rows) ? current : rows);
         failureReported = false;
       } catch (error) {
         console.error("Failed to load patients from Supabase", error);

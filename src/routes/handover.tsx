@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertTriangle, CheckCircle2, Clock, Users } from "lucide-react";
 import { useActivePatients } from "@/components/PatientPicker";
-import { fetchCloudRecords, fetchCloudRecordsByField } from "@/lib/cloud-direct";
+import { fetchCloudRecordsByField, fetchLatestCloudVitalsByPatient } from "@/lib/cloud-direct";
 import type { CloudClinicalRecord } from "@/lib/cloud-queries";
 import { useLang } from "@/lib/i18n";
 import { Badge, Card, CardHeader } from "@/components/ui-kit";
@@ -48,7 +48,7 @@ function HandoverPage() {
     if (!activePatients) return;
     setData(undefined);
     void Promise.all([
-      Promise.all(activePatients.map((patient) => fetchCloudRecords("patient_vitals", patient.id, 100))).then((sets) => sets.flat()),
+      fetchLatestCloudVitalsByPatient(activePatients.map((patient) => patient.id)),
       fetchCloudRecordsByField("patient_sbar", "date", today),
       fetchCloudRecordsByField("staff_assignments", "date", today),
     ]).then(([vitals, sbar, assignments]) => {

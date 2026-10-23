@@ -196,6 +196,24 @@ export async function deleteCloudPatient(id: string, baseVersion: number): Promi
   await applyCloudEdit({ table: "patients", id, op: "delete", baseVersion, fields: {} });
 }
 
+/** Fetch only the newest dated vital-sign row for each requested patient in one cloud query. */
+export async function fetchLatestCloudVitalsByPatient(patientIds: string[]): Promise<CloudClinicalRecord[]> {
+  const ids = [...new Set(patientIds.filter(Boolean))];
+  if (ids.length === 0) return [];
+  const { data, error } = await (supabase as any).rpc("latest_patient_vitals", {
+    p_patient_ids: ids,
+  });
+  if (error) throw normalizeError(error);
+  return ((data ?? []) as RemoteRow[]).map((row) => ({
+    ...((row["data"] as Record<string, unknown> | null) ?? {}),
+    id: String(row["id"]),
+    patientId: row["patient_id"] == null ? null : String(row["patient_id"]),
+    version: Number(row["version"] ?? 0),
+    createdAt: (row["created_at"] as string | number | undefined) ?? 0,
+    changedAt: Number(row["changed_at"] ?? 0),
+  })) as CloudClinicalRecord[];
+}
+
 export async function fetchCloudRecords(
   table: CloudClinicalTable,
   patientId: string,

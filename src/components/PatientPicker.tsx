@@ -7,6 +7,10 @@ import { useLang } from "@/lib/i18n";
 import { Input } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
 
+function samePatientSnapshot(current: CloudPatient[] | undefined, next: CloudPatient[]): boolean {
+  return current !== undefined && current.length === next.length && current.every((p, i) => p.id === next[i]?.id && p.version === next[i]?.version);
+}
+
 export function useActivePatients(): CloudPatient[] | undefined {
   const [patients, setPatients] = useState<CloudPatient[]>();
   useEffect(() => {
@@ -15,7 +19,7 @@ export function useActivePatients(): CloudPatient[] | undefined {
     const load = async () => {
       try {
         const rows = await fetchActiveCloudPatients();
-        if (alive) setPatients(rows);
+        if (alive) setPatients((current) => samePatientSnapshot(current, rows) ? current : rows);
         failureReported = false;
       } catch (error) {
         console.error("Failed to read active patients from Supabase", error);

@@ -3,6 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { CLOUD_TABLES, fetchCloudRecords, type CloudTableKey } from "@/lib/cloud-direct";
 import type { CloudClinicalRecord } from "@/lib/cloud-queries";
 
+function sameRecordSnapshot(current: CloudClinicalRecord[] | undefined, next: CloudClinicalRecord[]): boolean {
+  return current !== undefined && current.length === next.length && current.every((record, i) => record.id === next[i]?.id && record.version === next[i]?.version && record.changedAt === next[i]?.changedAt);
+}
+
 export function useCloudRecords(table: CloudTableKey, patientId: string) {
   const [records, setRecords] = useState<CloudClinicalRecord[] | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
@@ -14,7 +18,7 @@ export function useCloudRecords(table: CloudTableKey, patientId: string) {
     }
     try {
       const rows = await fetchCloudRecords(CLOUD_TABLES[table], patientId, 200);
-      setRecords(rows);
+      setRecords((current) => sameRecordSnapshot(current, rows) ? current : rows);
       setError(null);
     } catch (cause) {
       setRecords(undefined);
@@ -24,6 +28,8 @@ export function useCloudRecords(table: CloudTableKey, patientId: string) {
 
   useEffect(() => {
     let alive = true;
+    setRecords(undefined);
+    setError(null);
     const load = async () => {
       if (!patientId) {
         if (alive) setRecords([]);
@@ -32,7 +38,7 @@ export function useCloudRecords(table: CloudTableKey, patientId: string) {
       try {
         const rows = await fetchCloudRecords(CLOUD_TABLES[table], patientId, 200);
         if (alive) {
-          setRecords(rows);
+          setRecords((current) => sameRecordSnapshot(current, rows) ? current : rows);
           setError(null);
         }
       } catch (cause) {
