@@ -27,13 +27,17 @@ function clearLegacyBrowserClinicalData() {
     window.indexedDB?.deleteDatabase("ward39-registry");
   } catch { /* Ignore browsers that disable IndexedDB access. */ }
   try {
+    // Keep only Supabase's authentication session/PKCE verifier. Remove legacy
+    // app data regardless of its old key name; clinical data must not persist here.
     for (let i = window.localStorage.length - 1; i >= 0; i--) {
       const key = window.localStorage.key(i);
-      if (key && key.startsWith("ward39")) {
-        window.localStorage.removeItem(key);
-      }
+      const isSupabaseAuth =
+        key !== null &&
+        /^sb-.+-auth-token(?:-code-verifier)?$/.test(key);
+      if (key && !isSupabaseAuth) window.localStorage.removeItem(key);
     }
-    window.sessionStorage.removeItem("ward39.unlocked");
+    // The current app does not use sessionStorage for clinical or auth data.
+    window.sessionStorage.clear();
   } catch { /* Storage cleanup must never block sign-in. */ }
   try {
     void window.navigator.serviceWorker?.getRegistrations().then((items) => items.forEach((item) => void item.unregister())).catch(() => undefined);
