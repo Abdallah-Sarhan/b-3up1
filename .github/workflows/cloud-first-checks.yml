@@ -24,6 +24,21 @@ jobs:
           bun-version: latest
       - name: Install locked dependencies
         run: bun install --frozen-lockfile
+      - name: Verify online-only clinical data architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE 'useLiveQuery|pullAllCloudData|initializeClinicalCloud|@/lib/cloud-sync|@/lib/clinical-cloud|dexie-react-hooks|from .dexie.' src; then
+            echo "Legacy local clinical database or bulk-sync code is still referenced."
+            exit 1
+          fi
+          if grep -RInE 'indexedDB\\.open|localStorage\\.setItem|sessionStorage\\.setItem|navigator\\.serviceWorker\\.register' src --exclude=previewAuthStorage.ts; then
+            echo "Clinical application code must not persist data in browser storage or register service workers."
+            exit 1
+          fi
+          ! grep -Eq '"dexie"|"dexie-react-hooks"' package.json
+          grep -q 'cache: "no-store"' src/integrations/supabase/client.ts
+          grep -q 'Cache-Control' src/server.ts
       - name: TypeScript type check
         run: bun run tsc --noEmit
       - name: Production build
