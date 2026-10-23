@@ -96,3 +96,20 @@ CREATE POLICY "Approved staff read sync history"
 
 REVOKE ALL ON FUNCTION public.apply_clinical_edit(uuid, text, uuid, text, integer, jsonb, bigint, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.apply_clinical_edit(uuid, text, uuid, text, integer, jsonb, bigint, uuid) TO authenticated;
+
+-- Chat history must not be available to authenticated-but-unapproved accounts.
+ALTER TABLE public.chat_threads ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage their own threads" ON public.chat_threads;
+DROP POLICY IF EXISTS "Approved users manage their own threads" ON public.chat_threads;
+CREATE POLICY "Approved users manage their own threads"
+  ON public.chat_threads FOR ALL TO authenticated
+  USING (auth.uid() = user_id AND public.is_approved(auth.uid()))
+  WITH CHECK (auth.uid() = user_id AND public.is_approved(auth.uid()));
+
+ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users manage their own messages" ON public.chat_messages;
+DROP POLICY IF EXISTS "Approved users manage their own messages" ON public.chat_messages;
+CREATE POLICY "Approved users manage their own messages"
+  ON public.chat_messages FOR ALL TO authenticated
+  USING (auth.uid() = user_id AND public.is_approved(auth.uid()))
+  WITH CHECK (auth.uid() = user_id AND public.is_approved(auth.uid()));

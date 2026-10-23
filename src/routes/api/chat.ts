@@ -37,6 +37,8 @@ export const Route = createFileRoute("/api/chat")({
         const { data: userData, error: userError } = await supabase.auth.getUser();
         if (userError || !userData.user) return new Response("Unauthorized", { status: 401 });
         const userId = userData.user.id;
+        const { data: approved, error: approvalError } = await supabase.rpc("is_approved", { _user_id: userId });
+        if (approvalError || !approved) return new Response("Forbidden", { status: 403 });
 
         const body = (await request.json()) as ChatRequestBody;
         const messages = body.messages;
