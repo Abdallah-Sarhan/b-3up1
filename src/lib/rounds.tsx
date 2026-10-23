@@ -51,13 +51,13 @@ function RoundsPage() {
   useEffect(() => {
     if (!entries) return;
     const map: Record<string, string> = {};
-    for (const e of entries) map[e.patientId] = e.findings ?? "";
+    for (const e of entries) map[String(e.patientId)] = e.findings ?? "";
     setNotes(map);
   }, [entries]);
 
   async function saveNote(patientId: string) {
     const note = notes[patientId] ?? "";
-    const existing = (entries ?? []).find((e) => e.patientId === patientId);
+    const existing = (entries ?? []).find((e) => String(e.patientId) === patientId);
     try {
       if (existing?.id != null) {
         await updateClinicalRecordCloudFirst("rounds", existing.id, { findings: note });
