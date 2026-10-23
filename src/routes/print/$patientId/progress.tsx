@@ -30,7 +30,7 @@ const ROWS = 28;
 function ProgressPrint() {
   const { id } = usePrintPatientData();
   const { records: rawEntries } = useCloudRecords("rounds", id);
-  const entries = rawEntries?.slice().sort((a, b) => String(a.date ?? "").localeCompare(String(b.date ?? "")));
+  const entries = rawEntries?.slice().sort((a, b) => String(a["date"] ?? "").localeCompare(String(b["date"] ?? "")));
   const list = (entries ?? []).slice(-ROWS);
 
   return (
@@ -56,7 +56,7 @@ function ProgressPrint() {
             <F left={850} top={222} width={130}>{patient.age}</F>
 
             <F left={175} top={212} width={135} align="center" size={12}>{patient.doa}</F>
-            <F left={330} top={212} width={205} align="center" size={11}>{patient.doctor}</F>
+            <F left={330} top={212} width={205} align="center" size={11}>{patient["doctor"]}</F>
 
             <F left={310} top={305} width={720} size={12}>{patient.diagnosis}</F>
 
@@ -65,10 +65,10 @@ function ProgressPrint() {
               return (
                 <div key={r.id}>
                   <F left={170} top={top} width={145} align="center" size={11}>
-                    {r.date}
+                    {r["date"]}
                   </F>
                   <F left={330} top={top} width={725} size={11}>
-                    {[r.findings, r.orders, r.doctor].filter(Boolean).join(" — ")}
+                    {[r["findings"], r["orders"], r["doctor"]].filter(Boolean).join(" — ")}
                   </F>
                 </div>
               );
