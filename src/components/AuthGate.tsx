@@ -29,7 +29,7 @@ function clearLegacyBrowserClinicalData() {
   try {
     for (let i = window.localStorage.length - 1; i >= 0; i--) {
       const key = window.localStorage.key(i);
-      if (key && (key.startsWith("ward39.") || key.startsWith("ward39:"))) {
+      if (key && key.startsWith("ward39")) {
         window.localStorage.removeItem(key);
       }
     }
