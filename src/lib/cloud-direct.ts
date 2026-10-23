@@ -117,7 +117,7 @@ function patientFields(value: Record<string, unknown>): Record<string, unknown> 
 }
 
 function clinicalFields(value: Record<string, unknown>): Record<string, unknown> {
-  const fields = { ..["value"] };
+  const fields = { ...value };
   delete fields["id"];
   delete fields["patientId"];
   delete fields["version"];
