@@ -93,7 +93,7 @@ export function VitalsContent({ patient, id }: { patient: CloudPatient; id: stri
             <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.patient"><b>PATIENT'S NAME:</b> {patient.name}</MovablePrintField></td>
             <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.doa"><b>DOA:</b> {patient.doa || "—"}</MovablePrintField></td>
             <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.fileNo"><b>FILE NO:</b> {patient.fileNo || "—"}</MovablePrintField></td>
-            <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header["doctor"]"><b>TR DOCTOR:</b> {patient["doctor"] || "—"}</MovablePrintField></td>
+            <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.doctor"><b>TR DOCTOR:</b> {patient["doctor"] || "—"}</MovablePrintField></td>
             <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.age"><b>AGE:</b> {patient.age || "—"}</MovablePrintField></td>
             <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.sex"><b>SEX:</b> {patient.sex || "—"}</MovablePrintField></td>
           </tr>
@@ -581,7 +581,7 @@ export function NursingCarePlanTemplateContent({ patient, id }: { patient: Cloud
       <NCPF left={431} top={132} width={52} height={29} align="center" size={9} fieldKey="header.bed">{patient.bed}</NCPF>
       <NCPF left={506} top={132} width={260} height={25} size={8} fieldKey="header.diagnosis">{patient.diagnosis}</NCPF>
 
-      <NCPF left={151} top={208} width={192} height={23} size={8} fieldKey="header["doctor"]">{patient["doctor"]}</NCPF>
+      <NCPF left={151} top={208} width={192} height={23} size={8} fieldKey="header.doctor">{patient["doctor"]}</NCPF>
       <NCPF left={356} top={209} width={133} height={23} align="center" size={8} fieldKey="header.admissionDate">{patient.doa}</NCPF>
       <NCPF left={500} top={209} width={130} height={23} align="center" size={8} fieldKey="header.dischargeDate">{patient.dischargedAt ?? ""}</NCPF>
 
