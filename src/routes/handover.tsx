@@ -67,15 +67,15 @@ function HandoverPage() {
     return data.patients.map((p) => {
       const v = data.vitals
         .filter((x) => x.patientId === p.id)
-        .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+        .sort((a, b) => (a["date"] + a["time"]).localeCompare(b["date"] + b["time"]))
         .at(-1);
       const shifts = Object.fromEntries(
-        SHIFTS.map((s) => [s, data.sbar.some((e) => e.patientId === p.id && e.shift === s)]),
+        SHIFTS.map((s) => [s, data.sbar.some((e) => e.patientId === p.id && e["shift"] === s)]),
       ) as Record<(typeof SHIFTS)[number], boolean>;
       const nurses = data.assignments
         .filter((a) => a.patientId === p.id)
-        .map((a) => `${a.nurse}${a.shift ? ` (${a.shift})` : ""}`);
-      return { p, v, shifts, nurses, vitalsToday: v?.date === today };
+        .map((a) => `${a["nurse"]}${a["shift"] ? ` (${a["shift"]})` : ""}`);
+      return { p, v, shifts, nurses, vitalsToday: v?.["date"] === today };
     });
   }, [data, today]);
 
@@ -138,7 +138,7 @@ function HandoverPage() {
                   <td className="px-3 py-2 whitespace-nowrap">
                     {v ? (
                       <span className={vitalsToday ? "" : "text-destructive"}>
-                        {v.date} {v.time} · BP {v.bp || "—"} · P {v.pulse || "—"} · T {v.temp || "—"}
+                        {v["date"]} {v["time"]} · BP {v["bp"] || "—"} · P {v["pulse"] || "—"} · T {v["temp"] || "—"}
                       </span>
                     ) : (
                       <span className="text-destructive">{t("noVitalsToday")}</span>
