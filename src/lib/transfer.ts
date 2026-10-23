@@ -149,9 +149,9 @@ function stable(value: unknown): string {
 
 function comparableRecord(value: Record<string, unknown>) {
   const result = { ...value };
-  delete result.id;
-  delete result.version;
-  delete result.changedAt;
+  delete result["id"];
+  delete result["version"];
+  delete result["changedAt"];
   return result;
 }
 
@@ -214,7 +214,7 @@ export async function restoreFromJson(file: File): Promise<void> {
       });
       patients.push(destination);
     }
-    if (candidate.id != null) patientIdMap.set(String(candidate.id), destination.id);
+    if (candidate["id"] != null) patientIdMap.set(String(candidate["id"]), destination["id"]);
   }
 
   const importRows: Record<string, Array<Record<string, unknown>>> = {
@@ -233,8 +233,8 @@ export async function restoreFromJson(file: File): Promise<void> {
     const existingRows = await fetchAllCloudRecords(table.remote);
     const sourceRows = importRows[table.backupKey] ?? [];
     for (const source of sourceRows) {
-      const parentSource = source.patientId == null ? null : String(source.patientId);
-      const parent = parentSource == null ? null : (patientIdMap.get(parentSource) ?? patients.find((p) => p.id === parentSource)?.id ?? null);
+      const parentSource = source["patientId"] == null ? null : String(source["patientId"]);
+      const parent = parentSource == null ? null : (patientIdMap.get(parentSource) ?? patients.find((p) => p["id"] === parentSource)?.["id"] ?? null);
       if (table.key !== "meds" && !parent) continue;
       const { id: _oldId, version: _oldVersion, changedAt: _oldChangedAt, ...fields } = source;
       const candidate = { ...fields, patientId: parent };
