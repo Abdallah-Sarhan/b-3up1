@@ -36,8 +36,8 @@ function clearLegacyBrowserClinicalData() {
     window.sessionStorage.removeItem("ward39.unlocked");
   } catch { /* Storage cleanup must never block sign-in. */ }
   try {
-    void window.navigator.serviceWorker?.getRegistrations().then((items) => items.forEach((item) => void item.unregister()));
-    void window.caches?.keys().then((keys) => Promise.all(keys.map((key) => window.caches.delete(key))));
+    void window.navigator.serviceWorker?.getRegistrations().then((items) => items.forEach((item) => void item.unregister())).catch(() => undefined);
+    void window.caches?.keys().then((keys) => Promise.all(keys.map((key) => window.caches.delete(key)))).catch(() => undefined);
   } catch { /* Ignore unavailable browser cache APIs. */ }
 }
 
@@ -110,10 +110,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         }
       }
     };
-    // Do not clear the clinical cache on pagehide: browsers fire pagehide on
-    // ordinary refresh/navigation too, which can race the next page's cloud pull.
-    // Startup clears the temporary cache before reading cloud data, and sign-out
-    // clears it explicitly, so this handler is unnecessary and slows reloads.
+    // No browser clinical cache is created. Each screen queries Supabase directly;
+    // only the Supabase Auth session is allowed to persist between visits.
 
     let unsubscribe = () => {};
     try {

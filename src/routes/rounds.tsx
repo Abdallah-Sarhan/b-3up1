@@ -69,6 +69,10 @@ function RoundsPage() {
   }, [entries, date]);
 
   async function saveNote(patientId: string) {
+    if (loadError || entries === undefined) {
+      toast.error(loadError ?? "لم تكتمل قراءة ملاحظات الراوند من السحابة بعد. أعد المحاولة قبل الحفظ.");
+      return;
+    }
     const note = notesRef.current[patientId] ?? "";
     const existing = (entries ?? []).find((e) => e.patientId === patientId);
     try {
