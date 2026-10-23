@@ -1,5 +1,6 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from "react";
 import type { CloudPatient } from "@/lib/cloud-queries";
+import type { VitalEntry, SbarEntry } from "@/lib/db";
 import { useCloudRecords } from "@/hooks/use-cloud-records";
 import { BoxedDigits, makeField, MovablePrintField, usePrintFontScale, usePrintTemplateMode } from "@/components/OverlayPrint";
 import { usePrintFieldPosition } from "@/lib/print-calibration";
