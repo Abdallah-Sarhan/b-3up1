@@ -1,7 +1,6 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { clearClinicalCloudCache, initializeClinicalCloud } from "@/lib/cloud-sync";
 
 /** Pages reachable without signing in. */
 export function isPublicPath(pathname: string) {
@@ -20,19 +19,32 @@ export type AuthProfile = {
   is_admin: boolean;
 };
 
-// Never leave the clinical app on an endless startup spinner if auth or cloud
-// initialization stops responding. This does not mark data as loaded or saved.
-function withStartupTimeout<T>(promise: Promise<T>, label: string, timeoutMs = 60_000): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = window.setTimeout(() => {
-      reject(new Error(label));
-    }, timeoutMs);
-    promise.then(
-      (value) => { window.clearTimeout(timer); resolve(value); },
-      (error) => { window.clearTimeout(timer); reject(error); },
-    );
-  });
+
+/** Best-effort one-time cleanup of data stored by older offline builds. */
+function clearLegacyBrowserClinicalData() {
+  if (typeof window === "undefined") return;
+  try {
+    window.indexedDB?.deleteDatabase("ward39-registry");
+  } catch { /* Ignore browsers that disable IndexedDB access. */ }
+  try {
+    // Keep only Supabase's authentication session/PKCE verifier. Remove legacy
+    // app data regardless of its old key name; clinical data must not persist here.
+    for (let i = window.localStorage.length - 1; i >= 0; i--) {
+      const key = window.localStorage.key(i);
+      const isSupabaseAuth =
+        key !== null &&
+        /^sb-.+-auth-token(?:-code-verifier)?$/.test(key);
+      if (key && !isSupabaseAuth) window.localStorage.removeItem(key);
+    }
+    // The current app does not use sessionStorage for clinical or auth data.
+    window.sessionStorage.clear();
+  } catch { /* Storage cleanup must never block sign-in. */ }
+  try {
+    void window.navigator.serviceWorker?.getRegistrations().then((items) => items.forEach((item) => void item.unregister())).catch(() => undefined);
+    void window.caches?.keys().then((keys) => Promise.all(keys.map((key) => window.caches.delete(key)))).catch(() => undefined);
+  } catch { /* Ignore unavailable browser cache APIs. */ }
 }
+
 let currentProfile: AuthProfile | null = null;
 const listeners = new Set<(p: AuthProfile | null) => void>();
 export function useAuthProfile() {
@@ -66,11 +78,6 @@ async function loadProfile(userId: string): Promise<AuthProfile | null> {
 
 export async function signOutEverywhere() {
   publish(null);
-  try {
-    await clearClinicalCloudCache();
-  } catch {
-    // Always finish signing out; cloud records are never deleted by cache cleanup.
-  }
   await supabase.auth.signOut();
   window.location.replace("/login");
 }
@@ -81,59 +88,34 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const isPublic = isPublicPath(pathname);
   const [state, setState] = useState<"loading" | "out" | "pending" | "cloud-error" | "in">("loading");
   const [cloudError, setCloudError] = useState("تعذر الاتصال بالسحابة.");
-  const [cloudWarning, setCloudWarning] = useState<string | null>(null);
 
   useEffect(() => {
-    // Remove the old local device lock data.
-    try {
-      ["ward39.profile", "ward39.lockHash", "ward39.recoveryHash", "ward39.recovery", "ward39.lockSalt"].forEach((k) =>
-        localStorage.removeItem(k),
-      );
-      sessionStorage.removeItem("ward39.unlocked");
-    } catch {
-      /* ignore */
-    }
+    clearLegacyBrowserClinicalData();
 
     let alive = true;
     const check = async (userId: string | undefined) => {
       if (!userId) {
         publish(null);
-        // Hide all clinical pages immediately, then erase the browser working copy.
         if (alive) setState("out");
-        await clearClinicalCloudCache().catch(() => undefined);
         return;
       }
       try {
-        const p = await withStartupTimeout(loadProfile(userId), "استغرق التحقق من اعتماد الحساب أكثر من دقيقة. لم يتم تحميل بيانات المرضى؛ أعد المحاولة وافحص إعدادات Lovable Cloud.");
+        const p = await loadProfile(userId);
         publish(p);
         if (!p?.approved) {
           if (alive) setState("pending");
-          // Hide the clinical app immediately; cleanup continues without delaying the status screen.
-          void clearClinicalCloudCache().catch(() => undefined);
           return;
         }
-        // Keep clinical pages hidden until the cloud data pull succeeds.
-        // Cached browser data must not appear as current cloud data.
-        if (alive) setCloudWarning(null);
-        await withStartupTimeout(
-          initializeClinicalCloud(undefined, userId),
-          "لم يكتمل تحميل بيانات السحابة خلال دقيقة. لم يتم عرض بيانات المرضى؛ تحقق من الاتصال ثم أعد المحاولة."
-        );
         if (alive) setState("in");
       } catch (error) {
         if (alive) {
           setCloudError(error instanceof Error ? error.message : "تعذر فتح البيانات السحابية.");
           setState("cloud-error");
         }
-        // A failed approval check or incomplete cloud pull must not leave partial
-        // or stale patient data stored locally. Do not delay the error screen.
-        void clearClinicalCloudCache().catch(() => undefined);
       }
     };
-    // Do not clear the clinical cache on pagehide: browsers fire pagehide on
-    // ordinary refresh/navigation too, which can race the next page's cloud pull.
-    // Startup clears the temporary cache before reading cloud data, and sign-out
-    // clears it explicitly, so this handler is unnecessary and slows reloads.
+    // No browser clinical cache is created. Each screen queries Supabase directly;
+    // only the Supabase Auth session is allowed to persist between visits.
 
     let unsubscribe = () => {};
     try {
@@ -149,7 +131,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           }
         });
       const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === "SIGNED_OUT") void clearClinicalCloudCache();
         if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED")
           void check(session?.user.id);
       });
@@ -174,7 +155,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (isPublic) return <>{children}</>;
   if (state === "loading" || state === "out") {
-    return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">جارٍ التحقق من الحساب وتحميل بيانات السحابة…</div>;
+    return <div className="min-h-screen" aria-busy="true" />;
   }
   if (state === "cloud-error") {
     return (
@@ -222,18 +203,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }
   return (
     <>
-      {cloudWarning && (
-        <div role="status" className="sticky top-0 z-50 border-b border-amber-500/40 bg-amber-100 px-4 py-2 text-center text-sm text-amber-950">
-          {cloudWarning}
-          <button
-            type="button"
-            className="ml-3 underline"
-            onClick={() => window.location.reload()}
-          >
-            إعادة المحاولة
-          </button>
-        </div>
-      )}
       {children}
     </>
   );

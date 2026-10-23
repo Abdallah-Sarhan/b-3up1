@@ -1,10 +1,10 @@
-import { Fragment, useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Plus, Printer, Trash2 } from "lucide-react";
-import { db, type MedCategory, type MedEntry } from "@/lib/db";
-import { createClinicalRecordCloudFirst, deleteClinicalRecordCloudFirst, getCloudVersion, updateClinicalRecordCloudFirst } from "@/lib/clinical-cloud";
+import { type MedCategory, type MedEntry } from "@/lib/db";
+import { createCloudRecord, deleteCloudRecord, updateCloudRecord } from "@/lib/cloud-direct";
+import { useCloudFilteredRecords } from "@/hooks/use-cloud-filtered-records";
 import { Button, Card, CardHeader, Field, Input } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
 
@@ -30,9 +30,10 @@ export const Route = createFileRoute("/tranquilizer")({
 const DAYS = ["SUN", "MON", "TUE", "WED", "THURS", "FRI", "SAT"];
 const SLOTS = ["M", "E", "N"];
 
-type Group = { drug: string; dose: string; rxNo: string; rows: MedEntry[] };
+type CloudMedEntry = Omit<MedEntry, "id"> & { id: string; version: number; patientId: string | null };
+type Group = { drug: string; dose: string; rxNo: string; rows: CloudMedEntry[] };
 
-function groupOf(list: MedEntry[]): Group[] {
+function groupOf(list: CloudMedEntry[]): Group[] {
   const map = new Map<string, Group>();
   const seenHeader = new Set<string>();
   for (const e of list) {
@@ -60,33 +61,18 @@ function MedsPage() {
   const [category, setCategory] = useState<MedCategory>("major");
   const patients = useActivePatients();
   const [form, setForm] = useState({ drug: "", dose: "" });
-  const editVersions = useRef<Record<number, number | null>>({});
-  const rememberVersion = (id: number) => {
-    editVersions.current[id] = getCloudVersion("meds", id);
-  };
-  const expectedVersionForEdit = (id: number) =>
-    Object.prototype.hasOwnProperty.call(editVersions.current, id)
-      ? editVersions.current[id]
-      : getCloudVersion("meds", id);
-  const rememberGroupVersions = (g: Group) => {
-    const matched = (list ?? []).filter((entry) =>
-      entry.drug.trim().toUpperCase() === g.drug.toUpperCase()
-    );
-    for (const entry of matched) if (entry.id != null) rememberVersion(entry.id);
-  };
+   
   const [fontSize, setFontSize] = useState(9);
 
-  const list = useLiveQuery(
-    () => db.meds.where("category").equals(category).sortBy("createdAt"),
-    [category],
-  );
+  const { records: rawList, refresh, error: loadError } = useCloudFilteredRecords("meds", "category", category);
+  const list = rawList as unknown as CloudMedEntry[] | undefined;
   const groups = useMemo(() => groupOf(list ?? []), [list]);
   const isControl = category === "control";
 
   async function addDrug() {
     if (!form.drug.trim()) return;
     try {
-      await createClinicalRecordCloudFirst("meds", {
+      await createCloudRecord("meds", null, {
         category,
         drug: form.drug.trim(),
         dose: form.dose.trim(),
@@ -95,6 +81,7 @@ function MedsPage() {
         duration: "",
         createdAt: Date.now(),
       });
+      await refresh();
       setForm({ drug: "", dose: "" });
       toast.success("تم حفظ الدواء في السحابة");
     } catch (error) {
@@ -113,9 +100,9 @@ function MedsPage() {
       for (const e of entries) {
         const patch: Partial<MedEntry> = { drug: drug.trim() };
         if (header && e.id === header.id) patch.dose = dose.trim();
-        await updateClinicalRecordCloudFirst("meds", e.id!, patch as Record<string, unknown>, expectedVersionForEdit(e.id!));
-        editVersions.current[e.id!] = getCloudVersion("meds", e.id!);
+        await updateCloudRecord("meds", e.id, e.patientId, patch as Record<string, unknown>, e.version);
       }
+      await refresh();
       toast.success("تم حفظ بيانات الدواء في السحابة");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر تحديث الدواء في السحابة.");
@@ -123,15 +110,10 @@ function MedsPage() {
   }
 
   async function deleteGroup(g: Group) {
-    const ids = (list ?? [])
-      .filter(
-        (e) =>
-          e.drug.trim().toUpperCase() === g.drug.toUpperCase(),
-      )
-      .map((e) => e.id!)
-      .filter(Boolean);
+    const entries = (list ?? []).filter((e) => e.drug.trim().toUpperCase() === g.drug.toUpperCase());
     try {
-      for (const id of ids) await deleteClinicalRecordCloudFirst("meds", id);
+      for (const entry of entries) await deleteCloudRecord("meds", entry.id, entry.patientId, entry.version);
+      await refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر حذف الدواء من السحابة.");
       return;
@@ -141,7 +123,7 @@ function MedsPage() {
 
   async function addPatientTo(g: Group) {
     try {
-      await createClinicalRecordCloudFirst("meds", {
+      await createCloudRecord("meds", null, {
         category,
         drug: g.drug,
         dose: "",
@@ -150,16 +132,17 @@ function MedsPage() {
         duration: "",
         createdAt: Date.now(),
       });
+      await refresh();
       toast.success("تمت إضافة صف المريض إلى السحابة");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر إضافة صف المريض في السحابة.");
     }
   }
 
-  const upd = async (id: number, patch: Partial<MedEntry>, expectedVersion?: number | null) => {
+  const upd = async (entry: CloudMedEntry, patch: Partial<MedEntry>) => {
     try {
-      await updateClinicalRecordCloudFirst("meds", id, patch as Record<string, unknown>, expectedVersion);
-      editVersions.current[id] = getCloudVersion("meds", id);
+      await updateCloudRecord("meds", entry.id, entry.patientId, patch as Record<string, unknown>, entry.version);
+      await refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر حفظ تعديل الدواء في السحابة.");
     }
@@ -167,6 +150,7 @@ function MedsPage() {
 
   return (
     <div className="space-y-4">
+      {loadError ? <p role="alert" className="text-sm text-destructive">{loadError}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <h1 className="text-2xl font-bold">المهدئات الكبرى والأدوية المراقبة</h1>
         <Button variant="outline" onClick={() => window.print()}>
@@ -229,14 +213,12 @@ function MedsPage() {
                 <Input
                   className="h-8 w-48 font-bold"
                   defaultValue={g.drug}
-                  onFocus={() => rememberGroupVersions(g)}
                   onBlur={(e) => e.target.value.trim() && void updateGroup(g, e.target.value, g.dose)}
                 />
                 <Input
                   className="h-8 w-24"
                   placeholder="التركيز"
                   defaultValue={g.dose}
-                  onFocus={() => rememberGroupVersions(g)}
                   onBlur={(e) => void updateGroup(g, g.drug, e.target.value)}
                 />
                 {isControl ? (
@@ -244,11 +226,10 @@ function MedsPage() {
                     className="h-8 w-28"
                     placeholder="Rx No."
                     defaultValue={g.rxNo}
-                    onFocus={() => rememberGroupVersions(g)}
-                    onBlur={(e) => {
+                      onBlur={(e) => {
                       const v = e.target.value;
                       g.rows.forEach((r) => {
-                        if (r.id != null) void upd(r.id, { rxNo: v }, expectedVersionForEdit(r.id));
+                        if (r.id != null) void upd(r, { rxNo: v });
                       });
                     }}
                   />
@@ -264,8 +245,7 @@ function MedsPage() {
                       className="h-8 flex-1 min-w-44"
                       list="med-patients"
                       defaultValue={r.patient}
-                      onFocus={() => { if (r.id != null) rememberVersion(r.id); }}
-                      onBlur={(e) => r.id && void upd(r.id, { patient: e.target.value }, expectedVersionForEdit(r.id))}
+                      onBlur={(e) => r.id && void upd(r, { patient: e.target.value })}
                     />
                     <Input
                       className="h-8 w-28"
@@ -273,17 +253,15 @@ function MedsPage() {
                       placeholder="التكرار (1-0-2)"
                       title="تكرار الدواء خلال اليوم وعدد الأقراص في كل مرة (صباحًا-ظهرًا-مساءً)"
                       defaultValue={r.dose}
-                      onFocus={() => { if (r.id != null) rememberVersion(r.id); }}
-                      onBlur={(e) => r.id && void upd(r.id, { dose: e.target.value }, expectedVersionForEdit(r.id))}
+                      onBlur={(e) => r.id && void upd(r, { dose: e.target.value })}
                     />
                     <Input
                       className="h-8 w-24"
                       placeholder="المدة"
                       defaultValue={r.duration}
-                      onFocus={() => { if (r.id != null) rememberVersion(r.id); }}
-                      onBlur={(e) => r.id && void upd(r.id, { duration: e.target.value }, expectedVersionForEdit(r.id))}
+                      onBlur={(e) => r.id && void upd(r, { duration: e.target.value })}
                     />
-                    <Button variant="ghost" size="sm" onClick={() => r.id && void deleteClinicalRecordCloudFirst("meds", r.id).then(() => toast.success("تم حذف السجل")).catch((error) => toast.error(error instanceof Error ? error.message : "تعذر حذف السجل في السحابة."))}>
+                    <Button variant="ghost" size="sm" onClick={() => void deleteCloudRecord("meds", r.id, r.patientId, r.version).then(() => refresh()).then(() => toast.success("تم حذف السجل")).catch((error) => toast.error(error instanceof Error ? error.message : "تعذر حذف السجل في السحابة."))}>
                       <Trash2 />
                     </Button>
                   </div>

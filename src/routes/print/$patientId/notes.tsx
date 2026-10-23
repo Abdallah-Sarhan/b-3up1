@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/lib/db";
+import { useCloudRecords } from "@/hooks/use-cloud-records";
 import {
   BoxedDigits,
   OverlayPrintPage,
@@ -33,10 +32,8 @@ const COL = { date: 240, time: 388, notes: 515, sign: 1112 };
 
 function NotesPrint() {
   const { id } = usePrintPatientData();
-  const entries = useLiveQuery(
-    () => db.notes.where("patientId").equals(id).sortBy("date"),
-    [id],
-  );
+  const { records: rawEntries } = useCloudRecords("notes", id);
+  const entries = rawEntries?.slice().sort((a, b) => String(a["date"] ?? "").localeCompare(String(b["date"] ?? "")));
   const list = (entries ?? []).slice(-ROWS);
 
   return (
@@ -69,14 +66,14 @@ function NotesPrint() {
               const top = ROW_TOP + i * ROW_H + 8;
               return (
                 <div key={n.id}>
-                  <F left={COL.date} top={top} width={COL.time - COL.date} align="center" size={12}>
-                    {n.date}
+                  <F left={COL["date"]} top={top} width={COL["time"] - COL["date"]} align="center" size={12}>
+                    {n["date"]}
                   </F>
-                  <F left={COL.time} top={top} width={COL.notes - COL.time} align="center" size={12}>
-                    {n.time}
+                  <F left={COL["time"]} top={top} width={COL.notes - COL["time"]} align="center" size={12}>
+                    {n["time"]}
                   </F>
                   <F left={COL.notes + 8} top={top} width={COL.sign - COL.notes - 16} size={12}>
-                    {n.note}
+                    {n["note"]}
                   </F>
                 </div>
               );

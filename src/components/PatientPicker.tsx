@@ -1,20 +1,54 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLiveQuery } from "dexie-react-hooks";
 import { Search, X } from "lucide-react";
-import { db, dbReady, type Patient } from "@/lib/db";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { fetchActiveCloudPatients, type CloudPatient } from "@/lib/cloud-queries";
 import { useLang } from "@/lib/i18n";
 import { Input } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
 
-export function useActivePatients(): Patient[] | undefined {
-  return useLiveQuery(async () => {
-    await dbReady;
-    const all = await db.patients.orderBy("name").toArray();
-    return all.filter((p) => !p.dischargedAt);
-  }, []);
+function samePatientSnapshot(current: CloudPatient[] | undefined, next: CloudPatient[]): boolean {
+  return current !== undefined && current.length === next.length && current.every((p, i) => p.id === next[i]?.id && p.version === next[i]?.version);
 }
 
-function labelOf(p: Patient, fileNoLabel: string): string {
+export function useActivePatients(): CloudPatient[] | undefined {
+  const [patients, setPatients] = useState<CloudPatient[]>();
+  useEffect(() => {
+    let alive = true;
+    let failureReported = false;
+    const load = async () => {
+      try {
+        const rows = await fetchActiveCloudPatients();
+        if (alive) setPatients((current) => samePatientSnapshot(current, rows) ? current : rows);
+        failureReported = false;
+      } catch (error) {
+        console.error("Failed to read active patients from Supabase", error);
+        if (alive) {
+          setPatients([]);
+          if (!failureReported) {
+            toast.error(error instanceof Error ? error.message : "تعذر تحميل قائمة المرضى من السحابة.");
+          }
+        }
+        failureReported = true;
+      }
+    };
+    void load();
+    const channel = supabase.channel("ward39-active-patients")
+      .on("postgres_changes", { event: "*", schema: "public", table: "patients" }, () => { void load(); })
+      .subscribe();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== "hidden") void load();
+    }, 30000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+      void supabase.removeChannel(channel);
+    };
+  }, []);
+  return patients;
+}
+
+function labelOf(p: CloudPatient, fileNoLabel: string): string {
   return (p.name || `${fileNoLabel} ${p.fileNo}`) + (p.room ? ` — ${p.room}` : "");
 }
 
@@ -23,9 +57,9 @@ export function PatientPicker({
   onChange,
   patients,
 }: {
-  value: number | "";
-  onChange: (id: number | "") => void;
-  patients: Patient[] | undefined;
+  value: string | "";
+  onChange: (id: string | "") => void;
+  patients: CloudPatient[] | undefined;
 }) {
   const { t } = useLang();
   const [query, setQuery] = useState("");
@@ -74,8 +108,8 @@ export function PatientPicker({
     el?.scrollIntoView({ block: "nearest" });
   }, [active]);
 
-  function pick(p: Patient) {
-    onChange(p.id!);
+  function pick(p: CloudPatient) {
+    onChange(p.id);
     setQuery("");
     setOpen(false);
     setActive(-1);

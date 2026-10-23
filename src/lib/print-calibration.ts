@@ -1,114 +1,144 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { fetchCloudSharedSettings, saveCloudSharedSetting } from "@/lib/cloud-direct";
 
-export type PrintCalibration = {
-  dx: number;
-  dy: number;
-  fontScale: number;
-};
-
+export type PrintCalibration = { dx: number; dy: number; fontScale: number };
 type StoredCalibrations = Record<string, Partial<PrintCalibration>>;
-
 const DEFAULT_CALIBRATION: PrintCalibration = { dx: 0, dy: 0, fontScale: 1 };
-const STORAGE_KEY = "ward39.print-calibration.v1";
-
-function readStoredCalibrations(): StoredCalibrations {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-
-    const parsed: unknown = JSON.parse(raw);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as StoredCalibrations)
-      : {};
-  } catch {
-    return {};
-  }
-}
+const CALIBRATION_PREFIX = "ward39.print-calibration:";
+const FIELD_POSITION_PREFIX = "ward39.print-field-positions:";
+let storedCalibrations: StoredCalibrations = {};
+let calibrationLoad: Promise<boolean> | null = null;
+let storedFieldPositions: StoredFieldPositions = {};
+const fieldPositionLoads = new Map<string, Promise<boolean>>();
+const fieldPositionSaves = new Map<string, ReturnType<typeof setTimeout>>();
+const FIELD_POSITION_RESET_EVENT = "ward39:print-field-positions-reset";
+const FIELD_POSITION_CHANGE_EVENT = "ward39:print-field-position-changed";
 
 function normalizeCalibration(value: Partial<PrintCalibration> | undefined): PrintCalibration {
   const finite = (number: unknown, fallback: number) =>
     typeof number === "number" && Number.isFinite(number) ? number : fallback;
-
   return {
     dx: finite(value?.dx, DEFAULT_CALIBRATION.dx),
     dy: finite(value?.dy, DEFAULT_CALIBRATION.dy),
-    fontScale: Math.min(
-      2,
-      Math.max(0.5, finite(value?.fontScale, DEFAULT_CALIBRATION.fontScale)),
-    ),
+    fontScale: Math.min(2, Math.max(0.5, finite(value?.fontScale, DEFAULT_CALIBRATION.fontScale))),
   };
 }
 
-/** Saves alignment separately for each form and reuses it for batch or single printing. */
+async function loadCalibrationsFromCloud(): Promise<boolean> {
+  if (!calibrationLoad) {
+    calibrationLoad = fetchCloudSharedSettings(CALIBRATION_PREFIX).then((rows) => {
+      for (const row of rows) {
+        const formKey = row.key.slice(CALIBRATION_PREFIX.length);
+        if (!formKey) continue;
+        try {
+          const value: unknown = JSON.parse(row.value);
+          if (value && typeof value === "object" && !Array.isArray(value)) {
+            storedCalibrations[formKey] = value as Partial<PrintCalibration>;
+          }
+        } catch { /* Ignore malformed configuration rows. */ }
+      }
+      return true;
+    }).catch(() => {
+      calibrationLoad = null;
+      return false;
+    });
+  }
+  return calibrationLoad;
+}
+
+function saveCalibrationToCloud(formKey: string, calibration: PrintCalibration) {
+  storedCalibrations[formKey] = calibration;
+  void saveCloudSharedSetting(CALIBRATION_PREFIX + formKey, JSON.stringify(calibration)).catch(() => {
+    // Keep the adjustment usable in this tab; cloud failures never mark clinical data as saved.
+  });
+}
+
+/** Store print alignment in the shared cloud settings table, not browser storage. */
 export function usePrintCalibration(formKey: string) {
   const [calibration, setCalibration] = useState<PrintCalibration>(DEFAULT_CALIBRATION);
-  const [loadedKey, setLoadedKey] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = readStoredCalibrations();
-    setCalibration(normalizeCalibration(stored[formKey]));
-    setLoadedKey(formKey);
+    let alive = true;
+    void loadCalibrationsFromCloud().then(() => {
+      if (alive) setCalibration(normalizeCalibration(storedCalibrations[formKey]));
+    });
+    return () => { alive = false; };
   }, [formKey]);
 
-  useEffect(() => {
-    // Do not replace a saved configuration with defaults while a new form loads.
-    if (loadedKey !== formKey) return;
-
-    try {
-      const stored = readStoredCalibrations();
-      stored[formKey] = calibration;
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-    } catch {
-      // Printing still works if browser storage is blocked or unavailable.
-    }
-  }, [calibration, formKey, loadedKey]);
-
-  const setDx = (dx: number) =>
-    setCalibration((current) => ({
-      ...current,
-      dx: Number.isFinite(dx) ? dx : 0,
-    }));
-
-  const setDy = (dy: number) =>
-    setCalibration((current) => ({
-      ...current,
-      dy: Number.isFinite(dy) ? dy : 0,
-    }));
-
-  const setFontScale = (fontScale: number) =>
-    setCalibration((current) => ({
-      ...current,
+  const setDx = (dx: number) => {
+    const next = { ...calibration, dx: Number.isFinite(dx) ? dx : 0 };
+    setCalibration(next);
+    saveCalibrationToCloud(formKey, next);
+  };
+  const setDy = (dy: number) => {
+    const next = { ...calibration, dy: Number.isFinite(dy) ? dy : 0 };
+    setCalibration(next);
+    saveCalibrationToCloud(formKey, next);
+  };
+  const setFontScale = (fontScale: number) => {
+    const next = {
+      ...calibration,
       fontScale: Math.min(2, Math.max(0.5, Number.isFinite(fontScale) ? fontScale : 1)),
-    }));
-
-  const resetCalibration = () => setCalibration(DEFAULT_CALIBRATION);
+    };
+    setCalibration(next);
+    saveCalibrationToCloud(formKey, next);
+  };
+  const resetCalibration = () => {
+    setCalibration(DEFAULT_CALIBRATION);
+    saveCalibrationToCloud(formKey, DEFAULT_CALIBRATION);
+  };
 
   return { ...calibration, setDx, setDy, setFontScale, resetCalibration };
 }
 
 export type PrintFieldPosition = { left: number; top: number };
 type StoredFieldPositions = Record<string, Record<string, PrintFieldPosition>>;
-const FIELD_POSITION_STORAGE_KEY = "ward39.print-field-positions.v1";
-const FIELD_POSITION_RESET_EVENT = "ward39:print-field-positions-reset";
-const FIELD_POSITION_CHANGE_EVENT = "ward39:print-field-position-changed";
 
-function readFieldPositions(): StoredFieldPositions {
-  try {
-    const raw = window.localStorage.getItem(FIELD_POSITION_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed: unknown = JSON.parse(raw);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? (parsed as StoredFieldPositions)
-      : {};
-  } catch {
-    return {};
-  }
+async function loadFieldPositionsFromCloud(formKey: string): Promise<boolean> {
+  const pending = fieldPositionLoads.get(formKey);
+  if (pending) return pending;
+  const loading = fetchCloudSharedSettings(FIELD_POSITION_PREFIX + formKey).then((rows) => {
+    const row = rows.find((item) => item.key === FIELD_POSITION_PREFIX + formKey);
+    if (!row) {
+      storedFieldPositions[formKey] = {};
+      return true;
+    }
+    try {
+      const value: unknown = JSON.parse(row.value);
+      storedFieldPositions[formKey] =
+        value && typeof value === "object" && !Array.isArray(value)
+          ? value as Record<string, PrintFieldPosition>
+          : {};
+    } catch {
+      storedFieldPositions[formKey] = {};
+    }
+    return true;
+  }).catch(() => {
+    fieldPositionLoads.delete(formKey);
+    return false;
+  });
+  fieldPositionLoads.set(formKey, loading);
+  return loading;
+}
+
+function scheduleFieldPositionSave(formKey: string) {
+  const old = fieldPositionSaves.get(formKey);
+  if (old) clearTimeout(old);
+  const timer = setTimeout(() => {
+    fieldPositionSaves.delete(formKey);
+    void saveCloudSharedSetting(
+      FIELD_POSITION_PREFIX + formKey,
+      JSON.stringify(storedFieldPositions[formKey] ?? {}),
+    ).catch(() => {
+      // Draggable fields remain active for this session if settings are unavailable.
+    });
+  }, 300);
+  fieldPositionSaves.set(formKey, timer);
 }
 
 /**
- * Stores freely draggable field coordinates per paper form in the coordinate
- * system of the scanned template. Positions are shared by individual/batch
- * printing in the same browser and can be reset from either page.
+ * Loads shared coordinates from Supabase, while using memory only for immediate
+ * interaction. Individual and batch print screens share the same cloud settings.
  */
 export function usePrintFieldPosition(
   formKey: string,
@@ -120,13 +150,20 @@ export function usePrintFieldPosition(
     left: defaultLeft,
     top: defaultTop,
   });
+  const touched = useRef(false);
 
   useEffect(() => {
-    const saved = readFieldPositions()[formKey]?.[fieldKey];
-    setPositionState({
-      left: typeof saved?.left === "number" && Number.isFinite(saved.left) ? saved.left : defaultLeft,
-      top: typeof saved?.top === "number" && Number.isFinite(saved.top) ? saved.top : defaultTop,
+    let alive = true;
+    touched.current = false;
+    void loadFieldPositionsFromCloud(formKey).then(() => {
+      if (!alive || touched.current) return;
+      const saved = storedFieldPositions[formKey]?.[fieldKey];
+      setPositionState({
+        left: typeof saved?.left === "number" && Number.isFinite(saved.left) ? saved.left : defaultLeft,
+        top: typeof saved?.top === "number" && Number.isFinite(saved.top) ? saved.top : defaultTop,
+      });
     });
+    return () => { alive = false; };
   }, [formKey, fieldKey, defaultLeft, defaultTop]);
 
   useEffect(() => {
@@ -154,33 +191,24 @@ export function usePrintFieldPosition(
 
   const setPosition = (left: number, top: number) => {
     if (!Number.isFinite(left) || !Number.isFinite(top)) return;
+    touched.current = true;
     const nextPosition = { left, top };
     setPositionState(nextPosition);
-    try {
-      const stored = readFieldPositions();
-      stored[formKey] ??= {};
-      stored[formKey][fieldKey] = nextPosition;
-      window.localStorage.setItem(FIELD_POSITION_STORAGE_KEY, JSON.stringify(stored));
-      window.dispatchEvent(
-        new CustomEvent(FIELD_POSITION_CHANGE_EVENT, {
-          detail: { formKey, fieldKey, position: nextPosition },
-        }),
-      );
-    } catch {
-      // Position saving/syncing is optional if browser storage is unavailable.
-    }
+    storedFieldPositions[formKey] ??= {};
+    storedFieldPositions[formKey][fieldKey] = nextPosition;
+    window.dispatchEvent(
+      new CustomEvent(FIELD_POSITION_CHANGE_EVENT, {
+        detail: { formKey, fieldKey, position: nextPosition },
+      }),
+    );
+    scheduleFieldPositionSave(formKey);
   };
 
   return { position, setPosition };
 }
 
 export function resetPrintFieldPositions(formKey: string) {
-  try {
-    const stored = readFieldPositions();
-    delete stored[formKey];
-    window.localStorage.setItem(FIELD_POSITION_STORAGE_KEY, JSON.stringify(stored));
-    window.dispatchEvent(new CustomEvent(FIELD_POSITION_RESET_EVENT, { detail: formKey }));
-  } catch {
-    // Reset is optional if browser storage is unavailable.
-  }
+  delete storedFieldPositions[formKey];
+  window.dispatchEvent(new CustomEvent(FIELD_POSITION_RESET_EVENT, { detail: formKey }));
+  scheduleFieldPositionSave(formKey);
 }

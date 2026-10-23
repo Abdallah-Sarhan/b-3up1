@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
 import { AlertTriangle, CheckCircle2, Clock, Users } from "lucide-react";
-import { db, dbReady } from "@/lib/db";
+import { useActivePatients } from "@/components/PatientPicker";
+import { fetchCloudRecordsByField, fetchLatestCloudVitalsByPatient } from "@/lib/cloud-direct";
+import type { CloudClinicalRecord } from "@/lib/cloud-queries";
 import { useLang } from "@/lib/i18n";
 import { Badge, Card, CardHeader } from "@/components/ui-kit";
 
@@ -33,33 +34,48 @@ function todayStr() {
 function HandoverPage() {
   const { t, lang } = useLang();
   const today = todayStr();
+  const activePatients = useActivePatients();
+  const [data, setData] = useState<{
+    patients: NonNullable<typeof activePatients>;
+    vitals: CloudClinicalRecord[];
+    sbar: CloudClinicalRecord[];
+    assignments: CloudClinicalRecord[];
+  } | undefined>(undefined);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const data = useLiveQuery(async () => {
-    await dbReady;
-    const all = await db.patients.orderBy("name").toArray();
-    const patients = all.filter((p) => !p.dischargedAt);
-    const [vitals, sbar, assignments] = await Promise.all([
-      db.vitals.toArray(),
-      db.sbar.where("date").equals(today).toArray(),
-      db.assignments.where("date").equals(today).toArray(),
-    ]);
-    return { patients, vitals, sbar, assignments };
-  }, [today]);
+  useEffect(() => {
+    let alive = true;
+    if (!activePatients) return;
+    setData(undefined);
+    void Promise.all([
+      fetchLatestCloudVitalsByPatient(activePatients.map((patient) => patient.id)),
+      fetchCloudRecordsByField("patient_sbar", "date", today),
+      fetchCloudRecordsByField("staff_assignments", "date", today),
+    ]).then(([vitals, sbar, assignments]) => {
+      if (alive) {
+        setData({ patients: activePatients, vitals, sbar, assignments });
+        setLoadError(null);
+      }
+    }).catch((error) => {
+      if (alive) setLoadError(error instanceof Error ? error.message : "تعذر تحميل بيانات التسليم من السحابة.");
+    });
+    return () => { alive = false; };
+  }, [activePatients, today]);
 
   const rows = useMemo(() => {
     if (!data) return [];
     return data.patients.map((p) => {
       const v = data.vitals
         .filter((x) => x.patientId === p.id)
-        .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+        .sort((a, b) => (a["date"] + a["time"]).localeCompare(b["date"] + b["time"]))
         .at(-1);
       const shifts = Object.fromEntries(
-        SHIFTS.map((s) => [s, data.sbar.some((e) => e.patientId === p.id && e.shift === s)]),
+        SHIFTS.map((s) => [s, data.sbar.some((e) => e.patientId === p.id && e["shift"] === s)]),
       ) as Record<(typeof SHIFTS)[number], boolean>;
       const nurses = data.assignments
         .filter((a) => a.patientId === p.id)
-        .map((a) => `${a.nurse}${a.shift ? ` (${a.shift})` : ""}`);
-      return { p, v, shifts, nurses, vitalsToday: v?.date === today };
+        .map((a) => `${a["nurse"]}${a["shift"] ? ` (${a["shift"]})` : ""}`);
+      return { p, v, shifts, nurses, vitalsToday: v?.["date"] === today };
     });
   }, [data, today]);
 
@@ -70,6 +86,7 @@ function HandoverPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">{t("handover")}</h1>
+      {loadError ? <p role="alert" className="text-sm text-destructive">{loadError}</p> : null}
       <p className="text-sm text-muted-foreground">{today}</p>
 
       <div className="grid gap-3 sm:grid-cols-4">
@@ -121,7 +138,7 @@ function HandoverPage() {
                   <td className="px-3 py-2 whitespace-nowrap">
                     {v ? (
                       <span className={vitalsToday ? "" : "text-destructive"}>
-                        {v.date} {v.time} · BP {v.bp || "—"} · P {v.pulse || "—"} · T {v.temp || "—"}
+                        {v["date"]} {v["time"]} · BP {v["bp"] || "—"} · P {v["pulse"] || "—"} · T {v["temp"] || "—"}
                       </span>
                     ) : (
                       <span className="text-destructive">{t("noVitalsToday")}</span>

@@ -22,7 +22,8 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
     }
 
     headers.set('apikey', supabaseKey);
-    return fetch(input, { ...init, headers });
+    // Clinical requests must bypass the browser HTTP cache on every call.
+    return fetch(input, { ...init, headers, cache: "no-store" });
   };
 }
 

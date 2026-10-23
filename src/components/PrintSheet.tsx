@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams, useRouterState } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
 import { ArrowRight, Printer } from "lucide-react";
-import { db, type Patient } from "@/lib/db";
+import { fetchCloudPatientById, type CloudPatient } from "@/lib/cloud-queries";
 import { useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
 import { PrintFontScale, PrintTemplateMode } from "@/components/OverlayPrint";
@@ -10,9 +9,19 @@ import { resetPrintFieldPositions, usePrintCalibration } from "@/lib/print-calib
 
 export function usePrintPatient() {
   const { patientId } = useParams({ strict: false }) as { patientId: string };
-  const id = Number(patientId);
-  const patient = useLiveQuery(() => db.patients.get(id), [id]);
-  return { id, patientId, patient };
+  const [patient, setPatient] = useState<CloudPatient | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    setPatient(undefined);
+    void fetchCloudPatientById(patientId).then((value) => {
+      if (alive) setPatient(value);
+    }).catch((error) => {
+      console.error("Failed to load patient for printing from Supabase", error);
+      if (alive) setPatient(null);
+    });
+    return () => { alive = false; };
+  }, [patientId]);
+  return { id: patientId, patientId, patient };
 }
 
 export function PrintShell({
@@ -24,7 +33,7 @@ export function PrintShell({
   template,
 }: {
   title: string;
-  patient: Patient | null | undefined;
+  patient: CloudPatient | null | undefined;
   landscape?: boolean;
   children: React.ReactNode;
   formKey?: string;
@@ -199,7 +208,7 @@ export function KcmhHeader({ right }: { right?: string }) {
   );
 }
 
-export function PatientHeaderGrid({ patient }: { patient: Patient }) {
+export function PatientHeaderGrid({ patient }: { patient: CloudPatient }) {
   const cells: Array<[string, string]> = [
     ["Name", patient.name],
     ["File #", patient.fileNo],

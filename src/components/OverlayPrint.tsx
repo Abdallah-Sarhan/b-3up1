@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type PointerEventHandler, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type PointerEventHandler, type ReactNode } from "react";
 import { resetPrintFieldPositions, usePrintCalibration, usePrintFieldPosition } from "@/lib/print-calibration";
 
 /** Multiplies every printed field's font size (overlay forms). */
@@ -6,8 +6,7 @@ export const PrintFontScale = createContext(1);
 export const usePrintFontScale = () => useContext(PrintFontScale);
 import { Link, useParams } from "@tanstack/react-router";
 import { ArrowRight, Printer } from "lucide-react";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, type Patient } from "@/lib/db";
+import { fetchCloudPatientById, type CloudPatient } from "@/lib/cloud-queries";
 import { useLang } from "@/lib/i18n";
 import { Button } from "@/components/ui-kit";
 
@@ -37,9 +36,19 @@ export const OVERLAY_FORMS: Array<{
 
 export function usePrintPatientData() {
   const { patientId } = useParams({ strict: false }) as { patientId: string };
-  const id = Number(patientId);
-  const patient = useLiveQuery(() => db.patients.get(id), [id]);
-  return { id, patientId, patient };
+  const [patient, setPatient] = useState<CloudPatient | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    setPatient(undefined);
+    void fetchCloudPatientById(patientId).then((value) => {
+      if (alive) setPatient(value);
+    }).catch((error) => {
+      console.error("Failed to load overlay-print patient from Supabase", error);
+      if (alive) setPatient(null);
+    });
+    return () => { alive = false; };
+  }, [patientId]);
+  return { id: patientId, patientId, patient };
 }
 
 /** Builds an absolutely positioned <Field> bound to a reference scan size. */
@@ -241,7 +250,7 @@ export function OverlayPrintPage({
 }: {
   formKey: OverlayFormKey;
   template: string;
-  children: (patient: Patient) => ReactNode;
+  children: (patient: CloudPatient) => ReactNode;
 }) {
   const { t, lang } = useLang();
   const { patientId, patient } = usePrintPatientData();

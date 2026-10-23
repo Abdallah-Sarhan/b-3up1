@@ -1,25 +1,39 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { db, emptyPatient, type Patient } from "@/lib/db";
-import { createPatientCloudFirst, getCloudVersion, readmitPatientCloudFirst, updatePatientCloudFirst } from "@/lib/clinical-cloud";
+import { emptyPatient, type Patient } from "@/lib/db";
+import {
+  createCloudPatient,
+  findCloudPatientByField,
+  suggestCloudPatientValues,
+  updateCloudPatient,
+  createCloudRecord,
+} from "@/lib/cloud-direct";
+import type { CloudPatient } from "@/lib/cloud-queries";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, Field, Input, Select, Textarea } from "@/components/ui-kit";
 import { SuggestInput } from "@/components/SuggestInput";
 
 
-export function PatientForm({ patient }: { patient?: Patient }) {
+type PatientDraft = Omit<Patient, "id">;
+
+function toPatientDraft(value: CloudPatient): PatientDraft {
+  const { id: _id, version: _version, ...draft } = value;
+  return draft as PatientDraft;
+}
+
+export function PatientForm({ patient }: { patient?: CloudPatient }) {
   const { t } = useLang();
   const navigate = useNavigate();
-  const [form, setForm] = useState<Omit<Patient, "id">>(() =>
-    patient ? { ...patient } : emptyPatient(),
+  const [form, setForm] = useState<PatientDraft>(() =>
+    patient ? toPatientDraft(patient) : emptyPatient(),
   );
   const [saving, setSaving] = useState(false);
   const initialCloudVersion = useRef<number | null>(
-    patient?.id != null ? getCloudVersion("patients", patient.id) : null,
+    patient?.version ?? null,
   );
   // When adding: id of an already-registered patient matched by file no / civil id
-  const [matchedId, setMatchedId] = useState<number | null>(null);
+  const [matchedId, setMatchedId] = useState<string | null>(null);
   const [matchedVersion, setMatchedVersion] = useState<number | null>(null);
   const [fileNoSugs, setFileNoSugs] = useState<string[]>([]);
   const [cidSugs, setCidSugs] = useState<string[]>([]);
@@ -64,12 +78,12 @@ export function PatientForm({ patient }: { patient?: Patient }) {
       (key === "fileNo" ? setFileNoSugs : setCidSugs)([]);
       return;
     }
-    suggestTimer.current = setTimeout(() => {
-      void db.patients.where(key).startsWith(v).limit(6).toArray().then((rows) => {
+     suggestTimer.current = setTimeout(() => {
+      void suggestCloudPatientValues(key, v).then((values) => {
         if (run !== suggestRun.current) return;
-        (key === "fileNo" ? setFileNoSugs : setCidSugs)(
-          rows.map((r) => r[key]).filter(Boolean),
-        );
+        (key === "fileNo" ? setFileNoSugs : setCidSugs)(values);
+      }).catch(() => {
+        if (run === suggestRun.current) (key === "fileNo" ? setFileNoSugs : setCidSugs)([]);
       });
     }, 180);
   }
@@ -80,11 +94,11 @@ export function PatientForm({ patient }: { patient?: Patient }) {
     suggest(key, value);
     if (patient?.id) return;
     if (!value.trim()) return;
-    const hit = await db.patients.where(key).equals(value.trim()).first();
+    const hit = await findCloudPatientByField(key, value);
     if (hit) {
-      setMatchedId(hit.id ?? null);
-      setMatchedVersion(hit.id != null ? getCloudVersion("patients", hit.id) : null);
-      setForm({ ...hit, [key]: value });
+      setMatchedId(hit.id);
+      setMatchedVersion(hit.version);
+      setForm({ ...toPatientDraft(hit), [key]: value });
       toast.info(t("existingPatientFound"));
     }
   }
@@ -108,15 +122,15 @@ export function PatientForm({ patient }: { patient?: Patient }) {
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  async function findExisting(fileNo: string, cid: string): Promise<Patient | undefined> {
+  async function findExisting(fileNo: string, cid: string): Promise<CloudPatient | undefined> {
     const fn = fileNo.trim();
     const cn = cid.trim();
     if (fn) {
-      const hit = await db.patients.where("fileNo").equals(fn).first();
+      const hit = await findCloudPatientByField("fileNo", fn);
       if (hit) return hit;
     }
     if (cn) {
-      const hit = await db.patients.where("cid").equals(cn).first();
+      const hit = await findCloudPatientByField("cid", cn);
       if (hit) return hit;
     }
     return undefined;
@@ -128,9 +142,9 @@ export function PatientForm({ patient }: { patient?: Patient }) {
     if (!form.fileNo.trim() && !form.cid.trim()) return;
     const hit = await findExisting(form.fileNo, form.cid);
     if (hit && hit.id !== matchedId) {
-      setMatchedId(hit.id ?? null);
-      setMatchedVersion(hit.id != null ? getCloudVersion("patients", hit.id) : null);
-      setForm({ ...hit });
+      setMatchedId(hit.id);
+      setMatchedVersion(hit.version);
+      setForm(toPatientDraft(hit));
       toast.info(t("existingPatientFound"));
     }
   }
@@ -145,37 +159,36 @@ export function PatientForm({ patient }: { patient?: Patient }) {
     try {
       if (patient?.id) {
         const data = { ...form, updatedAt: Date.now() };
-        await updatePatientCloudFirst(patient.id, data, initialCloudVersion.current);
+        const saved = await updateCloudPatient(patient.id, data, initialCloudVersion.current ?? patient.version);
         toast.success(t("savedOk"));
-        navigate({ to: "/patients/$patientId", params: { patientId: String(patient.id) } });
+        navigate({ to: "/patients/$patientId", params: { patientId: saved.id } });
         return;
       }
       // Add mode: re-admit instead of duplicating when file no / civil id exists
-      const existingId = matchedId ?? (await findExisting(form.fileNo, form.cid))?.id ?? null;
-      if (existingId != null) {
-        const wasDischarged = Boolean(form.dischargedAt);
-        const data = {
+      const match = await findExisting(form.fileNo, form.cid);
+      if (match) {
+        const wasDischarged = Boolean(match.dischargedAt || form.dischargedAt);
+        const data: Record<string, unknown> = {
           ...form,
-          doa: form.doa || new Date().toISOString().slice(0, 10),
+          doa: form["doa"] || new Date().toISOString().slice(0, 10),
           updatedAt: Date.now(),
+          dischargedAt: null,
+          dischargeNote: null,
         };
-        delete data.dischargedAt;
-        delete data.dischargeNote;
-        await updatePatientCloudFirst(existingId, {
-          ...data,
-          dischargedAt: undefined,
-          dischargeNote: undefined,
-        }, matchedId === existingId ? matchedVersion : getCloudVersion("patients", existingId));
-        if (wasDischarged) await readmitPatientCloudFirst(existingId, data.doa);
+        await updateCloudPatient(match.id, data, matchedId === match.id ? (matchedVersion ?? match.version) : match.version);
+        if (wasDischarged) {
+          await createCloudRecord("admissions", match.id, {
+            admittedAt: data["doa"],
+            createdAt: Date.now(),
+          });
+        }
         toast.success(wasDischarged ? t("readmittedOk") : t("patientAlreadyActive"));
-        navigate({ to: "/patients/$patientId", params: { patientId: String(existingId) } });
+        navigate({ to: "/patients/$patientId", params: { patientId: match.id } });
         return;
       }
-      const addData = { ...form, updatedAt: Date.now() } as Partial<Patient>;
-      delete addData.id;
-      const id = await createPatientCloudFirst(addData as Omit<Patient, "id">);
+      const saved = await createCloudPatient({ ...form, updatedAt: Date.now() });
       toast.success(t("savedOk"));
-      navigate({ to: "/patients/$patientId", params: { patientId: String(id) } });
+      navigate({ to: "/patients/$patientId", params: { patientId: saved.id } });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "تعذر حفظ بيانات المريض في السحابة.");
     } finally {
@@ -230,7 +243,7 @@ export function PatientForm({ patient }: { patient?: Patient }) {
             <Input type="date" value={form.dob} onChange={setDob} dir="ltr" />
           </Field>
           <Field label={t("doa")}>
-            <Input value={form.doa} onChange={set("doa")} dir="ltr" placeholder="YYYY-MM-DD" />
+            <Input value={form["doa"]} onChange={set("doa")} dir="ltr" placeholder="YYYY-MM-DD" />
           </Field>
           <Field label={t("doctor")}>
             <Input value={form.doctor} onChange={set("doctor")} />

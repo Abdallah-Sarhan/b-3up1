@@ -1,6 +1,7 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/lib/db";
+import { fetchCloudPatientById, type CloudPatient } from "@/lib/cloud-queries";
+import { toast } from "sonner";
 import { useLang } from "@/lib/i18n";
 import { PatientForm } from "@/components/PatientForm";
 
@@ -20,8 +21,20 @@ function EditPatientPage() {
   const { t } = useLang();
   const navigate = useNavigate();
   const { patientId } = useParams({ from: "/patients/$patientId/edit" });
-  const id = Number(patientId);
-  const patient = useLiveQuery(() => db.patients.get(id), [id]);
+  const [patient, setPatient] = useState<CloudPatient | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    setPatient(undefined);
+    void fetchCloudPatientById(patientId).then((value) => {
+      if (alive) setPatient(value);
+    }).catch((error) => {
+      if (alive) {
+        toast.error(error instanceof Error ? error.message : "تعذر تحميل المريض من السحابة.");
+        setPatient(null);
+      }
+    });
+    return () => { alive = false; };
+  }, [patientId]);
 
   if (patient === undefined) return <p className="py-10 text-center text-muted-foreground">{t("loading")}</p>;
   if (patient === null || !patient) {

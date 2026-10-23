@@ -1,9 +1,8 @@
 import { useDeferredValue, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Download, FileSpreadsheet, Plus, Search, Upload, DatabaseBackup } from "lucide-react";
-import { db, dbReady } from "@/lib/db";
+import { useActivePatients } from "@/components/PatientPicker";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, Input } from "@/components/ui-kit";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -46,10 +45,7 @@ function PatientsPage() {
   const xlsxInput = useRef<HTMLInputElement>(null);
   const jsonInput = useRef<HTMLInputElement>(null);
 
-  const patients = useLiveQuery(async () => {
-    await dbReady;
-    return db.patients.orderBy("name").toArray();
-  }, []);
+  const patients = useActivePatients();
 
   const filtered = useMemo(() => {
     if (!patients) return undefined;

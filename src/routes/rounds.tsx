@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useLiveQuery } from "dexie-react-hooks";
 import { toast } from "sonner";
 import { Printer, Save } from "lucide-react";
-import { db } from "@/lib/db";
-import { createClinicalRecordCloudFirst, getCloudVersion, updateClinicalRecordCloudFirst } from "@/lib/clinical-cloud";
+import { createCloudRecord, updateCloudRecord } from "@/lib/cloud-direct";
+import { useCloudFilteredRecords } from "@/hooks/use-cloud-filtered-records";
 import { useLang } from "@/lib/i18n";
 import { Button, Card, CardHeader, Field, Input, Textarea } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
@@ -32,11 +31,10 @@ function RoundsPage() {
   const { t, lang } = useLang();
   const patients = useActivePatients();
   const [date, setDate] = useState(today());
-  const [notes, setNotes] = useState<Record<number, string>>({});
-  const [dirtyNotes, setDirtyNotes] = useState<Record<number, boolean>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [dirtyNotes, setDirtyNotes] = useState<Record<string, boolean>>({});
   const notesRef = useRef(notes);
   const dirtyRef = useRef(dirtyNotes);
-  const entryVersions = useRef<Record<string, number | null>>({});
   useEffect(() => { notesRef.current = notes; }, [notes]);
   useEffect(() => { dirtyRef.current = dirtyNotes; }, [dirtyNotes]);
 
@@ -45,10 +43,7 @@ function RoundsPage() {
     setDirtyNotes({});
   }, [date]);
 
-  const entries = useLiveQuery(
-    () => db.rounds.where("date").equals(date).toArray(),
-    [date],
-  );
+  const { records: entries, refresh, error: loadError } = useCloudFilteredRecords("rounds", "date", date);
 
   const rows = useMemo(
     () =>
@@ -61,43 +56,34 @@ function RoundsPage() {
   // Hydrate once per cloud-version change without wiping unsaved typing.
   useEffect(() => {
     if (!entries) return;
-    for (const e of entries) {
-      const versionKey = `${date}:${e.patientId}`;
-      if (e.id != null && !Object.prototype.hasOwnProperty.call(entryVersions.current, versionKey)) {
-        entryVersions.current[versionKey] = getCloudVersion("rounds", e.id);
-      }
-    }
-    const map: Record<number, string> = {};
-    for (const e of entries) map[e.patientId] = e.findings ?? "";
+    const map: Record<string, string> = {};
+    for (const e of entries) if (e.patientId) map[e.patientId] = String(e["findings"] ?? "");
     setNotes((current) => {
       const next = { ...map };
       for (const [idText, isDirty] of Object.entries(dirtyRef.current)) {
-        const id = Number(idText);
+        const id = idText;
         if (isDirty) next[id] = notesRef.current[id] ?? current[id] ?? "";
       }
       return next;
     });
   }, [entries, date]);
 
-  async function saveNote(patientId: number) {
+  async function saveNote(patientId: string) {
+    if (loadError || entries === undefined) {
+      toast.error(loadError ?? "لم تكتمل قراءة ملاحظات الراوند من السحابة بعد. أعد المحاولة قبل الحفظ.");
+      return;
+    }
     const note = notesRef.current[patientId] ?? "";
     const existing = (entries ?? []).find((e) => e.patientId === patientId);
     try {
-      if (existing?.id != null) {
-        const versionKey = `${date}:${patientId}`;
-        await updateClinicalRecordCloudFirst(
-          "rounds",
-          existing.id,
-          { findings: note },
-          entryVersions.current[versionKey] ?? null,
-        );
-        entryVersions.current[versionKey] = getCloudVersion("rounds", existing.id);
+      if (existing) {
+        await updateCloudRecord("rounds", existing.id, patientId, { findings: note }, existing.version);
       } else {
-        const createdId = await createClinicalRecordCloudFirst("rounds", {
-          patientId, date, doctor: "", findings: note, orders: "", nurse: "",
+        await createCloudRecord("rounds", patientId, {
+          date, doctor: "", findings: note, orders: "", nurse: "",
         });
-        entryVersions.current[`${date}:${patientId}`] = getCloudVersion("rounds", createdId);
       }
+      await refresh();
       setDirtyNotes((prev) => ({ ...prev, [patientId]: false }));
       toast.success(t("savedOk"));
     } catch (error) {
@@ -121,6 +107,7 @@ function RoundsPage() {
       </div>
 
       <Card>
+        {loadError ? <p role="alert" className="px-4 pt-3 text-sm text-destructive">{loadError}</p> : null}
         <CardHeader title={`${t("rounds")} — ${date}`} subtitle={String(rows.length)} />
         <div className="overflow-x-auto px-2 pb-4">
           <table className="w-full min-w-[760px] border-collapse text-sm">
@@ -147,17 +134,17 @@ function RoundsPage() {
                   <td className="p-2">
                     <Textarea
                       rows={2}
-                      value={notes[p.id!] ?? ""}
+                      value={notes[p.id] ?? ""}
                       onChange={(e) =>
                         {
-                          setNotes((prev) => ({ ...prev, [p.id!]: e.target.value }));
-                          setDirtyNotes((prev) => ({ ...prev, [p.id!]: true }));
+                          setNotes((prev) => ({ ...prev, [p.id]: e.target.value }));
+                          setDirtyNotes((prev) => ({ ...prev, [p.id]: true }));
                         }
                       }
-                      onBlur={() => saveNote(p.id!)}
+                      onBlur={() => saveNote(p.id)}
                     />
                     <div className="mt-1 print:hidden">
-                      <Button size="sm" variant="ghost" onClick={() => saveNote(p.id!)}>
+                      <Button size="sm" variant="ghost" onClick={() => saveNote(p.id)}>
                         <Save />
                         {t("save")}
                       </Button>

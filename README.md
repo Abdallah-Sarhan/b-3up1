@@ -36,6 +36,6 @@ The front and back images of a patient's civil ID are intended to be uploaded to
 
 ## Data safety
 
-Clinical data must be read and written to Supabase directly. Do not add IndexedDB, localStorage/sessionStorage persistence, offline queues, service-worker caches, or manual local backup/import flows for clinical records. If the connection is lost, block writes and show: `لا يوجد اتصال بالإنترنت، يرجى إعادة المحاولة`.
+Clinical data must be read and written to Supabase directly. Do not add IndexedDB, browser persistence for clinical data (Supabase Auth session persistence is the only exception), offline queues, service-worker caches, or automatic local backups. Explicit user-requested export/import may read a selected file or produce a downloaded backup, but imported records must be written directly to Supabase and must never be queued locally. If the connection is lost, block writes and show: `لا يوجد اتصال بالإنترنت، يرجى إعادة المحاولة`.
 
 Before publishing, validate database migrations, RLS policies for every clinical table, and policies for all storage buckets. A successful frontend build alone does not verify backend access controls.

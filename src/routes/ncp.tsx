@@ -21,7 +21,7 @@ export const Route = createFileRoute("/ncp")({
 function NcpPage() {
   const { t } = useLang();
   const patients = useActivePatients();
-  const [patientId, setPatientId] = useState<number | "">("");
+  const [patientId, setPatientId] = useState<string | "">("");
 
   return (
     <div className="space-y-4">
