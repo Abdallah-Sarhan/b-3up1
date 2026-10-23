@@ -88,12 +88,12 @@ async function applyCloudEdit(args: {
   const { data, error } = await (supabase as any).rpc("apply_clinical_edit", {
     p_op_id: uuid(),
     p_table: args.table,
-    p_id: args.id,
+    p_id: args["id"],
     p_op: args.op,
     p_base_version: args.baseVersion,
     p_fields: args.fields,
     p_changed_at: Date.now(),
-    p_patient_id: args.patientId ?? null,
+    p_patient_id: args["patientId"] ?? null,
   });
   if (error) throw normalizeError(error);
   const result = data as { status?: string; row?: RemoteRow | null; conflicts?: unknown[] } | null;
@@ -117,11 +117,11 @@ function patientFields(value: Record<string, unknown>): Record<string, unknown> 
 }
 
 function clinicalFields(value: Record<string, unknown>): Record<string, unknown> {
-  const fields = { ...value };
-  delete fields.id;
-  delete fields.patientId;
-  delete fields.version;
-  delete fields.changedAt;
+  const fields = { ..["value"] };
+  delete fields["id"];
+  delete fields["patientId"];
+  delete fields["version"];
+  delete fields["changedAt"];
   return fields;
 }
 
@@ -142,7 +142,7 @@ export async function findCloudPatientByField(
   if (!data) return null;
   const row = data as RemoteRow;
   // Reuse the typed mapper by querying via UUID, so snake_case conversion stays centralized.
-  return fetchCloudPatientById(String(row.id));
+  return fetchCloudPatientById(String(row["id"]));
 }
 
 export async function suggestCloudPatientValues(
@@ -170,9 +170,9 @@ export async function createCloudPatient(value: Record<string, unknown>): Promis
     baseVersion: 0,
     fields: patientFields(value),
   });
-  const saved = await fetchCloudPatientById(String(result?.id ?? id));
+  const saved = await fetchCloudPatientById(String(result?.["id"] ?? id));
   if (!saved) throw new Error("تم إرسال المريض إلى السحابة، لكن تعذر تأكيد قراءة السجل المحفوظ.");
-  return { ...saved, version: Number(result?.version ?? saved.version ?? 1) };
+  return { ...saved, version: Number(result?.["version"] ?? saved["version"] ?? 1) };
 }
 
 export async function updateCloudPatient(
@@ -187,9 +187,9 @@ export async function updateCloudPatient(
     baseVersion,
     fields: patientFields(patch),
   });
-  const saved = await fetchCloudPatientById(String(result?.id ?? id));
+  const saved = await fetchCloudPatientById(String(result?.["id"] ?? id));
   if (!saved) throw new Error("تعذر إعادة تحميل المريض بعد الحفظ السحابي.");
-  return { ...saved, version: Number(result?.version ?? saved.version) };
+  return { ...saved, version: Number(result?.["version"] ?? saved["version"]) };
 }
 
 export async function deleteCloudPatient(id: string, baseVersion: number): Promise<void> {
@@ -210,11 +210,11 @@ export async function fetchCloudRecords(
   if (error) throw normalizeError(error);
   return ((data ?? []) as RemoteRow[]).map((row) => ({
     ...((row.data as Record<string, unknown> | null) ?? {}),
-    id: row.id,
+    id: row["id"],
     patientId: row.patient_id ?? null,
-    version: Number(row.version ?? 0),
-    createdAt: (row.data as Record<string, unknown> | null)?.createdAt as number | string ?? (row.created_at as string | number | undefined) ?? 0,
-    changedAt: Number(row.changed_at ?? 0),
+    version: Number(row["version"] ?? 0),
+    createdAt: (row.data as Record<string, unknown> | null)?.["createdAt"] as number | string ?? (row["created_at"] as string | number | undefined) ?? 0,
+    changedAt: Number(row["changed_at"] ?? 0),
   })) as CloudClinicalRecord[];
 }
 
@@ -234,9 +234,9 @@ export async function createCloudRecord(
   });
   return {
     ...clinicalFields(value),
-    id: String(row?.id ?? id),
+    id: String(row?.["id"] ?? id),
     patientId,
-    version: Number(row?.version ?? 1),
+    version: Number(row?.["version"] ?? 1),
     createdAt: Date.now(),
     changedAt: Date.now(),
   };
@@ -258,7 +258,7 @@ export async function updateCloudRecord(
     fields,
     patientId,
   });
-  return { ...fields, id: String(row?.id ?? id), patientId, version: Number(row?.version ?? baseVersion + 1), createdAt: 0, changedAt: Date.now() };
+  return { ...fields, id: String(row?.["id"] ?? id), patientId, version: Number(row?.["version"] ?? baseVersion + 1), createdAt: 0, changedAt: Date.now() };
 }
 
 export async function deleteCloudRecord(
@@ -290,11 +290,11 @@ export async function fetchAllCloudRecords(table: CloudClinicalTable): Promise<C
     const page = (data ?? []) as RemoteRow[];
     rows.push(...page.map((row) => ({
       ...((row.data as Record<string, unknown> | null) ?? {}),
-      id: row.id,
+      id: row["id"],
       patientId: row.patient_id ?? null,
-      version: Number(row.version ?? 0),
-      createdAt: ((row.data as Record<string, unknown> | null)?.createdAt as number | string | undefined) ?? (row.created_at as string | number | undefined) ?? 0,
-      changedAt: Number(row.changed_at ?? 0),
+      version: Number(row["version"] ?? 0),
+      createdAt: ((row.data as Record<string, unknown> | null)?.["createdAt"] as number | string | undefined) ?? (row["created_at"] as string | number | undefined) ?? 0,
+      changedAt: Number(row["changed_at"] ?? 0),
     })) as CloudClinicalRecord[]);
     if (page.length < 500) return rows;
   }
@@ -317,11 +317,11 @@ export async function fetchCloudRecordsByField(
   if (error) throw normalizeError(error);
   return ((data ?? []) as RemoteRow[]).map((row) => ({
     ...((row.data as Record<string, unknown> | null) ?? {}),
-    id: row.id,
+    id: row["id"],
     patientId: row.patient_id ?? null,
-    version: Number(row.version ?? 0),
-    createdAt: ((row.data as Record<string, unknown> | null)?.createdAt as number | string | undefined) ?? (row.created_at as string | number | undefined) ?? 0,
-    changedAt: Number(row.changed_at ?? 0),
+    version: Number(row["version"] ?? 0),
+    createdAt: ((row.data as Record<string, unknown> | null)?.["createdAt"] as number | string | undefined) ?? (row["created_at"] as string | number | undefined) ?? 0,
+    changedAt: Number(row["changed_at"] ?? 0),
   })) as CloudClinicalRecord[];
 }
 
@@ -332,8 +332,8 @@ export async function fetchCloudSharedSettings(prefix = ""): Promise<Array<{ key
     .limit(500);
   if (error) throw normalizeError(error);
   return ((data ?? []) as Array<{ data: Record<string, unknown> | null; deleted_at: string | null }>)
-    .filter((row) => !row.deleted_at && String(row.data?.key ?? "").startsWith(prefix))
-    .map((row) => ({ key: String(row.data?.key ?? ""), value: String(row.data?.value ?? "") }));
+    .filter((row) => !row.deleted_at && String(row.data?.["key"] ?? "").startsWith(prefix))
+    .map((row) => ({ key: String(row.data?.["key"] ?? ""), value: String(row.data?.["value"] ?? "") }));
 }
 
 export async function saveCloudSharedSetting(key: string, value: string): Promise<void> {
@@ -347,45 +347,45 @@ export async function saveCloudSharedSetting(key: string, value: string): Promis
   const found = data as RemoteRow | null;
   await applyCloudEdit({
     table: "ward_shift_settings",
-    id: found?.id ?? uuid(),
+    id: found?.["id"] ?? uuid(),
     op: "upsert",
-    baseVersion: Number(found?.version ?? 0),
+    baseVersion: Number(found?.["version"] ?? 0),
     fields: { key, value },
   });
 }
 
 export async function dischargeCloudPatient(patient: CloudPatient, note: string): Promise<CloudPatient> {
   const today = new Date().toISOString().slice(0, 10);
-  const admissions = await fetchCloudRecords("patient_admissions", patient.id, 200);
-  const open = admissions.find((row) => !row.dischargedAt);
+  const admissions = await fetchCloudRecords("patient_admissions", patient["id"], 200);
+  const open = admissions.find((row) => !row["dischargedAt"]);
   if (open) {
-    await updateCloudRecord("admissions", open.id, patient.id, { dischargedAt: today, dischargeNote: note }, open.version);
+    await updateCloudRecord("admissions", open["id"], patient["id"], { dischargedAt: today, dischargeNote: note }, open["version"]);
   } else {
-    await createCloudRecord("admissions", patient.id, {
+    await createCloudRecord("admissions", patient["id"], {
       admittedAt: patient.doa || today,
       dischargedAt: today,
       dischargeNote: note,
       createdAt: Date.now(),
     });
   }
-  return updateCloudPatient(patient.id, {
+  return updateCloudPatient(patient["id"], {
     dischargedAt: today,
     dischargeNote: note,
     updatedAt: Date.now(),
-  }, patient.version);
+  }, patient["version"]);
 }
 
 export async function readmitCloudPatient(patient: CloudPatient): Promise<CloudPatient> {
   const doa = new Date().toISOString().slice(0, 10);
-  const admissions = await fetchCloudRecords("patient_admissions", patient.id, 200);
-  const open = admissions.find((row) => !row.dischargedAt);
+  const admissions = await fetchCloudRecords("patient_admissions", patient["id"], 200);
+  const open = admissions.find((row) => !row["dischargedAt"]);
   if (!open) {
-    await createCloudRecord("admissions", patient.id, { admittedAt: doa, createdAt: Date.now() });
+    await createCloudRecord("admissions", patient["id"], { admittedAt: doa, createdAt: Date.now() });
   }
-  return updateCloudPatient(patient.id, {
+  return updateCloudPatient(patient["id"], {
     doa,
     dischargedAt: null,
     dischargeNote: null,
     updatedAt: Date.now(),
-  }, patient.version);
+  }, patient["version"]);
 }
