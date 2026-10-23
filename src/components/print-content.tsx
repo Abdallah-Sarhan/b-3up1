@@ -65,7 +65,7 @@ const VITAL_COLS = ["DATE", "TIME", "BP", "PULSE", "RESP", "TEMP", "SPO2"] as co
 const ROWS_PER_BLOCK = 14;
 
 function VitalRow({ e, rowIndex, block }: { e: VitalEntry | undefined; rowIndex: number; block: "left" | "right" }) {
-  const values = [e?.date ?? "", e?.time ?? "", e?.bp ?? "", e?.pulse ?? "", e?.resp ?? "", e?.temp ?? "", e?.spo2 ?? ""];
+  const values = [e?.["date"] ?? "", e?.["time"] ?? "", e?.["bp"] ?? "", e?.["pulse"] ?? "", e?.["resp"] ?? "", e?.["temp"] ?? "", e?.spo2 ?? ""];
   return (
     <>
       {values.map((value, columnIndex) => (
@@ -82,7 +82,7 @@ export function VitalsContent({ patient, id }: { patient: CloudPatient; id: stri
   const latest = (entries ?? []).slice(-ROWS_PER_BLOCK * 2);
   const left = latest.slice(0, ROWS_PER_BLOCK);
   const right = latest.slice(ROWS_PER_BLOCK);
-  const lastWeight = [...(entries ?? [])].reverse().find((e) => e.weight)?.weight ?? "";
+  const lastWeight = [...(entries ?? [])].reverse().find((e) => e["weight"])?.["weight"] ?? "";
 
   return (
     <>
@@ -93,7 +93,7 @@ export function VitalsContent({ patient, id }: { patient: CloudPatient; id: stri
             <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.patient"><b>PATIENT'S NAME:</b> {patient.name}</MovablePrintField></td>
             <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.doa"><b>DOA:</b> {patient.doa || "—"}</MovablePrintField></td>
             <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.fileNo"><b>FILE NO:</b> {patient.fileNo || "—"}</MovablePrintField></td>
-            <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.doctor"><b>TR DOCTOR:</b> {patient.doctor || "—"}</MovablePrintField></td>
+            <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header["doctor"]"><b>TR DOCTOR:</b> {patient["doctor"] || "—"}</MovablePrintField></td>
             <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.age"><b>AGE:</b> {patient.age || "—"}</MovablePrintField></td>
             <td className="px-1 py-1"><MovablePrintField fieldKey="vitals.header.sex"><b>SEX:</b> {patient.sex || "—"}</MovablePrintField></td>
           </tr>
@@ -123,7 +123,7 @@ export function VitalsContent({ patient, id }: { patient: CloudPatient; id: stri
             <td className="border border-black px-1 py-1 font-bold">WEIGHT</td>
           </tr>
           <tr>
-            <td className="border border-black px-1 py-1">{left[0]?.date ?? ""}</td>
+            <td className="border border-black px-1 py-1">{left[0]?.["date"] ?? ""}</td>
             <td colSpan={5} className="border border-black px-1 py-1"></td>
             <td className="border border-black px-1 py-1">{lastWeight}</td>
             <td className="border border-black px-1 py-1"></td>
@@ -218,7 +218,7 @@ export function MohFormHeader({ patient }: { patient: CloudPatient }) {
               <div className="flex flex-1 flex-col items-start">
                 <span className="text-[10px]">Doctor in Charge</span>
                 <span className="flex h-7 w-full items-center border border-black px-1 text-xs font-bold">
-                  {patient.doctor || ""}
+                  {patient["doctor"] || ""}
                 </span>
               </div>
             </div>
@@ -284,12 +284,12 @@ export function CarePlanContent({ patient, id }: { patient: CloudPatient; id: st
           ) : (
             list.map((c) => (
               <tr key={c.id}>
-                <td className="border border-black px-1 py-1 align-top">{c.dateIdentified}</td>
-                <td className="border border-black px-1 py-1 align-top whitespace-pre-wrap">{c.problem}</td>
-                <td className="border border-black px-1 py-1 align-top whitespace-pre-wrap">{c.objective}</td>
-                <td className="border border-black px-1 py-1 align-top whitespace-pre-wrap">{c.intervention}</td>
-                <td className="border border-black px-1 py-1 align-top">{c.dateResolved}</td>
-                <td className="border border-black px-1 py-1 align-top">{c.nurseSign}</td>
+                <td className="border border-black px-1 py-1 align-top">{c["dateIdentified"]}</td>
+                <td className="border border-black px-1 py-1 align-top whitespace-pre-wrap">{c["problem"]}</td>
+                <td className="border border-black px-1 py-1 align-top whitespace-pre-wrap">{c["objective"]}</td>
+                <td className="border border-black px-1 py-1 align-top whitespace-pre-wrap">{c["intervention"]}</td>
+                <td className="border border-black px-1 py-1 align-top">{c["dateResolved"]}</td>
+                <td className="border border-black px-1 py-1 align-top">{c["nurseSign"]}</td>
               </tr>
             ))
           )}
@@ -519,15 +519,15 @@ export function NursingCarePlanTemplateContent({ patient, id }: { patient: Cloud
   const linesPerRow = Math.max(1, Math.floor((NCP_ROW_HEIGHT - 4) / (7 * fontScale * 1.25)));
 
   const planGroups = (entries ?? []).map((entry, entryIndex) => {
-    const points = splitCarePlanInterventions(entry.intervention);
+    const points = splitCarePlanInterventions(entry["intervention"]);
     const estimateLines = (value: string, width: number) =>
       (value || "").split(/\r?\n/).reduce((total, line) => {
         const charsPerLine = Math.max(1, Math.floor(width / (7 * fontScale * 0.56)));
         return total + Math.max(1, Math.ceil(line.length / charsPerLine));
       }, 0);
     const contentLines = Math.max(
-      estimateLines(entry.problem, 160),
-      estimateLines(entry.objective, 179),
+      estimateLines(entry["problem"], 160),
+      estimateLines(entry["objective"], 179),
     );
     const rowsForLongText = Math.ceil(contentLines / linesPerRow);
     return {
@@ -581,7 +581,7 @@ export function NursingCarePlanTemplateContent({ patient, id }: { patient: Cloud
       <NCPF left={431} top={132} width={52} height={29} align="center" size={9} fieldKey="header.bed">{patient.bed}</NCPF>
       <NCPF left={506} top={132} width={260} height={25} size={8} fieldKey="header.diagnosis">{patient.diagnosis}</NCPF>
 
-      <NCPF left={151} top={208} width={192} height={23} size={8} fieldKey="header.doctor">{patient.doctor}</NCPF>
+      <NCPF left={151} top={208} width={192} height={23} size={8} fieldKey="header["doctor"]">{patient["doctor"]}</NCPF>
       <NCPF left={356} top={209} width={133} height={23} align="center" size={8} fieldKey="header.admissionDate">{patient.doa}</NCPF>
       <NCPF left={500} top={209} width={130} height={23} align="center" size={8} fieldKey="header.dischargeDate">{patient.dischargedAt ?? ""}</NCPF>
 
@@ -595,15 +595,15 @@ export function NursingCarePlanTemplateContent({ patient, id }: { patient: Cloud
           <div key={row.key}>
             {startsEntry ? (
               <>
-                <NCPF left={151} top={top} width={88} height={34} align="center" size={7} fieldKey={`row.${index}.date`}>{row.entry.dateIdentified}</NCPF>
-                <NCPF left={245} top={top} width={52} height={34} align="center" size={7} fieldKey={`row.${index}.problemNo`}>{row.entry.problemNo}</NCPF>
-                <NCPF left={306} top={top} width={160} height={mergedHeight} size={7} mergeCell fieldKey={`group.${index}.problem`}>{row.entry.problem}</NCPF>
-                <NCPF left={475} top={top} width={179} height={mergedHeight} size={7} mergeCell fieldKey={`group.${index}.objective`}>{row.entry.objective}</NCPF>
-                <NCPF left={1235} top={top} width={52} height={34} align="center" size={7} fieldKey={`row.${index}.dateResolved`}>{row.entry.dateResolved}</NCPF>
-                <NCPF left={1295} top={top} width={98} height={34} size={7} fieldKey={`row.${index}.nurseSign`}>{row.entry.nurseSign}</NCPF>
+                <NCPF left={151} top={top} width={88} height={34} align="center" size={7} fieldKey={`row.${index}["date"]`}>{row.entry["dateIdentified"]}</NCPF>
+                <NCPF left={245} top={top} width={52} height={34} align="center" size={7} fieldKey={`row.${index}["problemNo"]`}>{row.entry["problemNo"]}</NCPF>
+                <NCPF left={306} top={top} width={160} height={mergedHeight} size={7} mergeCell fieldKey={`group.${index}["problem"]`}>{row.entry["problem"]}</NCPF>
+                <NCPF left={475} top={top} width={179} height={mergedHeight} size={7} mergeCell fieldKey={`group.${index}["objective"]`}>{row.entry["objective"]}</NCPF>
+                <NCPF left={1235} top={top} width={52} height={34} align="center" size={7} fieldKey={`row.${index}["dateResolved"]`}>{row.entry["dateResolved"]}</NCPF>
+                <NCPF left={1295} top={top} width={98} height={34} size={7} fieldKey={`row.${index}["nurseSign"]`}>{row.entry["nurseSign"]}</NCPF>
               </>
             ) : null}
-            <NCPF left={665} top={top} width={560} height={34} size={7} fieldKey={`row.${index}.intervention`}>{row.point}</NCPF>
+            <NCPF left={665} top={top} width={560} height={34} size={7} fieldKey={`row.${index}["intervention"]`}>{row.point}</NCPF>
           </div>
         );
       })}
@@ -633,8 +633,8 @@ function BCell({ children, fieldKey }: { children: string | undefined; fieldKey:
 
 export function SbarContent({ patient, id, date }: { patient: CloudPatient; id: string; date: string }) {
   const { records: all } = useCloudRecords("sbar", id);
-  const entries = (all ?? []).filter((e) => e.date === date);
-  const byShift = (shift: string): SbarEntry | undefined => entries.find((e) => e.shift === shift);
+  const entries = (all ?? []).filter((e) => e["date"] === date);
+  const byShift = (shift: string): SbarEntry | undefined => entries.find((e) => e["shift"] === shift);
 
   return (
     <div className="border-2 border-black">
@@ -684,7 +684,7 @@ export function SbarContent({ patient, id, date }: { patient: CloudPatient; id: 
             const e = byShift(key);
             return (
               <tr key={key}>
-                <td className="h-[52mm] border border-black px-1 py-1 text-center align-middle text-[11px] font-bold whitespace-pre-line"><MovablePrintField fieldKey={`sbar.shift.${key}`}>{label}</MovablePrintField></td>
+                <td className="h-[52mm] border border-black px-1 py-1 text-center align-middle text-[11px] font-bold whitespace-pre-line"><MovablePrintField fieldKey={`sbar["shift"].${key}`}>{label}</MovablePrintField></td>
                 <BCell fieldKey={`sbar.${key}.situation`}>{e?.situation}</BCell>
                 <BCell fieldKey={`sbar.${key}.background`}>{e?.background}</BCell>
                 <BCell fieldKey={`sbar.${key}.assessment`}>{e?.assessment}</BCell>
@@ -736,7 +736,7 @@ export function NotesContent({ patient, id }: { patient: CloudPatient; id: strin
       <NF left={866} top={220} width={370} size={14} spacing={17.5}>{cid}</NF>
 
       <NF left={262} top={266} width={170} align="center">{patient.doa}</NF>
-      <NF left={488} top={266} width={236} align="center" size={11}>{patient.doctor}</NF>
+      <NF left={488} top={266} width={236} align="center" size={11}>{patient["doctor"]}</NF>
 
       <NF left={880} top={278} width={120}>{patient.sex}</NF>
       <NF left={1085} top={278} width={150}>{patient.age}</NF>
@@ -746,14 +746,14 @@ export function NotesContent({ patient, id }: { patient: CloudPatient; id: strin
         const top = NOTES_ROW_TOP + i * NOTES_ROW_H + 8;
         return (
           <div key={n.id}>
-            <NF left={NOTES_COL.date} top={top} width={NOTES_COL.time - NOTES_COL.date} align="center" size={12}>
-              {n.date}
+            <NF left={NOTES_COL["date"]} top={top} width={NOTES_COL["time"] - NOTES_COL["date"]} align="center" size={12}>
+              {n["date"]}
             </NF>
-            <NF left={NOTES_COL.time} top={top} width={NOTES_COL.notes - NOTES_COL.time} align="center" size={12}>
-              {n.time}
+            <NF left={NOTES_COL["time"]} top={top} width={NOTES_COL.notes - NOTES_COL["time"]} align="center" size={12}>
+              {n["time"]}
             </NF>
             <NF left={NOTES_COL.notes + 8} top={top} width={NOTES_COL.sign - NOTES_COL.notes - 16} size={12}>
-              {n.note}
+              {n["note"]}
             </NF>
           </div>
         );
@@ -792,7 +792,7 @@ export function TreatmentContent({ patient, id }: { patient: CloudPatient; id: s
       <TF left={900} top={248} width={130}>{patient.age}</TF>
 
       <TF left={190} top={248} width={140} align="center" size={12}>{patient.doa}</TF>
-      <TF left={380} top={248} width={205} align="center" size={11}>{patient.doctor}</TF>
+      <TF left={380} top={248} width={205} align="center" size={11}>{patient["doctor"]}</TF>
 
       <TF left={310} top={312} width={730} size={12}>{patient.diagnosis}</TF>
 
@@ -801,13 +801,13 @@ export function TreatmentContent({ patient, id }: { patient: CloudPatient; id: s
         return (
           <div key={e.id}>
             <TF left={178} top={top} width={116} align="center" size={11}>
-              {[e.date, e.time].filter(Boolean).join(" ")}
+              {[e["date"], e["time"]].filter(Boolean).join(" ")}
             </TF>
             <TF left={306} top={top} width={478} size={11}>
-              {[e.drug, e.dose, e.route, e.indication].filter(Boolean).join(" — ")}
+              {[e["drug"], e["dose"], e["route"], e["indication"]].filter(Boolean).join(" — ")}
             </TF>
             <TF left={798} top={top} width={308} size={11}>
-              {e.effect}
+              {e["effect"]}
             </TF>
           </div>
         );
@@ -841,7 +841,7 @@ export function ConsultationContent({ patient }: { patient: CloudPatient }) {
       <CF left={925} top={250} width={130}>{patient.age}</CF>
 
       <CF left={195} top={240} width={140} align="center" size={12}>{patient.doa}</CF>
-      <CF left={395} top={240} width={210} align="center" size={11}>{patient.doctor}</CF>
+      <CF left={395} top={240} width={210} align="center" size={11}>{patient["doctor"]}</CF>
 
       <CF left={400} top={318} width={700} size={12}>{patient.diagnosis}</CF>
     </>
@@ -878,7 +878,7 @@ export function ProgressContent({ patient, id }: { patient: CloudPatient; id: st
       <PF left={850} top={222} width={130}>{patient.age}</PF>
 
       <PF left={175} top={212} width={135} align="center" size={12}>{patient.doa}</PF>
-      <PF left={330} top={212} width={205} align="center" size={11}>{patient.doctor}</PF>
+      <PF left={330} top={212} width={205} align="center" size={11}>{patient["doctor"]}</PF>
 
       <PF left={310} top={305} width={720} size={12}>{patient.diagnosis}</PF>
 
@@ -887,10 +887,10 @@ export function ProgressContent({ patient, id }: { patient: CloudPatient; id: st
         return (
           <div key={r.id}>
             <PF left={170} top={top} width={145} align="center" size={11}>
-              {r.date}
+              {r["date"]}
             </PF>
             <PF left={330} top={top} width={725} size={11}>
-              {[r.findings, r.orders, r.doctor].filter(Boolean).join(" — ")}
+              {[r["findings"], r["orders"], r["doctor"]].filter(Boolean).join(" — ")}
             </PF>
           </div>
         );
@@ -926,18 +926,18 @@ export function NursingDbContent({ patient, id }: { patient: CloudPatient; id: s
       <DF left={1045} top={258} width={150}>{patient.age}</DF>
 
       <DF left={237} top={240} width={165} align="center" size={12}>{patient.doa}</DF>
-      <DF left={430} top={240} width={330} align="center" size={11}>{patient.doctor}</DF>
+      <DF left={430} top={240} width={330} align="center" size={11}>{patient["doctor"]}</DF>
 
       <DF left={355} top={310} width={300} size={12}>{patient.nationality}</DF>
       <DF left={355} top={352} width={300} size={12}>{patient.maritalStatus}</DF>
 
       {last ? (
         <>
-          <DF left={548} top={1118} width={140} size={12}>{last.temp}</DF>
-          <DF left={740} top={1118} width={200} size={12}>{last.pulse}</DF>
-          <DF left={1015} top={1140} width={200} size={12}>{last.resp}</DF>
-          <DF left={548} top={1158} width={180} size={12}>{last.bp}</DF>
-          <DF left={790} top={1158} width={160} size={12}>{last.weight}</DF>
+          <DF left={548} top={1118} width={140} size={12}>{last["temp"]}</DF>
+          <DF left={740} top={1118} width={200} size={12}>{last["pulse"]}</DF>
+          <DF left={1015} top={1140} width={200} size={12}>{last["resp"]}</DF>
+          <DF left={548} top={1158} width={180} size={12}>{last["bp"]}</DF>
+          <DF left={790} top={1158} width={160} size={12}>{last["weight"]}</DF>
         </>
       ) : null}
     </>
