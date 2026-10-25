@@ -314,12 +314,12 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
     const firstY = Math.min(...rowCenters);
     const lastY = Math.max(...rowCenters);
     const possibleNameWords = words.filter((word) => xCenter(word) >= nameLeft && xCenter(word) < nameRight && center(word) >= firstY - rowTolerance * 2.5 && center(word) <= lastY + rowTolerance * 2.5);
-    const nameGroups = groupWordsByRow(possibleNameWords, rowTolerance);
+    const nameGroups = groupWordsByRow(possibleNameWords, rowTolerance * 1.4);
     const rows: RecognizedRosterRow[] = rowEntries.map(({ rowNumber: rosterRowNumber, y: rowY }) => {
       const names = nameGroups
         .filter((group) => {
           const first = group[0];
-          return first ? Math.abs(group.reduce((sum, word) => sum + center(word), 0) / group.length - rowY) <= rowTolerance * 2.5 : false;
+          return first ? Math.abs(group.reduce((sum, word) => sum + center(word), 0) / group.length - rowY) <= rowTolerance * 1.7 : false;
         })
         .flat()
         .sort((a, b) => xCenter(a) - xCenter(b));
