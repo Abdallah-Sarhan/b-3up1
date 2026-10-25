@@ -51,7 +51,7 @@ function formatDate(iso: string) {
 
 /** Treat "ANNUAL LEAVE TILL dd/mm/yyyy" as leave through the named date. */
 function effectiveRosterCode(code: string, assignmentDate: string): string {
-  const match = code.match(/LEAVE\\s+TILL\\s+(\\d{1,2})[/-](\\d{1,2})[/-](\\d{4})/i);
+  const match = code.match(/LEAVE\s+TILL\s+(\d{1,2})[/-](\d{1,2})[/-](\d{4})/i);
   if (!match) return code;
   const day = match[1];
   const month = match[2];
