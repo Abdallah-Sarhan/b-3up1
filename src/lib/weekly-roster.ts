@@ -31,7 +31,7 @@ export function normalizeRosterCode(value: string): string {
     .toUpperCase()
     .replace(/[–—−]/g, "-")
     .replace(/\s+/g, "")
-    .replace(/O/g, "0");
+
 }
 
 export function shiftForRosterCode(value: string): WardShift | null {
