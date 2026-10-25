@@ -272,14 +272,41 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
       .sort((a, b) => a.rowNumber - b.rowNumber);
 
     const wordRowGroups = groupWordsByRow(scheduleWords, rowTolerance);
-    let rowEntries = serialEntries.length >= 20
-      ? serialEntries
-      : wordRowGroups
-          .map((group, index) => ({
+    let rowEntries: Array<{ rowNumber: number; y: number }>;
+    if (serialEntries.length >= 5) {
+      // Fit a row-pitch line through whatever serials OCR recovered. Some
+      // scans lose digits, so interpolate the missing serials rather than
+      // silently dropping nurses whose shift cells are blank.
+      const meanNumber = serialEntries.reduce((sum, row) => sum + row.rowNumber, 0) / serialEntries.length;
+      const meanY = serialEntries.reduce((sum, row) => sum + row.y, 0) / serialEntries.length;
+      const variance = serialEntries.reduce((sum, row) => sum + (row.rowNumber - meanNumber) ** 2, 0);
+      const slope = variance > 0
+        ? serialEntries.reduce((sum, row) => sum + (row.rowNumber - meanNumber) * (row.y - meanY), 0) / variance
+        : 0;
+      const intercept = meanY - slope * meanNumber;
+      const codeYs = scheduleWords
+        .map(center)
+        .filter((y) => y >= size.height * 0.23 && y <= size.height * 0.83);
+      const lastCodeY = codeYs.length ? Math.max(...codeYs) : meanY;
+      const countFromGrid = slope > 15 && slope < 55
+        ? Math.round((lastCodeY - (intercept + slope)) / slope) + 1
+        : 0;
+      const largestSerial = Math.max(...serialEntries.map((row) => row.rowNumber));
+      const rowCount = Math.max(largestSerial, countFromGrid);
+      rowEntries = slope > 15 && slope < 55 && rowCount >= 20 && rowCount <= 30
+        ? Array.from({ length: rowCount }, (_, index) => ({
             rowNumber: index + 1,
-            y: group.reduce((sum, word) => sum + center(word), 0) / group.length,
+            y: intercept + slope * (index + 1),
           }))
-          .filter((entry) => entry.y >= size.height * 0.23 && entry.y <= size.height * 0.83);
+        : serialEntries;
+    } else {
+      rowEntries = wordRowGroups
+        .map((group, index) => ({
+          rowNumber: index + 1,
+          y: group.reduce((sum, word) => sum + center(word), 0) / group.length,
+        }))
+        .filter((entry) => entry.y >= size.height * 0.23 && entry.y <= size.height * 0.83);
+    }
     if (rowEntries.length < 2) {
       throw new Error("تعذر التعرف على صفوف الموظفين من الصورة. راجع وضوح الجدول ثم أعد المحاولة.");
     }
