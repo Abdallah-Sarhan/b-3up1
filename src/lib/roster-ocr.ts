@@ -253,7 +253,7 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
       const serial = Number.parseInt(word.text.trim(), 10);
       if (
         xCenter(word) < size.width * 0.05 &&
-        /^\\d{1,2}$/.test(word.text.trim()) &&
+        /^\d{1,2}$/.test(word.text.trim()) &&
         serial >= 1 && serial <= 30 &&
         center(word) >= size.height * 0.23 &&
         center(word) <= size.height * 0.83
