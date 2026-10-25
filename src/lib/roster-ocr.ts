@@ -11,7 +11,7 @@ type OcrWord = {
   bbox: { x0: number; y0: number; x1: number; y1: number };
 };
 type Worker = {
-  recognize: (image: File) => Promise<{ data: { words: OcrWord[]; text: string } }>;
+  recognize: (image: string | HTMLCanvasElement) => Promise<{ data: { words: OcrWord[]; text: string } }>;
   terminate: () => Promise<void>;
 };
 type TesseractApi = {
@@ -94,6 +94,26 @@ async function getImageSize(file: File): Promise<{ width: number; height: number
   const size = { width: bitmap.width, height: bitmap.height };
   bitmap.close();
   return size;
+}
+
+/**
+ * Mobile browsers can pass a File object to Tesseract that the worker cannot
+ * decode ("File could not be read! Code=0"). Normalize it to a browser-created
+ * PNG data URL first; this also avoids temporary file-URL restrictions.
+ */
+async function toOcrImage(file: File): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("تعذر تجهيز الصورة للقراءة. جرّب صورة JPG أو PNG واضحة.");
+    context.drawImage(bitmap, 0, 0);
+    return canvas.toDataURL("image/png");
+  } finally {
+    bitmap.close();
+  }
 }
 
 /** Detect long vertical table rules to help map OCR words to the seven day cells. */
@@ -194,14 +214,14 @@ export interface RecognizedRosterRow { rowNumber: number; name: string; dayCodes
 
 export async function recognizeWeeklyRoster(file: File): Promise<{ rows: RecognizedRosterRow[]; rawText: string }> {
   if (!file.type.startsWith("image/")) throw new Error("اختر صورة واضحة لجدول العمل.");
-  const [api, size, rules] = await Promise.all([getTesseract(), getImageSize(file), verticalRules(file)]);
+  const [api, size, rules, ocrImage] = await Promise.all([getTesseract(), getImageSize(file), verticalRules(file), toOcrImage(file)]);
   const worker = await api.createWorker("eng", 1, {
     workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js",
     corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@5",
     langPath: "https://tessdata.projectnaptha.com/4.0.0",
   });
   try {
-    const result = await worker.recognize(file);
+    const result = await worker.recognize(ocrImage);
     const words = result.data.words.filter((word) => word.text.trim() && (word.confidence ?? 0) >= 8);
     const centers = scheduleColumnCenters(words, size.width, rules);
     if (centers.length !== 7) {
