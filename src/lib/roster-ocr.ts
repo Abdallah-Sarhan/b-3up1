@@ -43,7 +43,7 @@ async function getTesseract(): Promise<TesseractApi> {
     const script = document.createElement("script");
     script.src = TESSERACT_SCRIPT;
     script.async = true;
-    script.dataset.rosterTesseract = "true";
+    script.dataset["rosterTesseract"] = "true";
     script.onload = () => resolve();
     script.onerror = () => reject(new Error("تعذر تحميل محرك قراءة الصورة. تحقق من اتصال الإنترنت ثم حاول مرة أخرى."));
     document.head.appendChild(script);
@@ -119,14 +119,18 @@ async function verticalRules(file: File): Promise<number[]> {
     let dark = 0;
     for (let y = startY; y < endY; y += 2) {
       const offset = (y * canvas.width + x) * 4;
-      if (data[offset] < 105 && data[offset + 1] < 105 && data[offset + 2] < 105) dark++;
+      const red = data[offset] ?? 255;
+      const green = data[offset + 1] ?? 255;
+      const blue = data[offset + 2] ?? 255;
+      if (red < 105 && green < 105 && blue < 105) dark++;
     }
     if (dark >= minDark / 2) xs.push(x / scale);
   }
   const groups: number[][] = [];
   for (const x of xs) {
     const last = groups[groups.length - 1];
-    if (last && x - last[last.length - 1] <= 3 / scale) last.push(x);
+    const lastX = last?.[last.length - 1];
+    if (last && lastX !== undefined && x - lastX <= 3 / scale) last.push(x);
     else groups.push([x]);
   }
   return groups.map((group) => group.reduce((sum, x) => sum + x, 0) / group.length);
@@ -135,7 +139,10 @@ async function verticalRules(file: File): Promise<number[]> {
 function scheduleColumnCenters(words: OcrWord[], width: number, rules: number[]): number[] {
   if (rules.length >= 8) {
     const lastEight = rules.slice(-8);
-    return lastEight.slice(0, -1).map((x, index) => (x + lastEight[index + 1]) / 2);
+    return lastEight.slice(0, -1).map((x, index) => {
+      const next = lastEight[index + 1];
+      return next === undefined ? x : (x + next) / 2;
+    });
   }
   const candidates = words
     .filter((word) => isScheduleToken(word.text) && word.confidence !== undefined && word.confidence >= 12)
@@ -154,7 +161,7 @@ function scheduleColumnCenters(words: OcrWord[], width: number, rules: number[])
   if (centers.length > 7) {
     // Keep the seven most populated x clusters when OCR also mistakes headings for codes.
     const populated = clusters
-      .map((group, index) => ({ center: centers[index], count: group.length }))
+      .map((group) => ({ center: group.reduce((sum, x) => sum + x, 0) / group.length, count: group.length }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 7)
       .map((group) => group.center)
@@ -170,7 +177,8 @@ function groupWordsByRow(words: OcrWord[], tolerance: number): OcrWord[][] {
   for (const word of sorted) {
     const y = center(word);
     const current = groups[groups.length - 1];
-    if (current && Math.abs(center(current[0]) - y) <= tolerance) current.push(word);
+    const firstInCurrent = current?.[0];
+    if (current && firstInCurrent && Math.abs(center(firstInCurrent) - y) <= tolerance) current.push(word);
     else groups.push([word]);
   }
   return groups;
@@ -197,12 +205,25 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
     if (centers.length !== 7) {
       throw new Error("لم أتمكن من تحديد أعمدة الأيام السبعة كاملة. استخدم صورة مستقيمة وعالية الدقة، أو قص الصورة لتشمل جدول الموظفين والأيام السبعة.");
     }
-    const boundaries = rules.length >= 8 ? rules.slice(-8) : [
-      centers[0] - (centers[1] - centers[0]) / 2,
-      ...centers.slice(1).map((x, i) => (centers[i] + x) / 2),
-      centers[centers.length - 1] + (centers[centers.length - 1] - centers[centers.length - 2]) / 2,
-    ];
+    const boundaries = rules.length >= 8 ? rules.slice(-8) : (() => {
+      const first = centers[0];
+      const second = centers[1];
+      const penultimate = centers[5];
+      const last = centers[6];
+      if (first === undefined || second === undefined || penultimate === undefined || last === undefined) {
+        throw new Error("تعذر تحديد حدود أعمدة الأيام.");
+      }
+      return [
+        first - (second - first) / 2,
+        ...centers.slice(1).map((x, index) => {
+          const previous = centers[index];
+          return previous === undefined ? x : (previous + x) / 2;
+        }),
+        last + (last - penultimate) / 2,
+      ];
+    })();
     const firstScheduleX = boundaries[0];
+    if (firstScheduleX === undefined) throw new Error("تعذر تحديد بداية جدول الأيام.");
     const scheduleWords = words.filter((word) => xCenter(word) >= firstScheduleX && isScheduleToken(word.text));
     const rowTolerance = Math.max(7, size.height * 0.006);
     const rowGroups = groupWordsByRow(scheduleWords, rowTolerance);
@@ -216,14 +237,20 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
     const nameGroups = groupWordsByRow(possibleNameWords, rowTolerance);
     const rows: RecognizedRosterRow[] = rowCenters.map((rowY, index) => {
       const names = nameGroups
-        .filter((group) => Math.abs(center(group[0]) - rowY) <= rowTolerance * 1.5)
+        .filter((group) => {
+          const first = group[0];
+          return first ? Math.abs(center(first) - rowY) <= rowTolerance * 1.5 : false;
+        })
         .flat()
         .sort((a, b) => xCenter(a) - xCenter(b));
       const name = names.map((word) => word.text.trim()).join(" ").replace(/\s+/g, " ").trim();
       const dayCodes = centers.map((_, dayIndex) => {
         const cell = scheduleWords.filter((word) => {
           const yNear = Math.abs(center(word) - rowY) <= rowTolerance * 1.5;
-          const colIndex = boundaries.findIndex((left, i) => i < boundaries.length - 1 && xCenter(word) >= left && xCenter(word) < boundaries[i + 1]);
+          const colIndex = boundaries.findIndex((left, i) => {
+            const right = boundaries[i + 1];
+            return right !== undefined && i < boundaries.length - 1 && xCenter(word) >= left && xCenter(word) < right;
+          });
           return yNear && colIndex === dayIndex;
         });
         return correctedCode(cell);
