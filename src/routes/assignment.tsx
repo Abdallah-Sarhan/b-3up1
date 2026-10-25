@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Printer, Save, Shuffle, UserCheck } from "lucide-react";
+import { FileImage, LoaderCircle, Printer, Save, Shuffle, Upload, UserCheck } from "lucide-react";
 import {
   createCloudRecord,
   deleteCloudRecord,
@@ -14,6 +14,8 @@ import { useLang } from "@/lib/i18n";
 import { Button, Card, CardHeader, Field, Input, Select } from "@/components/ui-kit";
 import { useActivePatients } from "@/components/PatientPicker";
 import logoMoh from "@/assets/logo-moh.png.asset.json";
+import { buildShiftRoster, type WardShift } from "@/lib/weekly-roster";
+import { recognizeWeeklyRoster, type RecognizedRosterRow } from "@/lib/roster-ocr";
 
 export const Route = createFileRoute("/assignment")({
   head: () => ({
@@ -47,6 +49,19 @@ function formatDate(iso: string) {
   return y ? `${Number(d)}-${Number(m)}-${y.slice(2)}` : iso;
 }
 
+/** Treat "ANNUAL LEAVE TILL dd/mm/yyyy" as leave through the named date. */
+function effectiveRosterCode(code: string, assignmentDate: string): string {
+  const match = code.match(/LEAVE\\s+TILL\\s+(\\d{1,2})[/-](\\d{1,2})[/-](\\d{4})/i);
+  if (!match) return code;
+  const day = match[1];
+  const month = match[2];
+  const year = match[3];
+  if (!day || !month || !year) return code;
+  const until = Date.parse(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T00:00:00Z`);
+  const selected = Date.parse(`${assignmentDate}T00:00:00Z`);
+  return Number.isFinite(until) && Number.isFinite(selected) && selected > until ? "" : code;
+}
+
 /** Split patients into `count` groups of as-equal-as-possible size. */
 function distribute<T>(items: T[], count: number): T[][] {
   const groups: T[][] = Array.from({ length: count }, () => []);
@@ -65,8 +80,13 @@ function AssignmentPage() {
   const { t, lang } = useLang();
   const patients = useActivePatients();
   const [date, setDate] = useState(today());
+  const [rosterStartDate, setRosterStartDate] = useState(today());
+  const [rosterRows, setRosterRows] = useState<RecognizedRosterRow[]>([]);
+  const [rosterFileName, setRosterFileName] = useState("");
+  const [rosterBusy, setRosterBusy] = useState(false);
   const [shift, setShift] = useState<string>("morning");
   const [leader, setLeader] = useState("");
+  const [wardHeadNurse, setWardHeadNurse] = useState("");
   const [nurseCount, setNurseCount] = useState(6);
   const [nameSize, setNameSize] = useState(11);
   const [nurses, setNurses] = useState<string[]>(() => Array.from({ length: 6 }, () => ""));
@@ -118,6 +138,70 @@ function AssignmentPage() {
 
     const groups = useMemo(() => distribute(list, Math.max(nurseCount, 1)), [list, nurseCount]);
   const shiftLabel = SHIFTS.find((s) => s.key === shift)?.label ?? "";
+  const rosterDayIndex = Math.floor(
+    (new Date(`${date}T00:00:00Z`).getTime() - new Date(`${rosterStartDate}T00:00:00Z`).getTime()) / 86_400_000,
+  );
+  const rosterDateIsCovered = rosterDayIndex >= 0 && rosterDayIndex <= 6;
+
+  async function loadRosterImage(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error(lang === "ar" ? "اختر صورة لجدول العمل." : "Please choose a roster image.");
+      return;
+    }
+    setRosterBusy(true);
+    setRosterFileName(file.name);
+    setRosterRows([]);
+    try {
+      const result = await recognizeWeeklyRoster(file);
+      setRosterRows(result.rows.map((row, index) => ({
+        ...row,
+        rowNumber: index + 1,
+        dayCodes: Array.from({ length: 7 }, (_, dayIndex) => row.dayCodes[dayIndex] ?? ""),
+      })));
+      toast.success(lang === "ar"
+        ? `تمت قراءة ${result.rows.length} صفًا. راجع الأسماء ورموز الشفتات قبل الاعتماد.`
+        : `Read ${result.rows.length} rows. Review names and shift codes before applying.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : (lang === "ar" ? "تعذرت قراءة صورة الجدول." : "Could not read the roster image."));
+      setRosterRows([]);
+    } finally {
+      setRosterBusy(false);
+    }
+  }
+
+  function applyRosterToAssignment() {
+    if (!rosterDateIsCovered) {
+      toast.error(lang === "ar"
+        ? "تاريخ التوزيعة خارج نطاق الأسبوع. عدّل تاريخ بداية الجدول أو تاريخ التوزيعة."
+        : "The assignment date is outside this roster week. Change the roster start date or assignment date.");
+      return;
+    }
+    const currentDayRows = rosterRows.map((row, index) => ({
+      rowNumber: row.rowNumber,
+      name: row.name,
+      dayCode: effectiveRosterCode(row.dayCodes[rosterDayIndex] ?? "", date),
+    }));
+    const roster = buildShiftRoster(currentDayRows, shift as WardShift);
+    if (!roster.nurses.length) {
+      toast.error(lang === "ar"
+        ? "لم يتم العثور على ممرضين لهذا الشفت. راجع رموز اليوم المحدد في الجدول."
+        : "No nurses found for this shift. Review the selected day's shift codes.");
+      return;
+    }
+    if (roster.nurses.length > 30) {
+      toast.error(lang === "ar" ? "عدد الممرضين المستخرج أكبر من الحد المسموح (30)." : "The extracted roster exceeds the 30-nurse limit.");
+      return;
+    }
+    setNurseCount(roster.nurses.length);
+    setNurses(roster.nurses);
+    setSpecial(Array.from({ length: roster.nurses.length }, () => ""));
+    setWardHeadNurse(roster.wardHeadNurse);
+    setLeader(roster.teamLeader);
+    toast.success(lang === "ar"
+      ? `تم إدراج ${roster.nurses.length} ممرضًا بترتيب الجدول، واستبعاد ${roster.excluded.length} إجازة. راجع التوزيعة قبل الحفظ والطباعة.`
+      : `Added ${roster.nurses.length} nurses in roster order; excluded ${roster.excluded.length} leave entries. Review before saving or printing.`);
+  }
 
     /** A team leader is mandatory before saving or printing. */
     function requireLeader(): boolean {
@@ -190,6 +274,116 @@ function AssignmentPage() {
 
       <Card className="print:hidden">
         <CardHeader
+          title={lang === "ar" ? "استيراد جدول العمل الأسبوعي" : "Import weekly work roster"}
+          subtitle={lang === "ar"
+            ? "ارفع صورة الجدول، راجع الأسماء ورموز الأيام، ثم أدرج ممرضي الشفت تلقائيًا. تتم القراءة داخل المتصفح ولا تُرفع الصورة إلى الخادم."
+            : "Upload the roster image, review recognized names and day codes, then import the selected shift. OCR runs in your browser; the image is not uploaded to the server."}
+        />
+        <div className="space-y-3 px-5 py-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Field label={lang === "ar" ? "صورة جدول العمل" : "Roster image"}>
+              <Input
+                type="file"
+                accept="image/*"
+                disabled={rosterBusy}
+                onChange={(event) => { void loadRosterImage(event.currentTarget.files?.[0]); event.currentTarget.value = ""; }}
+              />
+              {rosterFileName ? <p className="mt-1 text-xs opacity-70"><FileImage className="me-1 inline h-3.5 w-3.5" />{rosterFileName}</p> : null}
+            </Field>
+            <Field label={lang === "ar" ? "تاريخ أول يوم في صورة الجدول" : "First date shown in roster"}>
+              <Input type="date" value={rosterStartDate} onChange={(event) => setRosterStartDate(event.target.value)} />
+            </Field>
+            <div className="flex items-end">
+              <Button className="w-full" variant="outline" disabled={rosterBusy || !rosterRows.length} onClick={applyRosterToAssignment}>
+                <Upload />
+                {lang === "ar" ? "إدراج ممرضي الشفت المختار" : "Apply selected shift"}
+              </Button>
+            </div>
+          </div>
+          {rosterBusy ? (
+            <div className="flex items-center gap-2 rounded-md border px-3 py-3 text-sm" role="status">
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+              {lang === "ar" ? "جارٍ قراءة الصورة داخل المتصفح..." : "Reading the image in your browser..."}
+            </div>
+          ) : null}
+          {rosterRows.length > 0 ? (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium">
+                  {lang === "ar"
+                    ? `تم التعرف على ${rosterRows.length} صفًا. راجع كل اسم ورمز يوم قبل الإدراج.`
+                    : `Recognized ${rosterRows.length} rows. Review every name and selected-day code before applying.`}
+                </p>
+                {!rosterDateIsCovered ? (
+                  <p className="text-sm text-destructive" role="alert">
+                    {lang === "ar" ? "تاريخ التوزيعة خارج نطاق الأيام السبعة." : "Assignment date is outside the seven-day roster range."}
+                  </p>
+                ) : null}
+              </div>
+              <div className="max-h-[420px] overflow-auto rounded-md border">
+                <table className="w-full min-w-[520px] border-collapse text-sm">
+                  <thead className="sticky top-0 bg-muted">
+                    <tr>
+                      <th className="border-b px-2 py-2 text-start">#</th>
+                      <th className="border-b px-2 py-2 text-start">{lang === "ar" ? "اسم الممرض (قابل للتصحيح)" : "Nurse name (editable)"}</th>
+                      <th className="border-b px-2 py-2 text-start">
+                        {lang === "ar" ? `رمز يوم ${date}` : `Code for ${date}`}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rosterRows.map((row, index) => (
+                      <tr key={index} className="odd:bg-background even:bg-muted/30">
+                        <td className="border-b px-2 py-1.5">{index + 1}</td>
+                        <td className="border-b px-2 py-1.5">
+                          <Input
+                            value={row.name}
+                            aria-label={`Roster row ${index + 1} name`}
+                            onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) =>
+                              rowIndex === index ? { ...item, name: event.target.value } : item
+                            ))}
+                          />
+                        </td>
+                        <td className="border-b px-2 py-1.5">
+                          <Input
+                            value={row.dayCodes[rosterDayIndex] ?? ""}
+                            aria-label={`Roster row ${index + 1} day code`}
+                            disabled={!rosterDateIsCovered}
+                            onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) =>
+                              rowIndex === index ? {
+                                ...item,
+                                dayCodes: item.dayCodes.map((code, dayIndex) => dayIndex === rosterDayIndex ? event.target.value : code),
+                              } : item
+                            ))}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs opacity-70">
+                {lang === "ar"
+                  ? "القواعد: DO وSD والإجازة السنوية مستبعدة؛ الصف الأول يظهر في خانة قائد الفريق فقط؛ أول ممرض مؤهل حسب ترتيب الجدول يصبح قائد الفريق ويظل في أول عمود."
+                  : "Rules: DO, SD and annual leave are excluded; roster row 1 appears only in the team-leader field; the first eligible nurse becomes leader and remains in the first nurse column."}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={() => setRosterRows((previous) => [...previous, {
+                  rowNumber: previous.length + 1, name: "", dayCodes: Array.from({ length: 7 }, () => ""),
+                }])}>
+                  {lang === "ar" ? "إضافة صف مفقود" : "Add missing row"}
+                </Button>
+                <Button variant="outline" onClick={() => { setRosterRows([]); setRosterFileName(""); }}>
+                  {lang === "ar" ? "مسح نتيجة القراءة" : "Clear OCR results"}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </Card>
+
+      <Card className="print:hidden">
+        <CardHeader
           title={lang === "ar" ? "إعدادات التوزيعة" : "Assignment settings"}
           subtitle={`${list.length} ${lang === "ar" ? "مريض" : "patients"}`}
         />
@@ -210,9 +404,9 @@ function AssignmentPage() {
             <Input
               type="number"
               min={1}
-              max={10}
+              max={30}
               value={nurseCount}
-              onChange={(e) => setNurseCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
+              onChange={(e) => setNurseCount(Math.min(30, Math.max(1, Number(e.target.value) || 1)))}
             />
           </Field>
             <Field label={lang === "ar" ? "قائد الفريق (واحد فقط لكل وردية)" : "Team leader (one per shift)"}>
@@ -286,9 +480,10 @@ function AssignmentPage() {
               <div className="text-sm font-bold">DATE: {formatDate(date)}</div>
             </div>
 
-            <div className="flex border-y border-black text-[11px] font-bold">
+            <div className="flex flex-wrap border-y border-black text-[10px] font-bold">
               <div className="flex-1 border-e border-black px-1 py-0.5">MINISTRY OF HEALTH</div>
-              <div className="flex-1 border-e border-black px-1 py-0.5 text-center">LEADER: {leader || "—"}</div>
+              <div className="flex-1 border-e border-black px-1 py-0.5 text-center">WARD HEAD: {wardHeadNurse || "—"}</div>
+              <div className="flex-1 border-e border-black px-1 py-0.5 text-center">TEAM LEADER: {leader || "—"}</div>
               <div className="flex-1 border-e border-black px-1 py-0.5 text-center">WARD: 39</div>
               <div className="flex-1 px-1 py-0.5 text-center">SHIFT {shiftLabel}</div>
             </div>
