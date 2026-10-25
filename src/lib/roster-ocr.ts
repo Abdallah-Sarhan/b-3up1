@@ -194,8 +194,8 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
     const result = await worker.recognize(file);
     const words = result.data.words.filter((word) => word.text.trim() && (word.confidence ?? 0) >= 8);
     const centers = scheduleColumnCenters(words, size.width, rules);
-    if (centers.length < 3) {
-      throw new Error("لم أتمكن من تحديد أعمدة أيام الأسبوع بوضوح. استخدم صورة مستقيمة وعالية الدقة.");
+    if (centers.length !== 7) {
+      throw new Error("لم أتمكن من تحديد أعمدة الأيام السبعة كاملة. استخدم صورة مستقيمة وعالية الدقة، أو قص الصورة لتشمل جدول الموظفين والأيام السبعة.");
     }
     const boundaries = rules.length >= 8 ? rules.slice(-8) : [
       centers[0] - (centers[1] - centers[0]) / 2,
