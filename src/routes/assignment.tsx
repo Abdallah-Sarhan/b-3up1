@@ -49,6 +49,19 @@ function formatDate(iso: string) {
   return y ? `${Number(d)}-${Number(m)}-${y.slice(2)}` : iso;
 }
 
+/** Treat "ANNUAL LEAVE TILL dd/mm/yyyy" as leave through the named date. */
+function effectiveRosterCode(code: string, assignmentDate: string): string {
+  const match = code.match(/LEAVE\\s+TILL\\s+(\\d{1,2})[/-](\\d{1,2})[/-](\\d{4})/i);
+  if (!match) return code;
+  const day = match[1];
+  const month = match[2];
+  const year = match[3];
+  if (!day || !month || !year) return code;
+  const until = Date.parse(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T00:00:00Z`);
+  const selected = Date.parse(`${assignmentDate}T00:00:00Z`);
+  return Number.isFinite(until) && Number.isFinite(selected) && selected > until ? "" : code;
+}
+
 /** Split patients into `count` groups of as-equal-as-possible size. */
 function distribute<T>(items: T[], count: number): T[][] {
   const groups: T[][] = Array.from({ length: count }, () => []);
@@ -166,7 +179,7 @@ function AssignmentPage() {
     const currentDayRows = rosterRows.map((row, index) => ({
       rowNumber: index + 1,
       name: row.name,
-      dayCode: row.dayCodes[rosterDayIndex] ?? "",
+      dayCode: effectiveRosterCode(row.dayCodes[rosterDayIndex] ?? "", date),
     }));
     const roster = buildShiftRoster(currentDayRows, shift as WardShift);
     if (!roster.nurses.length) {
