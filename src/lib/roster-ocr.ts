@@ -59,14 +59,14 @@ function xCenter(word: OcrWord) {
   return (word.bbox.x0 + word.bbox.x1) / 2;
 }
 function normalizeToken(value: string) {
-  return normalizeRosterCode(value).replace(/[.,;:()[\]{}]/g, "");
+  return normalizeRosterCode(value).replace(/[.,;:()[\]{}|_!]/g, "");
 }
 function isScheduleToken(value: string) {
   const token = normalizeToken(value);
   const compact = token.replace(/[-/]/g, "");
   return Boolean(
     shiftForRosterCode(token) ||
-      ["72", "210", "107"].includes(compact) ||
+      ["72", "722", "210", "21", "107"].includes(compact) ||
       isRosterDayOff(token) ||
       token.includes("ANNUAL") ||
       token.includes("LEAVE") ||
@@ -80,8 +80,8 @@ function correctedCode(words: OcrWord[]): string {
   if (compact.includes("ANNUAL") && compact.includes("LEAVE")) return "ANNUAL LEAVE";
   if (compact.includes("LEAVETILL")) return "LEAVE TILL";
   if (compact === "D0") return "DO";
-  if (compact === "72") return "7-2";
-  if (compact === "210") return "2-10";
+  if (compact === "72" || compact === "722") return "7-2";
+  if (compact === "210" || compact === "21") return "2-10";
   if (compact === "107") return "10-7";
   const code = value.replace(/\s+/g, "");
   if (shiftForRosterCode(code)) return code.replace(/AM|PM/g, "");
@@ -177,8 +177,10 @@ function groupWordsByRow(words: OcrWord[], tolerance: number): OcrWord[][] {
   for (const word of sorted) {
     const y = center(word);
     const current = groups[groups.length - 1];
-    const firstInCurrent = current?.[0];
-    if (current && firstInCurrent && Math.abs(center(firstInCurrent) - y) <= tolerance) current.push(word);
+    const currentCenter = current?.length
+      ? current.reduce((sum, item) => sum + center(item), 0) / current.length
+      : undefined;
+    if (current && currentCenter !== undefined && Math.abs(currentCenter - y) <= tolerance) current.push(word);
     else groups.push([word]);
   }
   return groups;
@@ -250,13 +252,13 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
     }
     const firstY = Math.min(...rowCenters);
     const lastY = Math.max(...rowCenters);
-    const possibleNameWords = words.filter((word) => xCenter(word) >= nameLeft && xCenter(word) < nameRight && center(word) >= firstY - rowTolerance * 1.4 && center(word) <= lastY + rowTolerance * 1.4);
+    const possibleNameWords = words.filter((word) => xCenter(word) >= nameLeft && xCenter(word) < nameRight && center(word) >= firstY - rowTolerance * 2.5 && center(word) <= lastY + rowTolerance * 2.5);
     const nameGroups = groupWordsByRow(possibleNameWords, rowTolerance);
     const rows: RecognizedRosterRow[] = rowCenters.map((rowY, index) => {
       const names = nameGroups
         .filter((group) => {
           const first = group[0];
-          return first ? Math.abs(center(first) - rowY) <= rowTolerance * 1.5 : false;
+          return first ? Math.abs(group.reduce((sum, word) => sum + center(word), 0) / group.length - rowY) <= rowTolerance * 2.5 : false;
         })
         .flat()
         .sort((a, b) => xCenter(a) - xCenter(b));
