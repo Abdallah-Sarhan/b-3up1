@@ -84,6 +84,8 @@ function AssignmentPage() {
   const [rosterRows, setRosterRows] = useState<RecognizedRosterRow[]>([]);
   const [rosterFileName, setRosterFileName] = useState("");
   const [rosterBusy, setRosterBusy] = useState(false);
+  const [rosterSaving, setRosterSaving] = useState(false);
+  const [rosterSource, setRosterSource] = useState<"saved" | "uploaded" | "">("");
   const [shift, setShift] = useState<string>("morning");
   const [leader, setLeader] = useState("");
   const [wardHeadNurse, setWardHeadNurse] = useState("");
@@ -143,6 +145,50 @@ function AssignmentPage() {
   );
   const rosterDateIsCovered = rosterDayIndex >= 0 && rosterDayIndex <= 6;
 
+  // Load the already-reviewed weekly roster from the cloud when the selected
+  // assignment date falls within its seven-day range. No second image upload is needed.
+  useEffect(() => {
+    let cancelled = false;
+    void fetchCloudSharedSettings("weekly-roster:").then((settings) => {
+      if (cancelled) return;
+      const matching = settings
+        .map((item) => {
+          if (!item.key.startsWith("weekly-roster:")) return null;
+          const startDate = item.key.slice("weekly-roster:".length);
+          const day = Math.floor(
+            (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000,
+          );
+          if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(startDate) || day < 0 || day > 6) return null;
+          try {
+            const parsed = JSON.parse(item.value) as { rows?: RecognizedRosterRow[]; fileName?: string };
+            if (!Array.isArray(parsed.rows) || !parsed.rows.length) return null;
+            return { startDate, day, rows: parsed.rows, fileName: parsed.fileName ?? "" };
+          } catch {
+            return null;
+          }
+        })
+        .filter((item): item is { startDate: string; day: number; rows: RecognizedRosterRow[]; fileName: string } => item !== null)
+        .sort((a, b) => b.startDate.localeCompare(a.startDate))[0];
+      if (matching) {
+        setRosterStartDate(matching.startDate);
+        setRosterRows(matching.rows.map((row, index) => ({
+          ...row,
+          rowNumber: row.rowNumber ?? index + 1,
+          dayCodes: Array.from({ length: 7 }, (_, dayIndex) => row.dayCodes?.[dayIndex] ?? ""),
+        })));
+        setRosterFileName(matching.fileName);
+        setRosterSource("saved");
+      } else {
+        setRosterRows([]);
+        setRosterFileName("");
+        setRosterSource("");
+      }
+    }).catch((error) => {
+      if (!cancelled) toast.error(error instanceof Error ? error.message : "تعذر تحميل جدول العمل الأسبوعي المحفوظ.");
+    });
+    return () => { cancelled = true; };
+  }, [date]);
+
   async function loadRosterImage(file?: File) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
@@ -151,12 +197,13 @@ function AssignmentPage() {
     }
     setRosterBusy(true);
     setRosterFileName(file.name);
+    setRosterSource("uploaded");
     setRosterRows([]);
     try {
       const result = await recognizeWeeklyRoster(file);
       setRosterRows(result.rows.map((row, index) => ({
         ...row,
-        rowNumber: index + 1,
+        rowNumber: row.rowNumber ?? index + 1,
         dayCodes: Array.from({ length: 7 }, (_, dayIndex) => row.dayCodes[dayIndex] ?? ""),
       })));
       toast.success(lang === "ar"
@@ -167,6 +214,41 @@ function AssignmentPage() {
       setRosterRows([]);
     } finally {
       setRosterBusy(false);
+    }
+  }
+
+
+  async function saveWeeklyRoster() {
+    if (!rosterRows.length) {
+      toast.error(lang === "ar" ? "ارفع صورة الجدول أولًا وراجع البيانات." : "Upload a roster image and review its data first.");
+      return;
+    }
+    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(rosterStartDate)) {
+      toast.error(lang === "ar" ? "حدد تاريخ أول يوم في الجدول." : "Choose the first date shown in the roster.");
+      return;
+    }
+    setRosterSaving(true);
+    try {
+      const payload = JSON.stringify({
+        version: 1,
+        startDate: rosterStartDate,
+        fileName: rosterFileName,
+        savedAt: new Date().toISOString(),
+        rows: rosterRows.map((row, index) => ({
+          rowNumber: row.rowNumber ?? index + 1,
+          name: row.name.trim(),
+          dayCodes: Array.from({ length: 7 }, (_, dayIndex) => (row.dayCodes?.[dayIndex] ?? "").trim()),
+        })),
+      });
+      await saveCloudSharedSetting(`weekly-roster:${rosterStartDate}`, payload);
+      setRosterSource("saved");
+      toast.success(lang === "ar"
+        ? "تم حفظ جدول الأسبوع في السحابة. سيُحمّل تلقائيًا عند اختيار أي يوم من هذا الأسبوع."
+        : "Weekly roster saved to the cloud. It will load automatically for any day in this week.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : (lang === "ar" ? "تعذر حفظ جدول الأسبوع في السحابة." : "Could not save the weekly roster to the cloud."));
+    } finally {
+      setRosterSaving(false);
     }
   }
 
@@ -321,14 +403,17 @@ function AssignmentPage() {
                 ) : null}
               </div>
               <div className="max-h-[420px] overflow-auto rounded-md border">
-                <table className="w-full min-w-[520px] border-collapse text-sm">
+                <table className="w-full min-w-[1050px] border-collapse text-sm">
                   <thead className="sticky top-0 bg-muted">
                     <tr>
                       <th className="border-b px-2 py-2 text-start">#</th>
                       <th className="border-b px-2 py-2 text-start">{lang === "ar" ? "اسم الممرض (قابل للتصحيح)" : "Nurse name (editable)"}</th>
-                      <th className="border-b px-2 py-2 text-start">
-                        {lang === "ar" ? `رمز يوم ${date}` : `Code for ${date}`}
-                      </th>
+                      {Array.from({ length: 7 }, (_, dayIndex) => {
+                        const dayDate = new Date(Date.parse(`${rosterStartDate}T00:00:00Z`) + dayIndex * 86_400_000).toISOString().slice(0, 10);
+                        return <th key={dayIndex} className={`border-b px-2 py-2 text-start ${dayIndex === rosterDayIndex ? "bg-primary/10" : ""}`}>
+                          {formatDate(dayDate)}
+                        </th>;
+                      })}
                     </tr>
                   </thead>
                   <tbody>
@@ -344,19 +429,20 @@ function AssignmentPage() {
                             ))}
                           />
                         </td>
-                        <td className="border-b px-2 py-1.5">
-                          <Input
-                            value={row.dayCodes[rosterDayIndex] ?? ""}
-                            aria-label={`Roster row ${index + 1} day code`}
-                            disabled={!rosterDateIsCovered}
-                            onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) =>
-                              rowIndex === index ? {
-                                ...item,
-                                dayCodes: item.dayCodes.map((code, dayIndex) => dayIndex === rosterDayIndex ? event.target.value : code),
-                              } : item
-                            ))}
-                          />
-                        </td>
+                        {Array.from({ length: 7 }, (_, dayIndex) => (
+                          <td key={dayIndex} className={`border-b px-2 py-1.5 ${dayIndex === rosterDayIndex ? "bg-primary/5" : ""}`}>
+                            <Input
+                              value={row.dayCodes[dayIndex] ?? ""}
+                              aria-label={`Roster row ${index + 1}, day ${dayIndex + 1} code`}
+                              onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) =>
+                                rowIndex === index ? {
+                                  ...item,
+                                  dayCodes: item.dayCodes.map((code, codeIndex) => codeIndex === dayIndex ? event.target.value : code),
+                                } : item
+                              ))}
+                            />
+                          </td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>
@@ -364,16 +450,21 @@ function AssignmentPage() {
               </div>
               <p className="text-xs opacity-70">
                 {lang === "ar"
-                  ? "القواعد: DO وSD والإجازة السنوية مستبعدة؛ الصف الأول يظهر في خانة قائد الفريق فقط؛ أول ممرض مؤهل حسب ترتيب الجدول يصبح قائد الفريق ويظل في أول عمود."
-                  : "Rules: DO, SD and annual leave are excluded; roster row 1 appears only in the team-leader field; the first eligible nurse becomes leader and remains in the first nurse column."}
+                  ? "عدّل رموز الأيام السبعة كلها ثم احفظ الجدول مرة واحدة؛ بعدها سيظهر تلقائيًا عند اختيار التاريخ. القواعد: DO وSD والإجازة السنوية مستبعدة؛ الصف الأول يظهر في خانة قائد الفريق فقط؛ أول ممرض مؤهل حسب ترتيب الجدول يصبح قائد الفريق ويظل في أول عمود."
+                  : "Edit all seven days and save the roster once; it will then load automatically when selecting a date. Rules: DO, SD and annual leave are excluded; roster row 1 appears only in the team-leader field; the first eligible nurse becomes leader and remains in the first nurse column."}
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button onClick={() => void saveWeeklyRoster()} disabled={rosterSaving || rosterBusy}>
+                  {rosterSaving ? <LoaderCircle className="animate-spin" /> : <Save />}
+                  {lang === "ar" ? "حفظ جدول الأسبوع في السحابة" : "Save weekly roster to cloud"}
+                </Button>
+                {rosterSource === "saved" ? <span className="text-xs text-emerald-700">{lang === "ar" ? "جدول محفوظ — لن تحتاج إلى رفع الصورة مرة أخرى" : "Saved roster — no need to upload the image again"}</span> : null}
                 <Button variant="outline" onClick={() => setRosterRows((previous) => [...previous, {
                   rowNumber: previous.length + 1, name: "", dayCodes: Array.from({ length: 7 }, () => ""),
                 }])}>
                   {lang === "ar" ? "إضافة صف مفقود" : "Add missing row"}
                 </Button>
-                <Button variant="outline" onClick={() => { setRosterRows([]); setRosterFileName(""); }}>
+                <Button variant="outline" onClick={() => { setRosterRows([]); setRosterFileName(""); setRosterSource(""); }}>
                   {lang === "ar" ? "مسح نتيجة القراءة" : "Clear OCR results"}
                 </Button>
               </div>
