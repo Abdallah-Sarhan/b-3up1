@@ -85,6 +85,7 @@ function AssignmentPage() {
   const [rosterFileName, setRosterFileName] = useState("");
   const [rosterBusy, setRosterBusy] = useState(false);
   const [rosterSaving, setRosterSaving] = useState(false);
+  const [rosterLoadingSaved, setRosterLoadingSaved] = useState(false);
   const [rosterSource, setRosterSource] = useState<"saved" | "uploaded" | "">("");
   const [shift, setShift] = useState<string>("morning");
   const [leader, setLeader] = useState("");
@@ -149,6 +150,12 @@ function AssignmentPage() {
   // assignment date falls within its seven-day range. No second image upload is needed.
   useEffect(() => {
     let cancelled = false;
+    setRosterLoadingSaved(true);
+    // Clear the previous date's rows immediately so a fast click cannot apply
+    // yesterday's roster while the cloud lookup for the newly selected date runs.
+    setRosterRows([]);
+    setRosterFileName("");
+    setRosterSource("");
     void fetchCloudSharedSettings("weekly-roster:").then((settings) => {
       if (cancelled) return;
       const matching = settings
@@ -185,6 +192,8 @@ function AssignmentPage() {
       }
     }).catch((error) => {
       if (!cancelled) toast.error(error instanceof Error ? error.message : "تعذر تحميل جدول العمل الأسبوعي المحفوظ.");
+    }).finally(() => {
+      if (!cancelled) setRosterLoadingSaved(false);
     });
     return () => { cancelled = true; };
   }, [date]);
@@ -253,7 +262,7 @@ function AssignmentPage() {
   }
 
   function applyRosterToAssignment() {
-    if (!rosterDateIsCovered) {
+    if (rosterLoadingSaved) {\n      toast.error(lang === "ar" ? "جارٍ تحميل جدول الأسبوع، انتظر لحظة ثم أعد المحاولة." : "The weekly roster is still loading. Try again in a moment.");\n      return;\n    }\n    if (!rosterRows.length || rosterSource === "") {\n      toast.error(lang === "ar" ? "لا يوجد جدول محفوظ لهذا التاريخ. ارفع جدول الأسبوع واحفظه أولًا." : "No saved roster is available for this date. Upload and save the weekly roster first.");\n      return;\n    }\n    if (!rosterDateIsCovered) {
       toast.error(lang === "ar"
         ? "تاريخ التوزيعة خارج نطاق الأسبوع. عدّل تاريخ بداية الجدول أو تاريخ التوزيعة."
         : "The assignment date is outside this roster week. Change the roster start date or assignment date.");
@@ -376,7 +385,7 @@ function AssignmentPage() {
               <Input type="date" value={rosterStartDate} onChange={(event) => setRosterStartDate(event.target.value)} />
             </Field>
             <div className="flex items-end">
-              <Button className="w-full" variant="outline" disabled={rosterBusy || !rosterRows.length} onClick={applyRosterToAssignment}>
+              <Button className="w-full" variant="outline" disabled={rosterBusy || rosterLoadingSaved || !rosterRows.length || !rosterDateIsCovered} onClick={applyRosterToAssignment}>
                 <Upload />
                 {lang === "ar" ? "إدراج ممرضي الشفت المختار" : "Apply selected shift"}
               </Button>
