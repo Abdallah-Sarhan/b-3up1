@@ -3,7 +3,7 @@
  * The image is processed in the browser and is not uploaded or persisted.
  * OCR results are deliberately reviewable before they affect the assignment.
  */
-import { isRosterDayOff, normalizeRosterCode, shiftForRosterCode, type RosterStaffRow } from "@/lib/weekly-roster";
+import { isRosterDayOff, normalizeRosterCode, shiftForRosterCode } from "@/lib/weekly-roster";
 
 type OcrWord = {
   text: string;
@@ -180,7 +180,9 @@ function groupWordsByRow(words: OcrWord[], tolerance: number): OcrWord[][] {
  * OCR text positions are used to prefill an editable roster grid. It is not
  * auto-approved: name spelling and the selected day's cell must be checked.
  */
-export async function recognizeWeeklyRoster(file: File): Promise<{ rows: RosterStaffRow[]; rawText: string }> {
+export interface RecognizedRosterRow { rowNumber: number; name: string; dayCodes: string[]; }
+
+export async function recognizeWeeklyRoster(file: File): Promise<{ rows: RecognizedRosterRow[]; rawText: string }> {
   if (!file.type.startsWith("image/")) throw new Error("اختر صورة واضحة لجدول العمل.");
   const [api, size, rules] = await Promise.all([getTesseract(), getImageSize(file), verticalRules(file)]);
   const worker = await api.createWorker("eng", 1, {
@@ -218,14 +220,17 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: RosterS
         .flat()
         .sort((a, b) => xCenter(a) - xCenter(b));
       const name = names.map((word) => word.text.trim()).join(" ").replace(/\s+/g, " ").trim();
-      const cell = scheduleWords.filter((word) => {
-        const yNear = Math.abs(center(word) - rowY) <= rowTolerance * 1.5;
-        const colIndex = boundaries.findIndex((left, i) => i < boundaries.length - 1 && xCenter(word) >= left && xCenter(word) < boundaries[i + 1]);
-        return yNear && colIndex === 0;
+      const dayCodes = centers.map((_, dayIndex) => {
+        const cell = scheduleWords.filter((word) => {
+          const yNear = Math.abs(center(word) - rowY) <= rowTolerance * 1.5;
+          const colIndex = boundaries.findIndex((left, i) => i < boundaries.length - 1 && xCenter(word) >= left && xCenter(word) < boundaries[i + 1]);
+          return yNear && colIndex === dayIndex;
+        });
+        return correctedCode(cell);
       });
-      // rowNumber/name/dayCode are editable in the UI; the selected weekday is
-      // applied later after the user picks its column (0-6).
-      return { rowNumber: index + 1, name, dayCode: correctedCode(cell) };
+      // All seven weekday cells are retained; users review the selected date's
+      // cell before applying the roster to the assignment.
+      return { rowNumber: index + 1, name, dayCodes };
     });
     return { rows: rows.filter((row) => row.name || row.dayCode), rawText: result.data.text };
   } finally {
