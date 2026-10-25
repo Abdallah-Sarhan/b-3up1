@@ -86,6 +86,7 @@ function AssignmentPage() {
   const [rosterBusy, setRosterBusy] = useState(false);
   const [shift, setShift] = useState<string>("morning");
   const [leader, setLeader] = useState("");
+  const [wardHeadNurse, setWardHeadNurse] = useState("");
   const [nurseCount, setNurseCount] = useState(6);
   const [nameSize, setNameSize] = useState(11);
   const [nurses, setNurses] = useState<string[]>(() => Array.from({ length: 6 }, () => ""));
@@ -177,7 +178,7 @@ function AssignmentPage() {
       return;
     }
     const currentDayRows = rosterRows.map((row, index) => ({
-      rowNumber: index + 1,
+      rowNumber: row.rowNumber,
       name: row.name,
       dayCode: effectiveRosterCode(row.dayCodes[rosterDayIndex] ?? "", date),
     }));
@@ -195,6 +196,7 @@ function AssignmentPage() {
     setNurseCount(roster.nurses.length);
     setNurses(roster.nurses);
     setSpecial(Array.from({ length: roster.nurses.length }, () => ""));
+    setWardHeadNurse(roster.wardHeadNurse);
     setLeader(roster.teamLeader);
     toast.success(lang === "ar"
       ? `تم إدراج ${roster.nurses.length} ممرضًا بترتيب الجدول، واستبعاد ${roster.excluded.length} إجازة. راجع التوزيعة قبل الحفظ والطباعة.`
@@ -478,9 +480,10 @@ function AssignmentPage() {
               <div className="text-sm font-bold">DATE: {formatDate(date)}</div>
             </div>
 
-            <div className="flex border-y border-black text-[11px] font-bold">
+            <div className="flex flex-wrap border-y border-black text-[10px] font-bold">
               <div className="flex-1 border-e border-black px-1 py-0.5">MINISTRY OF HEALTH</div>
-              <div className="flex-1 border-e border-black px-1 py-0.5 text-center">LEADER: {leader || "—"}</div>
+              <div className="flex-1 border-e border-black px-1 py-0.5 text-center">WARD HEAD: {wardHeadNurse || "—"}</div>
+              <div className="flex-1 border-e border-black px-1 py-0.5 text-center">TEAM LEADER: {leader || "—"}</div>
               <div className="flex-1 border-e border-black px-1 py-0.5 text-center">WARD: 39</div>
               <div className="flex-1 px-1 py-0.5 text-center">SHIFT {shiftLabel}</div>
             </div>
