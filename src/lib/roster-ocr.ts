@@ -245,16 +245,50 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
 
     const scheduleWords = words.filter((word) => xCenter(word) >= firstScheduleX && isScheduleToken(word.text));
     const rowTolerance = Math.max(7, size.height * 0.006);
-    const rowGroups = groupWordsByRow(scheduleWords, rowTolerance);
-    const rowCenters = rowGroups.map((group) => group.reduce((sum, word) => sum + center(word), 0) / group.length);
-    if (rowCenters.length < 2) {
+
+    // The printed serial-number column is a more reliable source of staff-row
+    // positions than shift codes, because many cells are intentionally blank.
+    const serialNumbers = new Map<number, number[]>();
+    for (const word of words) {
+      const serial = Number.parseInt(word.text.trim(), 10);
+      if (
+        xCenter(word) < size.width * 0.05 &&
+        /^\\d{1,2}$/.test(word.text.trim()) &&
+        serial >= 1 && serial <= 30 &&
+        center(word) >= size.height * 0.23 &&
+        center(word) <= size.height * 0.83
+      ) {
+        const positions = serialNumbers.get(serial) ?? [];
+        positions.push(center(word));
+        serialNumbers.set(serial, positions);
+      }
+    }
+    const serialEntries = [...serialNumbers.entries()]
+      .filter(([, positions]) => positions.length > 0)
+      .map(([rowNumber, positions]) => ({
+        rowNumber,
+        y: positions.reduce((sum, y) => sum + y, 0) / positions.length,
+      }))
+      .sort((a, b) => a.rowNumber - b.rowNumber);
+
+    const wordRowGroups = groupWordsByRow(scheduleWords, rowTolerance);
+    let rowEntries = serialEntries.length >= 20
+      ? serialEntries
+      : wordRowGroups
+          .map((group, index) => ({
+            rowNumber: index + 1,
+            y: group.reduce((sum, word) => sum + center(word), 0) / group.length,
+          }))
+          .filter((entry) => entry.y >= size.height * 0.23 && entry.y <= size.height * 0.83);
+    if (rowEntries.length < 2) {
       throw new Error("تعذر التعرف على صفوف الموظفين من الصورة. راجع وضوح الجدول ثم أعد المحاولة.");
     }
+    const rowCenters = rowEntries.map((entry) => entry.y);
     const firstY = Math.min(...rowCenters);
     const lastY = Math.max(...rowCenters);
     const possibleNameWords = words.filter((word) => xCenter(word) >= nameLeft && xCenter(word) < nameRight && center(word) >= firstY - rowTolerance * 2.5 && center(word) <= lastY + rowTolerance * 2.5);
     const nameGroups = groupWordsByRow(possibleNameWords, rowTolerance);
-    const rows: RecognizedRosterRow[] = rowCenters.map((rowY, index) => {
+    const rows: RecognizedRosterRow[] = rowEntries.map(({ rowNumber: rosterRowNumber, y: rowY }) => {
       const names = nameGroups
         .filter((group) => {
           const first = group[0];
@@ -293,7 +327,7 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
       }
       // All seven weekday cells are retained; users review the selected date's
       // cell before applying the roster to the assignment.
-      return { rowNumber: index + 1, name, dayCodes };
+      return { rowNumber: rosterRowNumber, name, dayCodes };
     });
     return { rows: rows.filter((row) => row.name || row.dayCodes.some(Boolean)), rawText: result.data.text };
   } finally {
