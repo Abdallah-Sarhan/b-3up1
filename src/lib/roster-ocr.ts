@@ -261,17 +261,34 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
         .flat()
         .sort((a, b) => xCenter(a) - xCenter(b));
       const name = names.map((word) => word.text.trim()).join(" ").replace(/\s+/g, " ").trim();
-      const dayCodes = centers.map((_, dayIndex) => {
-        const cell = scheduleWords.filter((word) => {
-          const yNear = Math.abs(center(word) - rowY) <= rowTolerance * 1.5;
-          const colIndex = boundaries.findIndex((left, i) => {
-            const right = boundaries[i + 1];
-            return right !== undefined && i < boundaries.length - 1 && xCenter(word) >= left && xCenter(word) < right;
-          });
-          return yNear && colIndex === dayIndex;
-        });
-        return correctedCode(cell);
+      const allRowWords = words.filter((word) =>
+        xCenter(word) >= firstScheduleX && Math.abs(center(word) - rowY) <= rowTolerance * 1.5
+      );
+      const rowText = allRowWords.map((word) => word.text.trim()).join(" ").replace(/\\s+/g, " ").toUpperCase();
+      const hasMergedAnnualLeave = rowText.includes("ANNUAL") && rowText.includes("LEAVE");
+      const hasAnyWorkingCode = allRowWords.some((word) => {
+        const token = normalizeToken(word.text);
+        return Boolean(shiftForRosterCode(token) || isRosterDayOff(token));
       });
+      let dayCodes: string[];
+      if (hasMergedAnnualLeave && !hasAnyWorkingCode) {
+        // Leave rows are sometimes printed across one merged cell instead of seven day cells.
+        const till = rowText.match(/TILL\\s+(\\d{1,2}[/-]\\d{1,2}[/-]\\d{4})/);
+        const leaveCode = till ? `ANNUAL LEAVE TILL ${till[1]}` : "ANNUAL LEAVE";
+        dayCodes = Array.from({ length: 7 }, () => leaveCode);
+      } else {
+        dayCodes = centers.map((_, dayIndex) => {
+          const cell = scheduleWords.filter((word) => {
+            const yNear = Math.abs(center(word) - rowY) <= rowTolerance * 1.5;
+            const colIndex = boundaries.findIndex((left, i) => {
+              const right = boundaries[i + 1];
+              return right !== undefined && i < boundaries.length - 1 && xCenter(word) >= left && xCenter(word) < right;
+            });
+            return yNear && colIndex === dayIndex;
+          });
+          return correctedCode(cell);
+        });
+      }
       // All seven weekday cells are retained; users review the selected date's
       // cell before applying the roster to the assignment.
       return { rowNumber: index + 1, name, dayCodes };
