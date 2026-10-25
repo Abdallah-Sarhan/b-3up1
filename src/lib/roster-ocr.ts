@@ -214,7 +214,7 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
     const lastY = Math.max(...rowCenters);
     const possibleNameWords = words.filter((word) => xCenter(word) < firstScheduleX && center(word) >= firstY - rowTolerance * 1.4 && center(word) <= lastY + rowTolerance * 1.4);
     const nameGroups = groupWordsByRow(possibleNameWords, rowTolerance);
-    const rows: RosterStaffRow[] = rowCenters.map((rowY, index) => {
+    const rows: RecognizedRosterRow[] = rowCenters.map((rowY, index) => {
       const names = nameGroups
         .filter((group) => Math.abs(center(group[0]) - rowY) <= rowTolerance * 1.5)
         .flat()
@@ -232,7 +232,7 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
       // cell before applying the roster to the assignment.
       return { rowNumber: index + 1, name, dayCodes };
     });
-    return { rows: rows.filter((row) => row.name || row.dayCode), rawText: result.data.text };
+    return { rows: rows.filter((row) => row.name || row.dayCodes.some(Boolean)), rawText: result.data.text };
   } finally {
     await worker.terminate();
   }
