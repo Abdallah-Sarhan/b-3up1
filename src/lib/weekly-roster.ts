@@ -44,7 +44,9 @@ export function shiftForRosterCode(value: string): WardShift | null {
 
 export function isRosterDayOff(value: string): boolean {
   const code = normalizeRosterCode(value);
-  return code === "DO" || code === "SD" || code.includes("ANNUALLEAVE") ||
+  // OCR may confuse the letter O with zero in DO, but never rewrite names or
+  // all codes globally: "DO" must remain an explicit leave code.
+  return code === "DO" || code === "D0" || code === "SD" || code.includes("ANNUALLEAVE") ||
     code.includes("LEAVETILL") || code === "AL";
 }
 
