@@ -158,7 +158,7 @@ function AssignmentPage() {
           const day = Math.floor(
             (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000,
           );
-          if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(startDate) || day < 0 || day > 6) return null;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || day < 0 || day > 6) return null;
           try {
             const parsed = JSON.parse(item.value) as { rows?: RecognizedRosterRow[]; fileName?: string };
             if (!Array.isArray(parsed.rows) || !parsed.rows.length) return null;
@@ -223,7 +223,7 @@ function AssignmentPage() {
       toast.error(lang === "ar" ? "ارفع صورة الجدول أولًا وراجع البيانات." : "Upload a roster image and review its data first.");
       return;
     }
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(rosterStartDate)) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(rosterStartDate)) {
       toast.error(lang === "ar" ? "حدد تاريخ أول يوم في الجدول." : "Choose the first date shown in the roster.");
       return;
     }
