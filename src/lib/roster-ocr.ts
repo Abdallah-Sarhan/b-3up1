@@ -137,10 +137,10 @@ async function verticalRules(file: File): Promise<number[]> {
 }
 
 function scheduleColumnCenters(words: OcrWord[], width: number, rules: number[]): number[] {
-  if (rules.length >= 8) {
-    const lastEight = rules.slice(-8);
-    return lastEight.slice(0, -1).map((x, index) => {
-      const next = lastEight[index + 1];
+  const dayBoundaries = rules.length >= 9 ? rules.slice(-9, -1) : rules.length === 8 ? rules : [];
+  if (dayBoundaries.length === 8) {
+    return dayBoundaries.slice(0, -1).map((x, index) => {
+      const next = dayBoundaries[index + 1];
       return next === undefined ? x : (x + next) / 2;
     });
   }
@@ -205,7 +205,8 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
     if (centers.length !== 7) {
       throw new Error("لم أتمكن من تحديد أعمدة الأيام السبعة كاملة. استخدم صورة مستقيمة وعالية الدقة، أو قص الصورة لتشمل جدول الموظفين والأيام السبعة.");
     }
-    const boundaries = rules.length >= 8 ? rules.slice(-8) : (() => {
+    const detectedDayBoundaries = rules.length >= 9 ? rules.slice(-9, -1) : rules.length === 8 ? rules : [];
+    const boundaries = detectedDayBoundaries.length === 8 ? detectedDayBoundaries : (() => {
       const first = centers[0];
       const second = centers[1];
       const penultimate = centers[5];
@@ -224,6 +225,22 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
     })();
     const firstScheduleX = boundaries[0];
     if (firstScheduleX === undefined) throw new Error("تعذر تحديد بداية جدول الأيام.");
+
+    const leftRules = rules.filter((x) => x < firstScheduleX);
+    let nameLeft = size.width * 0.075;
+    let nameRight = size.width * 0.34;
+    let widestNameColumn = 0;
+    for (let index = 0; index < leftRules.length - 1; index++) {
+      const left = leftRules[index];
+      const right = leftRules[index + 1];
+      if (left === undefined || right === undefined) continue;
+      if (right - left > widestNameColumn) {
+        widestNameColumn = right - left;
+        nameLeft = left;
+        nameRight = right;
+      }
+    }
+
     const scheduleWords = words.filter((word) => xCenter(word) >= firstScheduleX && isScheduleToken(word.text));
     const rowTolerance = Math.max(7, size.height * 0.006);
     const rowGroups = groupWordsByRow(scheduleWords, rowTolerance);
@@ -233,7 +250,7 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
     }
     const firstY = Math.min(...rowCenters);
     const lastY = Math.max(...rowCenters);
-    const possibleNameWords = words.filter((word) => xCenter(word) < firstScheduleX && center(word) >= firstY - rowTolerance * 1.4 && center(word) <= lastY + rowTolerance * 1.4);
+    const possibleNameWords = words.filter((word) => xCenter(word) >= nameLeft && xCenter(word) < nameRight && center(word) >= firstY - rowTolerance * 1.4 && center(word) <= lastY + rowTolerance * 1.4);
     const nameGroups = groupWordsByRow(possibleNameWords, rowTolerance);
     const rows: RecognizedRosterRow[] = rowCenters.map((rowY, index) => {
       const names = nameGroups
