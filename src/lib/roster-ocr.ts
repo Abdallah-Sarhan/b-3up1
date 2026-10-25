@@ -262,11 +262,11 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
         })
         .flat()
         .sort((a, b) => xCenter(a) - xCenter(b));
-      const name = names.map((word) => word.text.trim()).join(" ").replace(/\s+/g, " ").trim();
+      const name = names.map((word) => word.text.trim()).filter((token) => !/^[|!.,;:_-]+$/.test(token)).join(" ").replace(/\s+/g, " ").trim();
       const allRowWords = words.filter((word) =>
         xCenter(word) >= firstScheduleX && Math.abs(center(word) - rowY) <= rowTolerance * 1.5
       );
-      const rowText = allRowWords.map((word) => word.text.trim()).join(" ").replace(/\\s+/g, " ").toUpperCase();
+      const rowText = allRowWords.map((word) => word.text.trim()).join(" ").replace(/\s+/g, " ").toUpperCase();
       const hasMergedAnnualLeave = rowText.includes("ANNUAL") && rowText.includes("LEAVE");
       const hasAnyWorkingCode = allRowWords.some((word) => {
         const token = normalizeToken(word.text);
@@ -275,7 +275,7 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
       let dayCodes: string[];
       if (hasMergedAnnualLeave && !hasAnyWorkingCode) {
         // Leave rows are sometimes printed across one merged cell instead of seven day cells.
-        const till = rowText.match(/TILL\\s+(\\d{1,2}[/-]\\d{1,2}[/-]\\d{4})/);
+        const till = rowText.match(/TILL\s+(\d{1,2}[/-]\d{1,2}[/-]\d{4})/);
         const leaveCode = till ? `ANNUAL LEAVE TILL ${till[1]}` : "ANNUAL LEAVE";
         dayCodes = Array.from({ length: 7 }, () => leaveCode);
       } else {
