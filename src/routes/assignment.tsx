@@ -262,7 +262,15 @@ function AssignmentPage() {
   }
 
   function applyRosterToAssignment() {
-    if (rosterLoadingSaved) {\n      toast.error(lang === "ar" ? "جارٍ تحميل جدول الأسبوع، انتظر لحظة ثم أعد المحاولة." : "The weekly roster is still loading. Try again in a moment.");\n      return;\n    }\n    if (!rosterRows.length || rosterSource === "") {\n      toast.error(lang === "ar" ? "لا يوجد جدول محفوظ لهذا التاريخ. ارفع جدول الأسبوع واحفظه أولًا." : "No saved roster is available for this date. Upload and save the weekly roster first.");\n      return;\n    }\n    if (!rosterDateIsCovered) {
+    if (rosterLoadingSaved) {
+      toast.error(lang === "ar" ? "جارٍ تحميل جدول الأسبوع، انتظر لحظة ثم أعد المحاولة." : "The weekly roster is still loading. Try again in a moment.");
+      return;
+    }
+    if (!rosterRows.length || rosterSource === "") {
+      toast.error(lang === "ar" ? "لا يوجد جدول محفوظ لهذا التاريخ. ارفع جدول الأسبوع واحفظه أولًا." : "No saved roster is available for this date. Upload and save the weekly roster first.");
+      return;
+    }
+    if (!rosterDateIsCovered) {
       toast.error(lang === "ar"
         ? "تاريخ التوزيعة خارج نطاق الأسبوع. عدّل تاريخ بداية الجدول أو تاريخ التوزيعة."
         : "The assignment date is outside this roster week. Change the roster start date or assignment date.");
