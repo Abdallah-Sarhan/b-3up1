@@ -149,6 +149,15 @@ const dict = {
   unassigned: { ar: "غير موزع", en: "Unassigned" },
   done: { ar: "تم", en: "Done" },
   missing: { ar: "ناقص", en: "Missing" },
+  offlineTitle: { ar: "لا يوجد اتصال بالإنترنت", en: "No internet connection" },
+  offlineDescription: { ar: "هذا التطبيق يعمل بالاتصال المباشر بقاعدة البيانات السحابية، ولا يحتفظ بنسخة محلية من السجلات السريرية.", en: "This app connects directly to the cloud database and does not keep local copies of clinical records." },
+  retry: { ar: "إعادة المحاولة", en: "Retry" },
+  signOut: { ar: "تسجيل الخروج", en: "Sign out" },
+  passwordMinLength: { ar: "كلمة السر الجديدة 8 أحرف على الأقل", en: "The new password must be at least 8 characters." },
+  passwordMismatch: { ar: "كلمتا السر غير متطابقتين", en: "The passwords do not match." },
+  passwordIncorrect: { ar: "كلمة السر الحالية غير صحيحة", en: "The current password is incorrect." },
+  passwordChangeFailed: { ar: "تعذّر تغيير كلمة السر", en: "Could not change the password." },
+  passwordChanged: { ar: "تم تغيير كلمة السر", en: "Password changed successfully." },
 } as const;
 
 export type TKey = keyof typeof dict;
