@@ -343,6 +343,45 @@ export async function fetchCloudRecordsByField(
   })) as CloudClinicalRecord[];
 }
 
+/**
+ * One-time cleanup of stale weekly nursing rosters created by earlier OCR runs.
+ * Only weekly-roster:* settings are deleted; leader settings and all clinical
+ * records are intentionally left untouched. A cloud marker prevents repeat deletion.
+ */
+export async function clearLegacyWeeklyRostersOnce(): Promise<void> {
+  const markerKey = "weekly-roster-cleanup:v1";
+  const { data: existingMarker, error: markerError } = await (supabase.from("ward_shift_settings") as any)
+    .select("id,data,deleted_at")
+    .contains("data", { key: markerKey })
+    .is("deleted_at", null)
+    .limit(1)
+    .maybeSingle();
+  if (markerError) throw normalizeError(markerError);
+  if (existingMarker && String(existingMarker.data?.["value"] ?? "") === "done") return;
+
+  const { data, error } = await (supabase.from("ward_shift_settings") as any)
+    .select("id,version,data,deleted_at")
+    .is("deleted_at", null)
+    .limit(1000);
+  if (error) throw normalizeError(error);
+
+  const staleRows = ((data ?? []) as RemoteRow[]).filter((row) => {
+    const key = String(row.data?.["key"] ?? "");
+    return key.startsWith("weekly-roster:");
+  });
+
+  for (const row of staleRows) {
+    await applyCloudEdit({
+      table: "ward_shift_settings",
+      id: String(row.id),
+      op: "delete",
+      baseVersion: Number(row.version ?? 0),
+      fields: {},
+    });
+  }
+  await saveCloudSharedSetting(markerKey, "done");
+}
+
 export async function fetchCloudSharedSettings(prefix = ""): Promise<Array<{ key: string; value: string }>> {
   const { data, error } = await (supabase.from("ward_shift_settings") as any)
     .select("id,data,deleted_at")
