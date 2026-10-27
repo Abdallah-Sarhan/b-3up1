@@ -27,12 +27,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPass.length < 8) return setPassMsg("كلمة السر الجديدة 8 أحرف على الأقل");
-    if (newPass !== confirmPass) return setPassMsg("كلمتا السر غير متطابقتين");
+    if (newPass.length < 8) return setPassMsg(t("passwordMinLength"));
+    if (newPass !== confirmPass) return setPassMsg(t("passwordMismatch"));
     const { error } = await supabase.auth.updateUser({ password: newPass, current_password: oldPass } as never);
-    if (error) return setPassMsg(/current|incorrect|invalid/i.test(error.message) ? "كلمة السر الحالية غير صحيحة" : "تعذّر تغيير كلمة السر");
+    if (error) return setPassMsg(/current|incorrect|invalid/i.test(error.message) ? t("passwordIncorrect") : t("passwordChangeFailed"));
     setOldPass(""); setNewPass(""); setConfirmPass("");
-    setPassMsg("تم تغيير كلمة السر");
+    setPassMsg(t("passwordChanged"));
   };
 
   useEffect(() => {
@@ -78,23 +78,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center shadow-sm">
-          <h1 className="text-base font-bold">لا يوجد اتصال بالإنترنت</h1>
+          <h1 className="text-base font-bold">{t("offlineTitle")}</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            هذا التطبيق يعمل بالاتصال المباشر بقاعدة البيانات السحابية، ولا يحتفظ بنسخة محلية من السجلات السريرية.
+            {t("offlineDescription")}
           </p>
           <button
             type="button"
             onClick={() => window.location.reload()}
             className="mt-5 h-10 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            إعادة المحاولة
+            {t("retry")}
           </button>
           <button
             type="button"
             onClick={() => void signOutEverywhere()}
             className="mt-2 h-10 w-full rounded-md border border-input text-sm font-medium hover:bg-accent"
           >
-            تسجيل الخروج
+            {t("signOut")}
           </button>
         </div>
       </div>
