@@ -108,6 +108,7 @@ const dict = {
   paperForm: { ar: "النماذج الورقية", en: "Paper Form" },
   tranq: { ar: "المهدئات الكبرى والمراقبة", en: "Major Tranquilizer & Control" },
   nurseAssignment: { ar: "توزيع التمريض", en: "Nurse Assignment" },
+  assistant: { ar: "المساعد", en: "Assistant" },
   ncp: { ar: "خطة الرعاية التمريضية", en: "Nursing Care Plan" },
   activePatients: { ar: "المرضى الحاليون", en: "Active patients" },
   discharged: { ar: "خرج من الجناح", en: "Discharged" },
