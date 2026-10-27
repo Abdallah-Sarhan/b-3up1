@@ -7,6 +7,7 @@ import {
   deleteCloudRecord,
   fetchCloudRecordsByField,
   fetchCloudSharedSettings,
+  clearLegacyWeeklyRostersOnce,
   saveCloudSharedSetting,
 } from "@/lib/cloud-direct";
 import { useCloudFilteredRecords } from "@/hooks/use-cloud-filtered-records";
@@ -156,7 +157,7 @@ function AssignmentPage() {
     setRosterRows([]);
     setRosterFileName("");
     setRosterSource("");
-    void fetchCloudSharedSettings("weekly-roster:").then((settings) => {
+    void clearLegacyWeeklyRostersOnce().then(() => fetchCloudSharedSettings("weekly-roster:")).then((settings) => {
       if (cancelled) return;
       const matching = settings
         .map((item) => {
