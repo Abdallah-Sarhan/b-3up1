@@ -141,7 +141,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link to="/assistant">
               <span className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
                 <Bot className="size-4" />
-                المساعد
+                {t("assistant")}
               </span>
             </Link>
             {profile?.is_admin && (
