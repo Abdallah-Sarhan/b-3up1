@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { FileImage, LoaderCircle, Printer, Save, Shuffle, Upload, UserCheck } from "lucide-react";
+import { FileSpreadsheet, FileText, LoaderCircle, Printer, Save, Shuffle, Upload, UserCheck } from "lucide-react";
 import {
   createCloudRecord,
   deleteCloudRecord,
@@ -16,7 +16,7 @@ import { Button, Card, CardHeader, Field, Input, Select } from "@/components/ui-
 import { useActivePatients } from "@/components/PatientPicker";
 import logoMoh from "@/assets/logo-moh.png.asset.json";
 import { buildShiftRoster, type WardShift } from "@/lib/weekly-roster";
-import { recognizeWeeklyRoster, type RecognizedRosterRow } from "@/lib/roster-ocr";
+import { importWeeklyRosterFile, type RecognizedRosterRow } from "@/lib/roster-file-import";
 
 export const Route = createFileRoute("/assignment")({
   head: () => ({
@@ -199,38 +199,33 @@ function AssignmentPage() {
     return () => { cancelled = true; };
   }, [date]);
 
-  async function loadRosterImage(file?: File) {
+  async function loadRosterFile(file?: File) {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error(lang === "ar" ? "اختر صورة لجدول العمل." : "Please choose a roster image.");
-      return;
-    }
     setRosterBusy(true);
     setRosterFileName(file.name);
     setRosterSource("uploaded");
     setRosterRows([]);
     try {
-      const result = await recognizeWeeklyRoster(file);
-      setRosterRows(result.rows.map((row, index) => ({
+      const rows = await importWeeklyRosterFile(file);
+      setRosterRows(rows.map((row, index) => ({
         ...row,
         rowNumber: row.rowNumber ?? index + 1,
         dayCodes: Array.from({ length: 7 }, (_, dayIndex) => row.dayCodes[dayIndex] ?? ""),
       })));
       toast.success(lang === "ar"
-        ? `تمت قراءة ${result.rows.length} صفًا. راجع الأسماء ورموز الشفتات قبل الاعتماد.`
-        : `Read ${result.rows.length} rows. Review names and shift codes before applying.`);
+        ? `تم استيراد ${rows.length} صفًا من الملف. راجع الأسماء والشفتات قبل الحفظ.`
+        : `Imported ${rows.length} rows from the file. Review names and shifts before saving.`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : (lang === "ar" ? "تعذرت قراءة صورة الجدول." : "Could not read the roster image."));
+      toast.error(error instanceof Error ? error.message : (lang === "ar" ? "تعذر استيراد جدول العمل من الملف." : "Could not import the roster file."));
       setRosterRows([]);
     } finally {
       setRosterBusy(false);
     }
   }
 
-
   async function saveWeeklyRoster() {
     if (!rosterRows.length) {
-      toast.error(lang === "ar" ? "ارفع صورة الجدول أولًا وراجع البيانات." : "Upload a roster image and review its data first.");
+      toast.error(lang === "ar" ? "اختر ملف Excel أو Word أولًا وراجع البيانات." : "Choose an Excel or Word file and review its data first.");
       return;
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(rosterStartDate)) {
@@ -268,7 +263,7 @@ function AssignmentPage() {
       return;
     }
     if (!rosterRows.length || rosterSource === "") {
-      toast.error(lang === "ar" ? "لا يوجد جدول محفوظ لهذا التاريخ. ارفع جدول الأسبوع واحفظه أولًا." : "No saved roster is available for this date. Upload and save the weekly roster first.");
+      toast.error(lang === "ar" ? "لا يوجد جدول محفوظ لهذا التاريخ. استورد جدول الأسبوع واحفظه أولًا." : "No saved roster is available for this date. Import and save the weekly roster first.");
       return;
     }
     if (!rosterDateIsCovered) {
@@ -376,21 +371,22 @@ function AssignmentPage() {
         <CardHeader
           title={lang === "ar" ? "استيراد جدول العمل الأسبوعي" : "Import weekly work roster"}
           subtitle={lang === "ar"
-            ? "ارفع صورة الجدول، راجع الأسماء ورموز الأيام، ثم أدرج ممرضي الشفت تلقائيًا. تتم القراءة داخل المتصفح ولا تُرفع الصورة إلى الخادم."
-            : "Upload the roster image, review recognized names and day codes, then import the selected shift. OCR runs in your browser; the image is not uploaded to the server."}
+            ? "استورد جدولًا من Excel أو Word، وراجع أسماء الممرضين وشفتات الأيام السبعة، ثم احفظ الجدول في السحابة لاستخدامه طوال الأسبوع. لا يدعم البرنامج استيراد الصور."
+            : "Import a structured Excel or Word table, review nurse names and all seven days, then save it to the cloud for the week. Image import is not supported."}
         />
         <div className="space-y-3 px-5 py-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label={lang === "ar" ? "صورة جدول العمل" : "Roster image"}>
+            <Field label={lang === "ar" ? "ملف جدول العمل (Excel أو Word)" : "Roster file (Excel or Word)"}>
               <Input
                 type="file"
-                accept="image/*"
+                accept=".xlsx,.xls,.xlsm,.xlsb,.csv,.docx"
                 disabled={rosterBusy}
-                onChange={(event) => { void loadRosterImage(event.currentTarget.files?.[0]); event.currentTarget.value = ""; }}
+                onChange={(event) => { void loadRosterFile(event.currentTarget.files?.[0]); event.currentTarget.value = ""; }}
               />
-              {rosterFileName ? <p className="mt-1 text-xs opacity-70"><FileImage className="me-1 inline h-3.5 w-3.5" />{rosterFileName}</p> : null}
+              {rosterFileName ? <p className="mt-1 text-xs opacity-70">{/\.docx?$/i.test(rosterFileName) ? <FileText className="me-1 inline h-3.5 w-3.5" /> : <FileSpreadsheet className="me-1 inline h-3.5 w-3.5" />}{rosterFileName}</p> : null}
+              <p className="mt-1 text-xs opacity-70">{lang === "ar" ? "يدعم Excel وCSV وWord بصيغة DOCX. يجب أن يكون الجدول خلايا فعلية، وليس صورة داخل الملف." : "Supports Excel, CSV and DOCX Word tables. The roster must be a real table, not an embedded picture."}</p>
             </Field>
-            <Field label={lang === "ar" ? "تاريخ أول يوم في صورة الجدول" : "First date shown in roster"}>
+            <Field label={lang === "ar" ? "تاريخ أول يوم في الجدول" : "First date shown in roster"}>
               <Input type="date" value={rosterStartDate} onChange={(event) => setRosterStartDate(event.target.value)} />
             </Field>
             <div className="flex items-end">
@@ -403,7 +399,7 @@ function AssignmentPage() {
           {rosterBusy ? (
             <div className="flex items-center gap-2 rounded-md border px-3 py-3 text-sm" role="status">
               <LoaderCircle className="h-4 w-4 animate-spin" />
-              {lang === "ar" ? "جارٍ قراءة الصورة داخل المتصفح..." : "Reading the image in your browser..."}
+              {lang === "ar" ? "جارٍ استيراد الجدول من الملف..." : "Importing the table from the file..."}
             </div>
           ) : null}
           {rosterRows.length > 0 ? (
@@ -476,14 +472,14 @@ function AssignmentPage() {
                   {rosterSaving ? <LoaderCircle className="animate-spin" /> : <Save />}
                   {lang === "ar" ? "حفظ جدول الأسبوع في السحابة" : "Save weekly roster to cloud"}
                 </Button>
-                {rosterSource === "saved" ? <span className="text-xs text-emerald-700">{lang === "ar" ? "جدول محفوظ — لن تحتاج إلى رفع الصورة مرة أخرى" : "Saved roster — no need to upload the image again"}</span> : null}
+                {rosterSource === "saved" ? <span className="text-xs text-emerald-700">{lang === "ar" ? "جدول محفوظ — لن تحتاج إلى استيراد الملف مرة أخرى" : "Saved roster — no need to import the file again"}</span> : null}
                 <Button variant="outline" onClick={() => setRosterRows((previous) => [...previous, {
                   rowNumber: previous.length + 1, name: "", dayCodes: Array.from({ length: 7 }, () => ""),
                 }])}>
                   {lang === "ar" ? "إضافة صف مفقود" : "Add missing row"}
                 </Button>
                 <Button variant="outline" onClick={() => { setRosterRows([]); setRosterFileName(""); setRosterSource(""); }}>
-                  {lang === "ar" ? "مسح نتيجة القراءة" : "Clear OCR results"}
+                  {lang === "ar" ? "مسح البيانات المستوردة" : "Clear imported data"}
                 </Button>
               </div>
             </div>
