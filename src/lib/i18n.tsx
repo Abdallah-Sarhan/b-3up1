@@ -158,6 +158,12 @@ const dict = {
   passwordIncorrect: { ar: "كلمة السر الحالية غير صحيحة", en: "The current password is incorrect." },
   passwordChangeFailed: { ar: "تعذّر تغيير كلمة السر", en: "Could not change the password." },
   passwordChanged: { ar: "تم تغيير كلمة السر", en: "Password changed successfully." },
+  pageNotFound: { ar: "الصفحة غير موجودة", en: "Page not found" },
+  pageNotFoundDescription: { ar: "الصفحة التي تبحث عنها غير موجودة أو ربما تم نقلها.", en: "The page you are looking for does not exist or may have been moved." },
+  goHome: { ar: "العودة للرئيسية", en: "Go home" },
+  pageLoadFailed: { ar: "تعذر تحميل الصفحة", en: "This page did not load" },
+  pageLoadDescription: { ar: "حدث خطأ غير متوقع. يمكنك إعادة المحاولة أو العودة إلى الصفحة الرئيسية.", en: "Something went wrong. Try again or return to the home page." },
+  tryAgain: { ar: "حاول مرة أخرى", en: "Try again" },
 } as const;
 
 export type TKey = keyof typeof dict;
