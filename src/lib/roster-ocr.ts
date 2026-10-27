@@ -376,7 +376,9 @@ export async function recognizeWeeklyRoster(file: File): Promise<{ rows: Recogni
       // cell before applying the roster to the assignment.
       return { rowNumber: rosterRowNumber, name, dayCodes };
     });
-    // Keep every detected staff row, including rows where OCR missed the name and all seven cells.\n    // The review grid must expose these blanks for manual correction rather than silently dropping staff.\n    return { rows, rawText: result.data.text };
+    // Keep every detected staff row, including rows where OCR missed the name and all seven cells.
+    // The review grid must expose these blanks for manual correction rather than silently dropping staff.
+    return { rows, rawText: result.data.text };
   } finally {
     await worker.terminate();
   }
