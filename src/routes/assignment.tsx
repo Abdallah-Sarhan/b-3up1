@@ -241,8 +241,14 @@ function AssignmentPage() {
         savedAt: new Date().toISOString(),
         rows: rosterRows.map((row, index) => ({
           rowNumber: row.rowNumber ?? index + 1,
+          serialNumber: row.serialNumber ?? String(index + 1),
+          previousBalance: row.previousBalance ?? "",
           name: row.name.trim(),
+          mobile: row.mobile ?? "",
+          nationality: row.nationality ?? "",
           dayCodes: Array.from({ length: 7 }, (_, dayIndex) => (row.dayCodes?.[dayIndex] ?? "").trim()),
+          newBalance: row.newBalance ?? "",
+          totalDaysWorked: row.totalDaysWorked ?? "",
         })),
       });
       await saveCloudSharedSetting(`weekly-roster:${rosterStartDate}`, payload);
@@ -417,50 +423,55 @@ function AssignmentPage() {
                 ) : null}
               </div>
               <div className="max-h-[420px] overflow-auto rounded-md border">
-                <table className="w-full min-w-[1050px] border-collapse text-sm">
+                <table className="w-full min-w-[1700px] border-collapse text-sm">
                   <thead className="sticky top-0 bg-muted">
                     <tr>
-                      <th className="border-b px-2 py-2 text-start">#</th>
-                      <th className="border-b px-2 py-2 text-start">{lang === "ar" ? "اسم الممرض (قابل للتصحيح)" : "Nurse name (editable)"}</th>
+                      {[
+                        lang === "ar" ? "م" : "SL NO",
+                        lang === "ar" ? "الرصيد السابق" : "PB",
+                        lang === "ar" ? "اسم الموظف" : "Name Of Staff",
+                        lang === "ar" ? "الموبايل" : "MOBILE",
+                        lang === "ar" ? "الجنسية" : "Nat",
+                      ].map((label) => <th key={label} className="border-b px-2 py-2 text-start">{label}</th>)}
                       {Array.from({ length: 7 }, (_, dayIndex) => {
                         const dayDate = new Date(Date.parse(`${rosterStartDate}T00:00:00Z`) + dayIndex * 86_400_000).toISOString().slice(0, 10);
                         return <th key={dayIndex} className={`border-b px-2 py-2 text-start ${dayIndex === rosterDayIndex ? "bg-primary/10" : ""}`}>
                           {formatDate(dayDate)}
                         </th>;
                       })}
+                      <th className="border-b px-2 py-2 text-start">NB</th>
+                      <th className="border-b px-2 py-2 text-start">{lang === "ar" ? "إجمالي أيام العمل" : "Total Days Worked"}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rosterRows.map((row, index) => (
                       <tr key={index} className="odd:bg-background even:bg-muted/30">
-                        <td className="border-b px-2 py-1.5">{index + 1}</td>
-                        <td className="border-b px-2 py-1.5">
-                          <Input
-                            value={row.name}
-                            aria-label={`Roster row ${index + 1} name`}
-                            onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) =>
-                              rowIndex === index ? { ...item, name: event.target.value } : item
-                            ))}
-                          />
-                        </td>
+                        <td className="border-b px-2 py-1.5"><Input value={row.serialNumber ?? String(index + 1)} aria-label={`Roster row ${index + 1} serial number`}
+                          onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) => rowIndex === index ? { ...item, serialNumber: event.target.value } : item))} /></td>
+                        <td className="border-b px-2 py-1.5"><Input value={row.previousBalance ?? ""} aria-label={`Roster row ${index + 1} previous balance`}
+                          onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) => rowIndex === index ? { ...item, previousBalance: event.target.value } : item))} /></td>
+                        <td className="border-b px-2 py-1.5 min-w-[230px]"><Input value={row.name} aria-label={`Roster row ${index + 1} name`}
+                          onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) => rowIndex === index ? { ...item, name: event.target.value } : item))} /></td>
+                        <td className="border-b px-2 py-1.5"><Input value={row.mobile ?? ""} aria-label={`Roster row ${index + 1} mobile`}
+                          onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) => rowIndex === index ? { ...item, mobile: event.target.value } : item))} /></td>
+                        <td className="border-b px-2 py-1.5"><Input value={row.nationality ?? ""} aria-label={`Roster row ${index + 1} nationality`}
+                          onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) => rowIndex === index ? { ...item, nationality: event.target.value } : item))} /></td>
                         {Array.from({ length: 7 }, (_, dayIndex) => (
                           <td key={dayIndex} className={`border-b px-2 py-1.5 ${dayIndex === rosterDayIndex ? "bg-primary/5" : ""}`}>
-                            <Input
-                              value={row.dayCodes[dayIndex] ?? ""}
-                              aria-label={`Roster row ${index + 1}, day ${dayIndex + 1} code`}
-                              onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) =>
-                                rowIndex === index ? {
-                                  ...item,
-                                  dayCodes: item.dayCodes.map((code, codeIndex) => codeIndex === dayIndex ? event.target.value : code),
-                                } : item
-                              ))}
-                            />
+                            <Input value={row.dayCodes[dayIndex] ?? ""} aria-label={`Roster row ${index + 1}, day ${dayIndex + 1} code`}
+                              onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) => rowIndex === index ? {
+                                ...item, dayCodes: item.dayCodes.map((code, codeIndex) => codeIndex === dayIndex ? event.target.value : code),
+                              } : item))} />
                           </td>
                         ))}
+                        <td className="border-b px-2 py-1.5"><Input value={row.newBalance ?? ""} aria-label={`Roster row ${index + 1} new balance`}
+                          onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) => rowIndex === index ? { ...item, newBalance: event.target.value } : item))} /></td>
+                        <td className="border-b px-2 py-1.5"><Input value={row.totalDaysWorked ?? ""} aria-label={`Roster row ${index + 1} total days worked`}
+                          onChange={(event) => setRosterRows((previous) => previous.map((item, rowIndex) => rowIndex === index ? { ...item, totalDaysWorked: event.target.value } : item))} /></td>
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table>        </table>
               </div>
               <p className="text-xs opacity-70">
                 {lang === "ar"
@@ -474,7 +485,7 @@ function AssignmentPage() {
                 </Button>
                 {rosterSource === "saved" ? <span className="text-xs text-emerald-700">{lang === "ar" ? "جدول محفوظ — لن تحتاج إلى استيراد الملف مرة أخرى" : "Saved roster — no need to import the file again"}</span> : null}
                 <Button variant="outline" onClick={() => setRosterRows((previous) => [...previous, {
-                  rowNumber: previous.length + 1, name: "", dayCodes: Array.from({ length: 7 }, () => ""),
+                  rowNumber: previous.length + 1, serialNumber: String(previous.length + 1), previousBalance: "", name: "", mobile: "", nationality: "", dayCodes: Array.from({ length: 7 }, () => ""), newBalance: "", totalDaysWorked: "",
                 }])}>
                   {lang === "ar" ? "إضافة صف مفقود" : "Add missing row"}
                 </Button>
