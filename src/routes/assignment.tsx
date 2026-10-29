@@ -485,7 +485,7 @@ function AssignmentPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>        </table>
+                </table>
               </div>
               <p className="text-xs opacity-70">
                 {lang === "ar"
