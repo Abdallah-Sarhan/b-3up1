@@ -54,7 +54,7 @@ function SbarPrint() {
 
           <div className="border-2 border-black">
             {/* Logo + title band */}
-            <div className="flex items-center justify-between px-2 py-1">
+            <div className="sbar-static-heading flex items-center justify-between px-2 py-1">
               <img src={logoKcmh.url} alt="Kuwait Center for Mental Health" className="h-14 w-auto" />
               <h1 className="text-lg font-bold underline">Hand Over Sheet(SBAR)</h1>
               <img src={logoMoh.url} alt="Ministry of Health" className="h-14 w-auto" />
@@ -65,15 +65,15 @@ function SbarPrint() {
               <tbody>
                 <tr>
                   <td rowSpan={2} className="w-[7%] border border-black px-1 py-1 text-center align-middle font-bold">
-                    DATE
+                    <span className="sbar-static-label">DATE</span>
                     <div className="font-normal">{date}</div>
                   </td>
                   <HCell label="Name:" value={patient.name} width="22%" />
                   <HCell label="FILE#" value={patient.fileNo} width="17%" />
                   <HCell label="DOB/AGE:" value={[patient.dob, patient.age].filter(Boolean).join(" / ")} width="19%" />
-                  <td className="w-[27%] border border-black px-1 py-1 text-center font-bold">Diagnosis</td>
+                  <td className="w-[27%] border border-black px-1 py-1 text-center font-bold"><span className="sbar-static-label">Diagnosis</span></td>
                   <td rowSpan={2} className="w-[8%] border border-black px-1 py-1 text-center align-middle font-bold">
-                    Ward:39
+                    <><span className="sbar-static-label">Ward:</span>39</>
                   </td>
                 </tr>
                 <tr>
@@ -91,12 +91,12 @@ function SbarPrint() {
             <table className="w-full border-collapse text-[11px]" style={{ tableLayout: "fixed" }}>
               <thead>
                 <tr>
-                  <th className="w-[7%] border border-black px-1 py-0.5">Shift</th>
-                  <th className="w-[21%] border border-black px-1 py-0.5">Situation</th>
-                  <th className="w-[18%] border border-black px-1 py-0.5">Background</th>
-                  <th className="w-[21%] border border-black px-1 py-0.5">Assessment</th>
-                  <th className="w-[24%] border border-black px-1 py-0.5">Recommendation</th>
-                  <th className="w-[9%] border border-black px-1 py-0.5">Signature</th>
+                  <th className="w-[7%] border border-black px-1 py-0.5"><span className="sbar-static-label">Shift</span></th>
+                  <th className="w-[21%] border border-black px-1 py-0.5"><span className="sbar-static-label">Situation</span></th>
+                  <th className="w-[18%] border border-black px-1 py-0.5"><span className="sbar-static-label">Background</span></th>
+                  <th className="w-[21%] border border-black px-1 py-0.5"><span className="sbar-static-label">Assessment</span></th>
+                  <th className="w-[24%] border border-black px-1 py-0.5"><span className="sbar-static-label">Recommendation</span></th>
+                  <th className="w-[9%] border border-black px-1 py-0.5"><span className="sbar-static-label">Signature</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -127,7 +127,7 @@ function SbarPrint() {
 function HCell({ label, value, width }: { label: string; value: string; width?: string }) {
   return (
     <td className="border border-black px-1 py-1 align-top" style={width ? { width } : undefined}>
-      <span className="font-bold">{label} </span>
+      <span className="sbar-static-label font-bold">{label} </span>
       <span>{value || "—"}</span>
     </td>
   );
