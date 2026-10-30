@@ -66,9 +66,11 @@ export function PrintShell({
   const pageHeight = ls ? "210mm" : "297mm";
 
   return (
-    <div className={`min-h-screen bg-muted py-6 print:bg-white print:py-0 ${formOnly ? "print-form-only" : ""}`}>
+    <div className={`min-h-screen bg-muted py-6 print:bg-white print:py-0 ${formOnly ? "print-form-only" : ""} ${formOnly && formKey === "sbar" ? "sbar-form-only" : ""}`}>
       <style>{`@media print {
         @page { size: A4 ${ls ? "landscape" : "portrait"}; margin: ${template ? "0" : "8mm"}; }
+        .sbar-form-only .sbar-static-label,
+        .sbar-form-only .sbar-static-heading { visibility: hidden !important; }
         .print-form-only table, .print-form-only th, .print-form-only td,
         .print-form-only .border-black {
           border-color: transparent !important;
