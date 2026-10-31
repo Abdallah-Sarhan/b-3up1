@@ -530,12 +530,6 @@ function AssignmentPage() {
           title={lang === "ar" ? "إعدادات التوزيعة" : "Assignment settings"}
           subtitle={`${list.length} ${lang === "ar" ? "مريض" : "patients"}`}
         />
-        <div className="flex justify-end px-5 pt-3">
-          <Button variant="outline" disabled={rosterBusy || rosterLoadingSaved || !rosterRows.length || !rosterDateIsCovered} onClick={applyRosterToAssignment}>
-            <Upload />
-            {lang === "ar" ? "إدراج ممرضي الشفت المختار" : "Apply selected shift"}
-          </Button>
-        </div>
         <div className="grid gap-3 px-5 py-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label={t("date")}>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -549,6 +543,12 @@ function AssignmentPage() {
               ))}
             </Select>
           </Field>
+          <div className="sm:col-span-2 lg:col-span-4 flex justify-start">
+            <Button variant="outline" disabled={rosterBusy || rosterLoadingSaved || !rosterRows.length || !rosterDateIsCovered} onClick={applyRosterToAssignment}>
+              <Upload />
+              {lang === "ar" ? "إدراج ممرضي الشفت المختار" : "Apply selected shift"}
+            </Button>
+          </div>
           <Field label={lang === "ar" ? "عدد التمريض" : "Number of nurses"}>
             <Input
               type="number"
