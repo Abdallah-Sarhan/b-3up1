@@ -22,7 +22,8 @@ function extractKuwaitiCivilIdDob(value: string): string | null {
   const digits = value
     .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 1632))
     .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776))
-    .replace(/[\s-]/g, "");
+    // Ignore visual separators commonly used when entering civil IDs.
+    .replace(/\D/g, "");
 
   if (!/^[123]\d{11}$/.test(digits)) return null;
 
@@ -68,6 +69,18 @@ export function PatientForm({ patient }: { patient?: CloudPatient }) {
   const suggestRun = useRef(0);
 
   useEffect(() => () => clearTimeout(suggestTimer.current), []);
+
+  // Derive DOB and age from the Civil ID whenever its value changes.
+  // Keeping this in an effect also covers pasted values and all input paths.
+  useEffect(() => {
+    if (patient?.id) return;
+    const dob = extractKuwaitiCivilIdDob(form.cid);
+    if (!dob) return;
+    const age = calculateAge(dob);
+    if (form.dob !== dob || form.age !== age) {
+      setForm((f) => ({ ...f, dob, age }));
+    }
+  }, [form.cid, patient?.id]);
 
   // Auto-calculate age when date of birth is known
   useEffect(() => {
@@ -135,7 +148,10 @@ export function PatientForm({ patient }: { patient?: CloudPatient }) {
     if (hit) {
       setMatchedId(hit.id);
       setMatchedVersion(hit.version);
-      setForm({ ...toPatientDraft(hit), [key]: value });
+      const existingDraft = toPatientDraft(hit);
+      const derivedDob = key === "cid" ? extractKuwaitiCivilIdDob(value) : null;
+      const dob = existingDraft.dob || derivedDob || "";
+      setForm({ ...existingDraft, [key]: value, dob, age: existingDraft.age || (dob ? calculateAge(dob) : "") });
       toast.info(t("existingPatientFound"));
     }
   }
@@ -188,7 +204,10 @@ export function PatientForm({ patient }: { patient?: CloudPatient }) {
     if (hit && hit.id !== matchedId) {
       setMatchedId(hit.id);
       setMatchedVersion(hit.version);
-      setForm(toPatientDraft(hit));
+      const existingDraft = toPatientDraft(hit);
+      const derivedDob = extractKuwaitiCivilIdDob(form.cid);
+      const dob = existingDraft.dob || derivedDob || "";
+      setForm({ ...existingDraft, dob, age: existingDraft.age || (dob ? calculateAge(dob) : "") });
       toast.info(t("existingPatientFound"));
     }
   }
