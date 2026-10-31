@@ -165,3 +165,72 @@
     background: white !important;
   }
 }
+
+/* Responsive application layout: prevent the whole page from exceeding a phone viewport. */
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+input,
+select,
+textarea {
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 639px) {
+  main,
+  main > *,
+  main section,
+  main article {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4,
+  .grid-cols-5,
+  .grid-cols-6,
+  .grid-cols-7 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+  }
+
+  th,
+  td {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  th,
+  td input,
+  td select,
+  td textarea {
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+
+  .rounded-xl,
+  .rounded-lg {
+    min-width: 0;
+  }
+}
+
