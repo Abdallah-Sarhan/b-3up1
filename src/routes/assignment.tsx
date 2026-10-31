@@ -544,7 +544,7 @@ function AssignmentPage() {
             </Select>
           </Field>
           <div className="sm:col-span-2 lg:col-span-4 flex justify-start">
-            <Button variant="outline" className="border-blue-600 bg-blue-600 text-white hover:bg-blue-700 hover:text-white" disabled={rosterBusy || rosterLoadingSaved || !rosterRows.length || !rosterDateIsCovered} onClick={applyRosterToAssignment}>
+            <Button variant="default" style={{ backgroundColor: "#2563eb", borderColor: "#2563eb", color: "#ffffff" }} disabled={rosterBusy || rosterLoadingSaved || !rosterRows.length || !rosterDateIsCovered} onClick={applyRosterToAssignment}>
               <Upload />
               {lang === "ar" ? "إدراج ممرضي الشفت المختار" : "Apply selected shift"}
             </Button>
