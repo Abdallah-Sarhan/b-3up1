@@ -122,7 +122,7 @@ function parseGrid(grid: unknown[][]): ImportedWeeklyRoster {
     });
   });
   if (!result.length) throw new Error("No staff rows were found under the roster header.");
-  return { rows: result, startDate };
+  return startDate === undefined ? { rows: result } : { rows: result, startDate };
 }
 function tableRowsFromHtml(html: string): unknown[][] {
   const documentHtml = new DOMParser().parseFromString(html, "text/html");
