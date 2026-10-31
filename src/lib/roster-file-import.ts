@@ -57,7 +57,28 @@ function dayNumber(value: string): number {
 function findColumn(headers: string[], patterns: RegExp[]): number {
   return headers.findIndex((value) => patterns.some((pattern) => pattern.test(headerKey(value))));
 }
-function parseGrid(grid: unknown[][]): RecognizedRosterRow[] {
+function extractStartDate(headers: string[], rows: string[][], dayColumns: { col: number; day: number }[]): string | undefined {
+  const firstDayColumn = [...dayColumns].sort((a, b) => a.col - b.col)[0];
+  if (!firstDayColumn) return undefined;
+  const header = headers[firstDayColumn.col] ?? "";
+  const dateMatch = header.match(/(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?/);
+  if (!dateMatch) return undefined;
+  const day = Number(dateMatch[1]);
+  const month = Number(dateMatch[2]);
+  const yearInHeader = dateMatch[3] ? Number(dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3]) : undefined;
+  const titleYear = rows.flat().join(" ").match(/\b(20\d{2})\b/)?.[1];
+  const year = yearInHeader ?? (titleYear ? Number(titleYear) : new Date().getFullYear());
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return undefined;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+export interface ImportedWeeklyRoster {
+  rows: RecognizedRosterRow[];
+  startDate?: string;
+}
+
+function parseGrid(grid: unknown[][]): ImportedWeeklyRoster {
   const rows = grid.map((row) => row.map(text));
   // Locate the actual column-header row, not the title/ward heading.
   const headerIndex = rows.findIndex((row) => {
@@ -80,6 +101,7 @@ function parseGrid(grid: unknown[][]): RecognizedRosterRow[] {
     throw new Error("Could not identify all seven weekday columns. Keep the weekday names (SUN through SAT) in the column headers.");
   }
   const orderedDayColumns = [...dayColumns].sort((a, b) => a.col - b.col).slice(0, 7).map((item) => item.col);
+  const startDate = extractStartDate(headers, rows, dayColumns);
   const result: RecognizedRosterRow[] = [];
   rows.forEach((row, index) => {
     if (index <= headerIndex) return;
@@ -100,7 +122,7 @@ function parseGrid(grid: unknown[][]): RecognizedRosterRow[] {
     });
   });
   if (!result.length) throw new Error("No staff rows were found under the roster header.");
-  return result;
+  return startDate === undefined ? { rows: result } : { rows: result, startDate };
 }
 function tableRowsFromHtml(html: string): unknown[][] {
   const documentHtml = new DOMParser().parseFromString(html, "text/html");
@@ -111,7 +133,7 @@ function tableRowsFromHtml(html: string): unknown[][] {
   );
 }
 /** Import a structured roster table from Excel or Word. Files are parsed locally in the browser. */
-export async function importWeeklyRosterFile(file: File): Promise<RecognizedRosterRow[]> {
+export async function importWeeklyRosterFile(file: File): Promise<ImportedWeeklyRoster> {
   const lower = file.name.toLowerCase();
   if (/\.(xlsx|xls|xlsm|xlsb|csv)$/.test(lower) || /spreadsheet|excel|csv/.test(file.type)) {
     const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
