@@ -106,8 +106,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-card print:hidden">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
-          <div className="flex items-center gap-2">
+        <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-2 px-3 py-2 sm:flex-nowrap sm:gap-4 sm:px-4 sm:py-0">
+          <div className="flex min-w-0 items-center gap-2">
             {!isHome && (
               <button
                 type="button"
@@ -119,13 +119,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <ArrowRight className="size-4" />
               </button>
             )}
-          <Link to="/" className="flex items-center gap-3">
+          <Link to="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
             <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Activity className="size-5" />
             </span>
             <span>
-              <span className="block text-sm font-bold leading-tight">{t("appName")}</span>
-              <span className="block text-xs text-muted-foreground leading-tight">
+              <span className="block truncate text-xs font-bold leading-tight sm:text-sm">{t("appName")}</span>
+              <span className="block truncate text-[10px] text-muted-foreground leading-tight sm:text-xs">
                 {t("hospital")} — Ward 39
               </span>
             </span>
@@ -133,7 +133,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <nav className="flex items-center gap-2">
             <Link to="/patients">
-              <span className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+              <span className="inline-flex h-9 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground sm:gap-2 sm:px-3 sm:text-sm">
                 <Users className="size-4" />
                 {t("patients")}
               </span>
@@ -154,7 +154,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
             <button
               onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-input px-3 text-sm font-medium hover:bg-accent"
+              className="inline-flex h-9 items-center gap-1 rounded-md border border-input px-2 text-xs font-medium hover:bg-accent sm:gap-2 sm:px-3 sm:text-sm"
               aria-label="Switch language"
             >
               <Languages className="size-4" />
@@ -224,7 +224,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6 print:max-w-none print:p-0">{children}</main>
+      <main className="mx-auto w-full max-w-6xl min-w-0 px-2 py-4 sm:px-4 sm:py-6 print:max-w-none print:p-0">{children}</main>
     </div>
   );
 }
