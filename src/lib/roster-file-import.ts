@@ -57,12 +57,21 @@ function dayNumber(value: string): number {
 function findColumn(headers: string[], patterns: RegExp[]): number {
   return headers.findIndex((value) => patterns.some((pattern) => pattern.test(headerKey(value))));
 }
-function extractStartDate(headers: string[], rows: string[][], dayColumns: { col: number; day: number }[]): string | undefined {
+function extractStartDate(rows: string[][], headerIndex: number, dayColumns: { col: number; day: number }[]): string | undefined {
   const firstDayColumn = [...dayColumns].sort((a, b) => a.col - b.col)[0];
   if (!firstDayColumn) return undefined;
-  const header = headers[firstDayColumn.col] ?? "";
-  const dateMatch = header.match(/(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?/);
+
+  // Dates in the roster template sit one row ABOVE the weekday labels
+  // (for example, 25/10 above SUN). Search upward in the same column.
+  const datePattern = /(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?/;
+  let dateMatch: RegExpMatchArray | null = null;
+  for (let rowIndex = headerIndex; rowIndex >= Math.max(0, headerIndex - 3); rowIndex -= 1) {
+    const candidate = rows[rowIndex]?.[firstDayColumn.col] ?? "";
+    dateMatch = candidate.match(datePattern);
+    if (dateMatch) break;
+  }
   if (!dateMatch) return undefined;
+
   const day = Number(dateMatch[1]);
   const month = Number(dateMatch[2]);
   const yearInHeader = dateMatch[3] ? Number(dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3]) : undefined;
@@ -101,7 +110,7 @@ function parseGrid(grid: unknown[][]): ImportedWeeklyRoster {
     throw new Error("Could not identify all seven weekday columns. Keep the weekday names (SUN through SAT) in the column headers.");
   }
   const orderedDayColumns = [...dayColumns].sort((a, b) => a.col - b.col).slice(0, 7).map((item) => item.col);
-  const startDate = extractStartDate(headers, rows, dayColumns);
+  const startDate = extractStartDate(rows, headerIndex, dayColumns);
   const result: RecognizedRosterRow[] = [];
   rows.forEach((row, index) => {
     if (index <= headerIndex) return;
