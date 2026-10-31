@@ -81,7 +81,7 @@ function AssignmentPage() {
   const { t, lang } = useLang();
   const patients = useActivePatients();
   const [date, setDate] = useState(today());
-  const [rosterStartDate, setRosterStartDate] = useState(today());
+  const [rosterStartDate, setRosterStartDate] = useState("");
   const [rosterRows, setRosterRows] = useState<RecognizedRosterRow[]>([]);
   const [rosterFileName, setRosterFileName] = useState("");
   const [rosterBusy, setRosterBusy] = useState(false);
@@ -159,16 +159,19 @@ function AssignmentPage() {
     setRosterSource("");
     void clearLegacyWeeklyRostersOnce().then(() => fetchCloudSharedSettings("weekly-roster:")).then((settings) => {
       if (cancelled) return;
+      // Restore the active roster week from cloud settings, not from today's date.
+      const activeStartDate = settings.find((item) => item.key === "weekly-roster:active-start-date")?.value ?? "";
       const matching = settings
         .map((item) => {
-          if (!item.key.startsWith("weekly-roster:")) return null;
           const startDate = item.key.slice("weekly-roster:".length);
+          if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(startDate)) return null;
           const day = Math.floor(
             (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000,
           );
-          if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || day < 0 || day > 6) return null;
+          if (day < 0 || day > 6) return null;
           try {
-            const parsed = JSON.parse(item.value) as { rows?: RecognizedRosterRow[]; fileName?: string };
+            const parsed = JSON.parse(item.value) as { startDate?: string; rows?: RecognizedRosterRow[]; fileName?: string };
+            if (parsed.startDate && parsed.startDate !== startDate) return null;
             if (!Array.isArray(parsed.rows) || !parsed.rows.length) return null;
             return { startDate, day, rows: parsed.rows, fileName: parsed.fileName ?? "" };
           } catch {
@@ -176,7 +179,11 @@ function AssignmentPage() {
           }
         })
         .filter((item): item is { startDate: string; day: number; rows: RecognizedRosterRow[]; fileName: string } => item !== null)
-        .sort((a, b) => b.startDate.localeCompare(a.startDate))[0];
+        .sort((a, b) => {
+          if (a.startDate === activeStartDate) return -1;
+          if (b.startDate === activeStartDate) return 1;
+          return b.startDate.localeCompare(a.startDate);
+        })[0];
       if (matching) {
         setRosterStartDate(matching.startDate);
         setRosterRows(matching.rows.map((row, index) => ({
@@ -263,6 +270,7 @@ function AssignmentPage() {
         })),
       });
       await saveCloudSharedSetting(`weekly-roster:${rosterStartDate}`, payload);
+      await saveCloudSharedSetting("weekly-roster:active-start-date", rosterStartDate);
       setRosterSource("saved");
       toast.success(lang === "ar"
         ? "تم حفظ جدول الأسبوع في السحابة. سيُحمّل تلقائيًا عند اختيار أي يوم من هذا الأسبوع."
