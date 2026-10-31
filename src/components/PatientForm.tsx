@@ -26,7 +26,7 @@ function extractKuwaitiCivilIdDob(value: string): string | null {
 
   if (!/^[23]\\d{11}$/.test(digits)) return null;
 
-  const century = digits[0] === "2" ? 1900 : 2000;
+  const century = digits[0] === "1" ? 1800 : digits[0] === "2" ? 1900 : 2000;
   const year = century + Number(digits.slice(1, 3));
   const month = Number(digits.slice(3, 5));
   const day = Number(digits.slice(5, 7));
