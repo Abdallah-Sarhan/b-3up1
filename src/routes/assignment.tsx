@@ -208,7 +208,16 @@ function AssignmentPage() {
     try {
       const imported = await importWeeklyRosterFile(file);
       const rows = imported.rows;
-      if (imported.startDate) setRosterStartDate(imported.startDate);
+      // Never leave today's date in place when the uploaded file's start date
+      // could not be read; that silently saves the roster under the wrong week.
+      if (imported.startDate) {
+        setRosterStartDate(imported.startDate);
+      } else {
+        setRosterStartDate("");
+        toast.warning(lang === "ar"
+          ? "تم استيراد الجدول، لكن لم أتمكن من قراءة تاريخ بدايته. أدخل أول تاريخ ظاهر في صف التواريخ أعلى SUN يدويًا قبل الحفظ."
+          : "The roster was imported, but its first date could not be detected. Enter the first date shown above SUN before saving.");
+      }
       setRosterRows(rows.map((row, index) => ({
         ...row,
         rowNumber: row.rowNumber ?? index + 1,

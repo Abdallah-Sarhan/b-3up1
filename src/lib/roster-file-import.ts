@@ -58,28 +58,39 @@ function findColumn(headers: string[], patterns: RegExp[]): number {
   return headers.findIndex((value) => patterns.some((pattern) => pattern.test(headerKey(value))));
 }
 function extractStartDate(rows: string[][], headerIndex: number, dayColumns: { col: number; day: number }[]): string | undefined {
-  const firstDayColumn = [...dayColumns].sort((a, b) => a.col - b.col)[0];
-  if (!firstDayColumn) return undefined;
+  if (!dayColumns.length) return undefined;
 
-  // Dates in the roster template sit one row ABOVE the weekday labels
-  // (for example, 25/10 above SUN). Search upward in the same column.
+  // In the hospital template, the seven calendar dates are in a separate
+  // row immediately above SUN..SAT. Do not assume the date is in the same
+  // cell/column as the first weekday label: merged cells and Excel imports
+  // can shift the apparent column alignment.
   const datePattern = /(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?/;
-  let dateMatch: RegExpMatchArray | null = null;
-  for (let rowIndex = headerIndex; rowIndex >= Math.max(0, headerIndex - 3); rowIndex -= 1) {
-    const candidate = rows[rowIndex]?.[firstDayColumn.col] ?? "";
-    dateMatch = candidate.match(datePattern);
-    if (dateMatch) break;
+  const candidates: Array<{ day: number; month: number; explicitYear?: number }> = [];
+  for (let rowIndex = Math.max(0, headerIndex - 3); rowIndex <= headerIndex; rowIndex += 1) {
+    for (const cell of rows[rowIndex] ?? []) {
+      const match = cell.match(datePattern);
+      if (!match) continue;
+      const day = Number(match[1]);
+      const month = Number(match[2]);
+      const explicitYear = match[3]
+        ? Number(match[3].length === 2 ? `20${match[3]}` : match[3])
+        : undefined;
+      if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+        candidates.push({ day, month, ...(explicitYear ? { explicitYear } : {}) });
+      }
+    }
   }
-  if (!dateMatch) return undefined;
+  if (!candidates.length) return undefined;
 
-  const day = Number(dateMatch[1]);
-  const month = Number(dateMatch[2]);
-  const yearInHeader = dateMatch[3] ? Number(dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3]) : undefined;
+  // Prefer the earliest date in the header band (the roster's first day).
   const titleYear = rows.flat().join(" ").match(/\b(20\d{2})\b/)?.[1];
-  const year = yearInHeader ?? (titleYear ? Number(titleYear) : new Date().getFullYear());
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return undefined;
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const selected = candidates
+    .map((candidate) => ({ ...candidate, year: candidate.explicitYear ?? (titleYear ? Number(titleYear) : new Date().getFullYear()) }))
+    .sort((a, b) => Date.UTC(a.year, a.month - 1, a.day) - Date.UTC(b.year, b.month - 1, b.day))[0];
+  if (!selected) return undefined;
+  const parsed = new Date(Date.UTC(selected.year, selected.month - 1, selected.day));
+  if (parsed.getUTCFullYear() !== selected.year || parsed.getUTCMonth() !== selected.month - 1 || parsed.getUTCDate() !== selected.day) return undefined;
+  return `${selected.year}-${String(selected.month).padStart(2, "0")}-${String(selected.day).padStart(2, "0")}`;
 }
 
 export interface ImportedWeeklyRoster {
