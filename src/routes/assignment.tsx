@@ -206,7 +206,9 @@ function AssignmentPage() {
     setRosterSource("uploaded");
     setRosterRows([]);
     try {
-      const rows = await importWeeklyRosterFile(file);
+      const imported = await importWeeklyRosterFile(file);
+      const rows = imported.rows;
+      if (imported.startDate) setRosterStartDate(imported.startDate);
       setRosterRows(rows.map((row, index) => ({
         ...row,
         rowNumber: row.rowNumber ?? index + 1,
