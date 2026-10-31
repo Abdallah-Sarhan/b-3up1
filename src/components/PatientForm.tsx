@@ -306,7 +306,7 @@ export function PatientForm({ patient }: { patient?: CloudPatient }) {
             <Input type="date" value={form.dob} onChange={setDob} dir="ltr" />
           </Field>
           <Field label={t("doa")}>
-            <Input value={form["doa"]} onChange={set("doa")} dir="ltr" placeholder="YYYY-MM-DD" />
+            <Input type="date" value={form["doa"]} onChange={set("doa")} dir="ltr" />
           </Field>
           <Field label={t("doctor")}>
             <Input value={form.doctor} onChange={set("doctor")} />
