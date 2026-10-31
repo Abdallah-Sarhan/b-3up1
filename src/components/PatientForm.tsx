@@ -17,6 +17,33 @@ import { SuggestInput } from "@/components/SuggestInput";
 
 type PatientDraft = Omit<Patient, "id">;
 
+// Kuwait Civil ID: century digit (2 = 1900s, 3 = 2000s), then YYMMDD.
+function extractKuwaitiCivilIdDob(value: string): string | null {
+  const digits = value
+    .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 1632))
+    .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776))
+    .replace(/[\\s-]/g, "");
+
+  if (!/^[23]\\d{11}$/.test(digits)) return null;
+
+  const century = digits[0] === "2" ? 1900 : 2000;
+  const year = century + Number(digits.slice(1, 3));
+  const month = Number(digits.slice(3, 5));
+  const day = Number(digits.slice(5, 7));
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day ||
+    date.getTime() > Date.now()
+  ) {
+    return null;
+  }
+
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 function toPatientDraft(value: CloudPatient): PatientDraft {
   const { id: _id, version: _version, ...draft } = value;
   return draft as PatientDraft;
@@ -52,16 +79,26 @@ export function PatientForm({ patient }: { patient?: CloudPatient }) {
   }, [form.dob]);
 
   function calculateAge(dob: string): string {
-    if (!dob) return "";
-    const birth = new Date(dob);
-    if (isNaN(birth.getTime())) return "";
+    const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(dob);
+    if (!match) return "";
+    const [, yearText, monthText, dayText] = match;
+    const year = Number(yearText);
+    const month = Number(monthText);
+    const day = Number(dayText);
+    const birth = new Date(year, month - 1, day);
+    if (
+      birth.getFullYear() !== year ||
+      birth.getMonth() !== month - 1 ||
+      birth.getDate() !== day
+    ) return "";
+
     const today = new Date();
-    let years = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      years--;
-    }
-    return String(years);
+    let years = today.getFullYear() - year;
+    if (
+      today.getMonth() + 1 < month ||
+      (today.getMonth() + 1 === month && today.getDate() < day)
+    ) years--;
+    return years >= 0 ? String(years) : "";
   }
 
   function setDob(e: React.ChangeEvent<HTMLInputElement>) {
@@ -107,7 +144,14 @@ export function PatientForm({ patient }: { patient?: CloudPatient }) {
   function onLookupChange(key: "fileNo" | "cid") {
     return async (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
-      setForm((f) => ({ ...f, [key]: value }));
+      if (key === "cid") {
+        const dob = extractKuwaitiCivilIdDob(value);
+        setForm((f) => dob
+          ? { ...f, cid: value, dob, age: calculateAge(dob) }
+          : { ...f, cid: value });
+      } else {
+        setForm((f) => ({ ...f, [key]: value }));
+      }
       suggest(key, value);
     };
   }
