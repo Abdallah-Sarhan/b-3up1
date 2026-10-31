@@ -414,12 +414,6 @@ function AssignmentPage() {
             <Field label={lang === "ar" ? "تاريخ أول يوم في الجدول" : "First date shown in roster"}>
               <Input type="date" value={rosterStartDate} onChange={(event) => setRosterStartDate(event.target.value)} />
             </Field>
-            <div className="flex items-end">
-              <Button className="w-full" variant="outline" disabled={rosterBusy || rosterLoadingSaved || !rosterRows.length || !rosterDateIsCovered} onClick={applyRosterToAssignment}>
-                <Upload />
-                {lang === "ar" ? "إدراج ممرضي الشفت المختار" : "Apply selected shift"}
-              </Button>
-            </div>
           </div>
           {rosterBusy ? (
             <div className="flex items-center gap-2 rounded-md border px-3 py-3 text-sm" role="status">
@@ -536,6 +530,12 @@ function AssignmentPage() {
           title={lang === "ar" ? "إعدادات التوزيعة" : "Assignment settings"}
           subtitle={`${list.length} ${lang === "ar" ? "مريض" : "patients"}`}
         />
+        <div className="flex justify-end px-5 pt-3">
+          <Button variant="outline" disabled={rosterBusy || rosterLoadingSaved || !rosterRows.length || !rosterDateIsCovered} onClick={applyRosterToAssignment}>
+            <Upload />
+            {lang === "ar" ? "إدراج ممرضي الشفت المختار" : "Apply selected shift"}
+          </Button>
+        </div>
         <div className="grid gap-3 px-5 py-4 sm:grid-cols-2 lg:grid-cols-4">
           <Field label={t("date")}>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
