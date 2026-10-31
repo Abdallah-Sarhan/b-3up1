@@ -20,6 +20,7 @@ export type CloudPatient = {
   sex: string;
   room: string;
   bed: string;
+  unit: string;
   maritalStatus: string;
   notes: string;
   dischargedAt: string;
@@ -43,6 +44,7 @@ type PatientRow = {
   sex: string | null;
   room: string | null;
   bed: string | null;
+  unit: string | null;
   marital_status: string | null;
   notes: string | null;
   discharged_at: string | null;
@@ -70,6 +72,7 @@ function mapPatient(row: PatientRow): CloudPatient {
     sex: row.sex ?? "",
     room: row.room ?? "",
     bed: row.bed ?? "",
+    unit: row.unit ?? "",
     maritalStatus: row.marital_status ?? "",
     notes: row.notes ?? "",
     dischargedAt: row.discharged_at ?? "",
@@ -83,7 +86,7 @@ function mapPatient(row: PatientRow): CloudPatient {
 export async function fetchActiveCloudPatients(): Promise<CloudPatient[]> {
   const { data, error } = await supabase
     .from("patients")
-    .select("id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,marital_status,notes,discharged_at,discharge_note,created_at,updated_at,deleted_at,version")
+    .select("id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,unit,marital_status,notes,discharged_at,discharge_note,created_at,updated_at,deleted_at,version")
     .is("deleted_at", null)
     .is("discharged_at", null)
     .order("name", { ascending: true })
@@ -99,7 +102,7 @@ export async function fetchActiveCloudPatients(): Promise<CloudPatient[]> {
 export async function fetchCloudPatientById(id: string): Promise<CloudPatient | null> {
   const { data, error } = await supabase
     .from("patients")
-    .select("id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,marital_status,notes,discharged_at,discharge_note,created_at,updated_at,deleted_at,version")
+    .select("id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,unit,marital_status,notes,discharged_at,discharge_note,created_at,updated_at,deleted_at,version")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle();
@@ -171,7 +174,7 @@ export async function fetchAllCloudPatients(): Promise<CloudPatient[]> {
   for (let start = 0; ; start += 500) {
     const { data, error } = await supabase
       .from("patients")
-      .select("id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,marital_status,notes,discharged_at,discharge_note,created_at,updated_at,deleted_at,version")
+      .select("id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,unit,marital_status,notes,discharged_at,discharge_note,created_at,updated_at,deleted_at,version")
       .is("deleted_at", null)
       .order("name", { ascending: true })
       .range(start, start + 499);
