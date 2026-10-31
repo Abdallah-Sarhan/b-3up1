@@ -131,7 +131,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           </div>
-          <nav className="flex items-center gap-2">
+          <nav className="flex w-full flex-wrap items-center justify-between gap-1 sm:w-auto sm:justify-end sm:gap-2">
             <Link to="/patients">
               <span className="inline-flex h-9 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground sm:gap-2 sm:px-3 sm:text-sm">
                 <Users className="size-4" />
@@ -139,7 +139,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </span>
             </Link>
             <Link to="/assistant">
-              <span className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
+              <span className="inline-flex h-9 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground sm:gap-2 sm:px-3 sm:text-sm">
                 <Bot className="size-4" />
                 {t("assistant")}
               </span>
