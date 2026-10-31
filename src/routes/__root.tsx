@@ -128,6 +128,43 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  // Delegated handling covers native, Radix, link, and custom button controls.
+  useEffect(() => {
+    let releaseTimer: ReturnType<typeof setTimeout> | undefined;
+    let activeElement: HTMLElement | null = null;
+    const selector = 'button:not(:disabled), a[href], [role="button"]:not([aria-disabled="true"]), input[type="button"]:not(:disabled), input[type="submit"]:not(:disabled), input[type="reset"]:not(:disabled)';
+    const release = () => {
+      if (releaseTimer) clearTimeout(releaseTimer);
+      activeElement?.classList.remove("interaction-pressed");
+      activeElement = null;
+    };
+    const press = (target: EventTarget | null) => {
+      const element = target instanceof Element ? target.closest<HTMLElement>(selector) : null;
+      if (!element) return;
+      release();
+      activeElement = element;
+      element.classList.add("interaction-pressed");
+      releaseTimer = setTimeout(release, 260);
+    };
+    const onPointerDown = (event: PointerEvent) => press(event.target);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Enter" || event.key === " ") press(event.target);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("pointerup", release, true);
+    document.addEventListener("pointercancel", release, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("keyup", release, true);
+    return () => {
+      release();
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("pointerup", release, true);
+      document.removeEventListener("pointercancel", release, true);
+      document.removeEventListener("keydown", onKeyDown, true);
+      document.removeEventListener("keyup", release, true);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
