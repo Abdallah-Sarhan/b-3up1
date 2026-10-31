@@ -64,7 +64,7 @@ function extractStartDate(rows: string[][], headerIndex: number, dayColumns: { c
   // row immediately above SUN..SAT. Do not assume the date is in the same
   // cell/column as the first weekday label: merged cells and Excel imports
   // can shift the apparent column alignment.
-  const datePattern = /(\\d{1,2})[/-](\\d{1,2})(?:[/-](\\d{2,4}))?/;
+  const datePattern = /(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?/;
   const candidates: Array<{ day: number; month: number; explicitYear?: number }> = [];
   for (let rowIndex = Math.max(0, headerIndex - 3); rowIndex <= headerIndex; rowIndex += 1) {
     for (const cell of rows[rowIndex] ?? []) {
@@ -83,7 +83,7 @@ function extractStartDate(rows: string[][], headerIndex: number, dayColumns: { c
   if (!candidates.length) return undefined;
 
   // Prefer the earliest date in the header band (the roster's first day).
-  const titleYear = rows.flat().join(" ").match(/\\b(20\\d{2})\\b/)?.[1];
+  const titleYear = rows.flat().join(" ").match(/\b(20\d{2})\b/)?.[1];
   const selected = candidates
     .map((candidate) => ({ ...candidate, year: candidate.explicitYear ?? (titleYear ? Number(titleYear) : new Date().getFullYear()) }))
     .sort((a, b) => Date.UTC(a.year, a.month - 1, a.day) - Date.UTC(b.year, b.month - 1, b.day))[0];
