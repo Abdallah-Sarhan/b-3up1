@@ -61,12 +61,12 @@ function extractStartDate(headers: string[], rows: string[][], dayColumns: { col
   const firstDayColumn = [...dayColumns].sort((a, b) => a.col - b.col)[0];
   if (!firstDayColumn) return undefined;
   const header = headers[firstDayColumn.col] ?? "";
-  const dateMatch = header.match(/(\\d{1,2})[/-](\\d{1,2})(?:[/-](\\d{2,4}))?/);
+  const dateMatch = header.match(/(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?/);
   if (!dateMatch) return undefined;
   const day = Number(dateMatch[1]);
   const month = Number(dateMatch[2]);
   const yearInHeader = dateMatch[3] ? Number(dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3]) : undefined;
-  const titleYear = rows.flat().join(" ").match(/\\b(20\\d{2})\\b/)?.[1];
+  const titleYear = rows.flat().join(" ").match(/\b(20\d{2})\b/)?.[1];
   const year = yearInHeader ?? (titleYear ? Number(titleYear) : new Date().getFullYear());
   const parsed = new Date(Date.UTC(year, month - 1, day));
   if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return undefined;
@@ -101,7 +101,8 @@ function parseGrid(grid: unknown[][]): ImportedWeeklyRoster {
     throw new Error("Could not identify all seven weekday columns. Keep the weekday names (SUN through SAT) in the column headers.");
   }
   const orderedDayColumns = [...dayColumns].sort((a, b) => a.col - b.col).slice(0, 7).map((item) => item.col);
-  const startDate = extractStartDate(headers, rows, dayColumns);\n  const result: RecognizedRosterRow[] = [];
+  const startDate = extractStartDate(headers, rows, dayColumns);
+  const result: RecognizedRosterRow[] = [];
   rows.forEach((row, index) => {
     if (index <= headerIndex) return;
     const name = text(row[nameCol]);
@@ -121,7 +122,7 @@ function parseGrid(grid: unknown[][]): ImportedWeeklyRoster {
     });
   });
   if (!result.length) throw new Error("No staff rows were found under the roster header.");
-  return result;
+  return { rows: result, startDate };
 }
 function tableRowsFromHtml(html: string): unknown[][] {
   const documentHtml = new DOMParser().parseFromString(html, "text/html");
