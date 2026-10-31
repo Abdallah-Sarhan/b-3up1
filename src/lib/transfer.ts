@@ -18,6 +18,7 @@ const HEADERS: Array<{ key: keyof Patient; label: string }> = [
   { key: "doctor", label: "TR DOCTOR" },
   { key: "cid", label: "CID" },
   { key: "doa", label: "DOA" },
+  { key: "unit", label: "UNIT" },
 ];
 
 const TABLES: Array<{ key: CloudTableKey; remote: CloudClinicalTable; backupKey: string }> = [
@@ -106,6 +107,7 @@ export async function importPatientsFromExcel(file: File): Promise<number> {
       sex: get(r, "SEX"),
       room: get(r, "ROOM"),
       bed: get(r, "BED"),
+      unit: get(r, "UNIT", "WARD", "UNIT NO"),
       maritalStatus: "",
       notes: "",
       createdAt: now,
@@ -205,6 +207,7 @@ export async function restoreFromJson(file: File): Promise<void> {
         sex: candidate.sex ?? "",
         room: candidate.room ?? "",
         bed: candidate.bed ?? "",
+        unit: candidate.unit ?? "",
         maritalStatus: candidate.maritalStatus ?? "",
         notes: candidate.notes ?? "",
         dischargedAt: candidate.dischargedAt ?? null,
