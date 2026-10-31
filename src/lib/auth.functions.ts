@@ -160,3 +160,24 @@ export const setApproved = createServerFn({ method: "POST" })
     if (error) throw new Error("تعذّر الحفظ");
     return { ok: true };
   });
+
+
+/** Permanently delete a non-admin account. Admin accounts and the current session are protected. */
+export const deleteManagedUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    if (data.id === context.userId) throw new Error("لا يمكنك حذف حسابك الحالي");
+    const { data: targetRoles, error: roleError } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", data.id)
+      .eq("role", "admin");
+    if (roleError) throw new Error("تعذّر التحقق من صلاحيات المستخدم");
+    if ((targetRoles ?? []).length) throw new Error("لا يمكن حذف حساب مشرف من هذه الشاشة");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.id);
+    if (error) throw new Error("تعذّر حذف المستخدم نهائيًا: " + error.message);
+    return { ok: true };
+  });
