@@ -170,7 +170,7 @@ export function DigitBoxes({
 export function MohFormHeader({ patient }: { patient: CloudPatient }) {
   const deptCells: Array<[string, string]> = [
     ["Dept.", "M"],
-    ["Unit", "2"],
+    ["Unit", patient.unit || ""],
     ["Ward", "39"],
     ["Room", patient.room || ""],
     ["Bed", patient.bed || ""],
@@ -576,7 +576,7 @@ export function NursingCarePlanTemplateContent({ patient, id }: { patient: Cloud
       <NCPF left={1060} top={224} width={320} height={18} size={8} fieldKey="header.maritalStatus">{patient.maritalStatus}</NCPF>
 
       <NCPF left={155} top={132} width={52} height={29} align="center" size={9} fieldKey="header.dept">M</NCPF>
-      <NCPF left={225} top={132} width={52} height={29} align="center" size={9} fieldKey="header.unit">2</NCPF>
+      <NCPF left={225} top={132} width={52} height={29} align="center" size={9} fieldKey="header.unit">{patient.unit || ""}</NCPF>
       <NCPF left={294} top={132} width={52} height={29} align="center" size={9} fieldKey="header.ward">39</NCPF>
       <NCPF left={363} top={132} width={52} height={29} align="center" size={9} fieldKey="header.room">{patient.room}</NCPF>
       <NCPF left={431} top={132} width={52} height={29} align="center" size={9} fieldKey="header.bed">{patient.bed}</NCPF>

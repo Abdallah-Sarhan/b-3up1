@@ -261,6 +261,9 @@ export function PatientForm({ patient }: { patient?: CloudPatient }) {
           <Field label={t("room")}>
             <Input value={form.room} onChange={set("room")} dir="ltr" />
           </Field>
+          <Field label="Unit">
+            <Input value={form.unit} onChange={set("unit")} dir="ltr" placeholder="مثال: 2" />
+          </Field>
           <Field label={t("bed")}>
             <Input value={form.bed} onChange={set("bed")} dir="ltr" />
           </Field>

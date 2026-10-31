@@ -19,6 +19,7 @@ export interface Patient {
   sex: string;
   room: string;
   bed: string;
+  unit: string;
   maritalStatus: string;
   notes: string;
   dischargedAt?: string;
@@ -59,6 +60,6 @@ export function emptyPatient(): Omit<Patient, "id"> {
   return {
     fileNo: "", name: "", nationality: "", diagnosis: "", folderNo: "", age: "",
     doctor: "", cid: "", doa: "", dob: "", sex: "", room: "", bed: "",
-    maritalStatus: "", notes: "", createdAt: now, updatedAt: now,
+    maritalStatus: "", unit: "", notes: "", createdAt: now, updatedAt: now,
   };
 }

@@ -29,6 +29,7 @@ const PATIENT_FIELD_MAP: Record<string, string> = {
   sex: "sex",
   room: "room",
   bed: "bed",
+  unit: "unit",
   maritalStatus: "marital_status",
   notes: "notes",
   dischargedAt: "discharged_at",
@@ -133,7 +134,7 @@ export async function findCloudPatientByField(
   if (!valueToFind) return null;
   const column = field === "fileNo" ? "file_no" : "cid";
   const { data, error } = await (supabase.from("patients") as any)
-    .select("id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,marital_status,notes,discharged_at,discharge_note,created_at,updated_at,deleted_at,version")
+    .select("id,file_no,name,nationality,diagnosis,folder_no,age,doctor,cid,doa,dob,sex,room,bed,unit,marital_status,notes,discharged_at,discharge_note,created_at,updated_at,deleted_at,version")
     .eq(column, valueToFind)
     .is("deleted_at", null)
     .limit(1)
