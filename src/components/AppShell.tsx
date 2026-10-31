@@ -172,6 +172,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <Lock className="size-4" />
             </button>
+            {profile?.login_name && (
+              <span
+                className="inline-flex h-9 max-w-36 items-center truncate rounded-md bg-muted px-3 text-xs font-semibold text-foreground sm:max-w-48 sm:text-sm"
+                title={profile.login_name}
+                aria-label={`المستخدم الحالي: ${profile.login_name}`}
+              >
+                {profile.login_name}
+              </span>
+            )}
             <button
               type="button"
               onClick={() => void signOutEverywhere()}
