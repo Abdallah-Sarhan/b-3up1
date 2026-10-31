@@ -22,9 +22,9 @@ function extractKuwaitiCivilIdDob(value: string): string | null {
   const digits = value
     .replace(/[٠-٩]/g, (digit) => String(digit.charCodeAt(0) - 1632))
     .replace(/[۰-۹]/g, (digit) => String(digit.charCodeAt(0) - 1776))
-    .replace(/[\\s-]/g, "");
+    .replace(/[\s-]/g, "");
 
-  if (!/^[23]\\d{11}$/.test(digits)) return null;
+  if (!/^[123]\d{11}$/.test(digits)) return null;
 
   const century = digits[0] === "1" ? 1800 : digits[0] === "2" ? 1900 : 2000;
   const year = century + Number(digits.slice(1, 3));
@@ -79,7 +79,7 @@ export function PatientForm({ patient }: { patient?: CloudPatient }) {
   }, [form.dob]);
 
   function calculateAge(dob: string): string {
-    const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(dob);
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
     if (!match) return "";
     const [, yearText, monthText, dayText] = match;
     const year = Number(yearText);
