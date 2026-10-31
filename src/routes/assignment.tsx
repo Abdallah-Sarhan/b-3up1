@@ -164,7 +164,7 @@ function AssignmentPage() {
       const matching = settings
         .map((item) => {
           const startDate = item.key.slice("weekly-roster:".length);
-          if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(startDate)) return null;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate)) return null;
           const day = Math.floor(
             (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000,
           );
