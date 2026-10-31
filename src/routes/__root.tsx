@@ -146,22 +146,27 @@ function RootComponent() {
       element.classList.add("interaction-pressed");
       releaseTimer = setTimeout(release, 260);
     };
+    const scheduleRelease = () => {
+      if (releaseTimer) clearTimeout(releaseTimer);
+      // Keep the visual acknowledgement after the finger is lifted.
+      releaseTimer = setTimeout(release, 320);
+    };
     const onPointerDown = (event: PointerEvent) => press(event.target);
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Enter" || event.key === " ") press(event.target);
+      if ((event.key === "Enter" || event.key === " ") && !event.repeat) press(event.target);
     };
     document.addEventListener("pointerdown", onPointerDown, true);
-    document.addEventListener("pointerup", release, true);
-    document.addEventListener("pointercancel", release, true);
+    document.addEventListener("pointerup", scheduleRelease, true);
+    document.addEventListener("pointercancel", scheduleRelease, true);
     document.addEventListener("keydown", onKeyDown, true);
-    document.addEventListener("keyup", release, true);
+    document.addEventListener("keyup", scheduleRelease, true);
     return () => {
       release();
       document.removeEventListener("pointerdown", onPointerDown, true);
-      document.removeEventListener("pointerup", release, true);
-      document.removeEventListener("pointercancel", release, true);
+      document.removeEventListener("pointerup", scheduleRelease, true);
+      document.removeEventListener("pointercancel", scheduleRelease, true);
       document.removeEventListener("keydown", onKeyDown, true);
-      document.removeEventListener("keyup", release, true);
+      document.removeEventListener("keyup", scheduleRelease, true);
     };
   }, []);
 
