@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuthProfile } from "@/components/AuthGate";
-import { listUsers, setApproved, type ManagedUser } from "@/lib/auth.functions";
+import { deleteManagedUser, listUsers, setApproved, type ManagedUser } from "@/lib/auth.functions";
 
 export const Route = createFileRoute("/users")({
   ssr: false,
@@ -24,6 +24,7 @@ function UsersPage() {
   const me = useAuthProfile();
   const list = useServerFn(listUsers);
   const save = useServerFn(setApproved);
+  const remove = useServerFn(deleteManagedUser);
   const [users, setUsers] = useState<ManagedUser[] | null>(null);
 
   const load = useCallback(() => {
@@ -34,6 +35,18 @@ function UsersPage() {
   }, [me?.is_admin, load]);
 
   if (!me?.is_admin) return <p className="text-sm text-muted-foreground">هذه الصفحة للمشرفين فقط.</p>;
+
+  const deleteUser = async (u: ManagedUser) => {
+    if (u.id === me?.id || u.is_admin) return;
+    if (!window.confirm(`هل أنت متأكد من حذف المستخدم "undefined" نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
+    try {
+      await remove({ data: { id: u.id } });
+      toast.success("تم حذف المستخدم");
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "تعذّر حذف المستخدم");
+    }
+  };
 
   const toggle = async (u: ManagedUser) => {
     try {
