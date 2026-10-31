@@ -432,6 +432,7 @@ export type Database = {
           notes: string
           room: string
           sex: string
+          unit: string
           sync_seq: number | null
           updated_at: number
           updated_by: string | null
@@ -459,6 +460,7 @@ export type Database = {
           notes?: string
           room?: string
           sex?: string
+          unit?: string
           sync_seq?: number | null
           updated_at?: number
           updated_by?: string | null
@@ -486,6 +488,7 @@ export type Database = {
           notes?: string
           room?: string
           sex?: string
+          unit?: string
           sync_seq?: number | null
           updated_at?: number
           updated_by?: string | null
