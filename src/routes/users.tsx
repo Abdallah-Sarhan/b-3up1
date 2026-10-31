@@ -38,7 +38,7 @@ function UsersPage() {
 
   const deleteUser = async (u: ManagedUser) => {
     if (u.id === me?.id || u.is_admin) return;
-    if (!window.confirm(`هل أنت متأكد من حذف المستخدم "undefined" نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
+    if (!window.confirm(`هل أنت متأكد من حذف المستخدم "${u.display_name || u.login_name}" نهائيًا؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
     try {
       await remove({ data: { id: u.id } });
       toast.success("تم حذف المستخدم");
@@ -77,9 +77,16 @@ function UsersPage() {
                   {u.approved ? "مفعّل" : "بانتظار الموافقة"}
                 </span>
                 {u.id !== me.id && (
-                  <button type="button" onClick={() => void toggle(u)} className="h-8 rounded-md border border-input px-3 text-xs font-medium hover:bg-accent">
-                    {u.approved ? "إيقاف" : "موافقة"}
-                  </button>
+                  <>
+                    <button type="button" onClick={() => void toggle(u)} className="h-8 rounded-md border border-input px-3 text-xs font-medium hover:bg-accent">
+                      {u.approved ? "إيقاف" : "موافقة"}
+                    </button>
+                    {!u.is_admin && (
+                      <button type="button" onClick={() => void deleteUser(u)} className="h-8 rounded-md border border-destructive px-3 text-xs font-medium text-destructive hover:bg-destructive hover:text-destructive-foreground">
+                        حذف
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
